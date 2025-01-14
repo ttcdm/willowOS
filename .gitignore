@@ -51,4 +51,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-*.jsm
+# online fix said to add *.jsm and chatgpt said to add *.vsidx and *.vsidx fixed the git failed permission denied to open file error
+
+
+*.vsidx
