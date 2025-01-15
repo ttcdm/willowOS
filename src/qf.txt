@@ -1,3 +1,11 @@
 nasm -f bin boot.asm -o boot.bin
 qemu-system-x86_64 boot.bin
 ./qb.sh
+
+0x00 is a number and [0x00] is just the memory address
+
+0x0a is ascii newline
+0x0d is carriage return
+
+int 0x0e is teletype
+int 0x00 is key press mode (keyboard mode?)
