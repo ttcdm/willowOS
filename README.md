@@ -5,6 +5,8 @@ Research period started during October 2024 and first lines of code was actually
 
 All suggestions are welcome, as I am pretty inexperienced compared to the norm in this subject.
 
+https://github.com/limine-bootloader/limine-c-template-x86-64
+https://github.com/mintsuki/flanterm
 
 #Bootloader development is paused for now as Limine is now used as the bootloader
 
