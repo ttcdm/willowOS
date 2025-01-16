@@ -2,6 +2,7 @@
 ;remember to always add the colons
 ;0x00 is null char and '0' is 0x30
 ;try to have an unlimited length string for input
+;remember to reset bx back to var
 ;must use bx for general data access?
 mov bx, var
 mov bp, 0x8000
@@ -22,30 +23,32 @@ other:
 	
 	pop ax
 	cmp ah, 0x1c
-	; jne .call_write_single;write also calls disp for now
-	; .ret_write_single:
-	jne .disp_char
-	.ret_disp_char:
+	jne .call_write_single;write also calls disp for now
+	.ret_write_single:
 
 	jmp other
 
 .call_print:
 	call print
 	jmp .ret_print
+
 .call_clear_var:
 	call clear_var
 	jmp .ret_clear_var
+
 .call_write_single:
 	call write_single
 	
-	; jmp .disp_char
-	; .ret_disp_char:
+	jmp .disp_char
+	.ret_disp_char:
 	
-	; jmp .ret_write_single
+	jmp .ret_write_single
+
 .disp_char:
 	mov ah, 0x0e
 	int 0x10
 	jmp .ret_disp_char
+
 write_single:;apparently i had to put this under where the call was but idk?
 	mov [bx], al
 	inc bx
@@ -61,6 +64,8 @@ clear_var:
 	inc bx
 	jmp .cv_loop
 .end:
+
+	mov bx, var; so that bx gets reset after clearing
 	ret
 
 print:
@@ -81,21 +86,21 @@ print:
 	inc bx
 	jmp .printl
 .end:
-	mov al, 0x0a;newline
-	int 0x10
-	mov al, 0x0d;carriage return
-	int 0x10
+	; mov al, 0x0a;newline
+	; int 0x10
+	; mov al, 0x0d;carriage return
+	; int 0x10
 	ret
 
 
 exit:
 	jmp $
 var:
-	times 10 db 0x00
-
+	times 256 db 0x00; use 256 as a max length for buffer cuz you can't dynamically allocate memory that easily unless you use the stack to store the current char and use a heap to write all of it to memory
 
 jmp $; $ is current line and $$ is current sector or something
 
 times 510-($-$$) db 0x00;0 and 0x00 are the same in terms of numbers but not ascii-wise sorta
 db 0x55, 0xaa
+
 
