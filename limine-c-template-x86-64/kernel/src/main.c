@@ -109,6 +109,10 @@ static void hcf(void) {
     }
 }
 
+
+
+
+
 //need to make functions static so they persist and don't get overwritten for whatever reason
 static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     volatile uint32_t* fb_ptr = framebuffer->address;
@@ -117,15 +121,21 @@ static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t c
     }
 }
 
+struct GDTPtr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
+
 
 struct GDTPtr gdtr;
 
 
 
 void load_gdt(uint64_t* gdt_table, struct limine_framebuffer* framebuffer) {//chatgpt generated
-    gdtr.limit = sizeof(uint64_t) * 6 - 1;  // GDT size
+    gdtr.limit = sizeof(uint64_t) * 7 - 1;  // GDT size
     gdtr.base = (uint64_t)gdt_table;        // GDT base address
 
+    asm volatile("cli"); // Disable interrupts
     // Load the GDTR register
     asm volatile("lgdt %0" : : "m"(gdtr));
 
@@ -153,12 +163,18 @@ void load_gdt(uint64_t* gdt_table, struct limine_framebuffer* framebuffer) {//ch
     :
         : "memory"
         );
-
+    asm volatile("sti"); // Re-enable interrupts
 }
 
 
-void load_tss(struct limine_framebuffer* framebuffer) {//chatgpt generated
+void load_tss(struct flanterm_context* ft_ctx) {//chatgpt generated
+
+    //flanterm_write(ft_ctx, "hi", 2);
+    asm volatile("cli"); // Disable interrupts
     asm volatile("ltr %%ax" : : "a"(0x28)); // 0x28: Selector for TSS descriptor (GDT entry 5)
+    asm volatile("sti"); // Re-enable interrupts
+
+    flanterm_write(ft_ctx, "bye", 3);
 }
 
 
@@ -211,61 +227,74 @@ void output_gdt_entries(uint64_t* gdt_table, size_t entry_count, struct flanterm
 
 #include <stdint.h>
 
-// Define the IDT Entry structure
+// IDT entry structure (16 bytes per entry in long mode)
 struct IDTEntry {
-    uint16_t offset_low;  // Lower 16 bits of the handler address
-    uint16_t selector;    // Code segment selector
-    uint8_t ist;          // Interrupt Stack Table (IST) offset
-    uint8_t type_attr;    // Type and attributes
-    uint16_t offset_mid;  // Middle 16 bits of handler address
-    uint32_t offset_high; // Upper 32 bits of handler address
-    uint32_t zero;        // Reserved
+    uint16_t offset_low;     // Lower 16 bits of the handler function's address
+    uint16_t selector;       // Kernel code segment selector
+    uint8_t ist;             // Interrupt Stack Table offset (0 if unused)
+    uint8_t type_attr;       // Type and attributes
+    uint16_t offset_middle;  // Middle 16 bits of the handler function's address
+    uint32_t offset_high;    // Upper 32 bits of the handler function's address
+    uint32_t zero;           // Reserved, must be 0
 } __attribute__((packed));
 
-// Define the IDT Pointer structure
+// IDT pointer structure
 struct IDTPtr {
-    uint16_t limit;       // Size of the IDT - 1
-    uint64_t base;        // Address of the IDT
+    uint16_t limit;          // Limit of the IDT (size - 1)
+    uint64_t base;           // Base address of the IDT
 } __attribute__((packed));
 
-// Declare the IDT and IDTPtr
-#define IDT_ENTRIES 256
-struct IDTEntry idt[IDT_ENTRIES];
+// Declare a global IDT with 256 entries
+struct IDTEntry idt[256];
 struct IDTPtr idtr;
 
-// Function to set an IDT entry
-void set_idt_entry(int index, void* handler, uint16_t selector, uint8_t ist, uint8_t type_attr) {
-    uint64_t handler_addr = (uint64_t)handler;
-
-    idt[index].offset_low = handler_addr & 0xFFFF;
-    idt[index].selector = selector;       // Code segment selector
-    idt[index].ist = ist & 0x7;           // Interrupt Stack Table (3 bits)
-    idt[index].type_attr = type_attr;     // Type and attributes
-    idt[index].offset_mid = (handler_addr >> 16) & 0xFFFF;
-    idt[index].offset_high = (handler_addr >> 32) & 0xFFFFFFFF;
-    idt[index].zero = 0;                  // Reserved
-}
-
-// Basic fault handler
+// A simple fault handler (will halt the CPU for now)
 void fault_handler() {
-    volatile uint32_t* fb_ptr = (volatile uint32_t*)0xB8000; // Framebuffer address (replace with your framebuffer address)
-    fb_ptr[0] = 0xFF0000; // Red color to indicate a fault
-    while (1) asm("hlt"); // Halt the CPU
+    asm volatile("cli; hlt");
 }
 
-// Function to set up the IDT
-void setup_idt() {
-    // Clear the IDT
-    memset(idt, 0, sizeof(idt));
+// Set up an IDT entry
+void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr) {
+    uint64_t handler_address = (uint64_t)handler;
 
-    // Set a handler for General Protection Fault (interrupt vector 13)
-    set_idt_entry(13, fault_handler, 0x08, 0, 0x8E); // 0x08 = Kernel code selector, 0x8E = Present, interrupt gate
+    idt[vector].offset_low = handler_address & 0xFFFF;
+    idt[vector].selector = selector;
+    idt[vector].ist = 0; // No alternate stack
+    idt[vector].type_attr = type_attr;
+    idt[vector].offset_middle = (handler_address >> 16) & 0xFFFF;
+    idt[vector].offset_high = (handler_address >> 32) & 0xFFFFFFFF;
+    idt[vector].zero = 0;
+}
 
-    // Load the IDT
+// Load the IDT into the CPU
+void load_idt() {
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;
-    asm volatile("lidt %0" : : "m"(idtr));
+
+    asm volatile("lidt %0" : : "m"(idtr)); // Load IDT register
 }
+
+// Initialize the IDT
+void setup_idt() {
+    // Clear the IDT (set all entries to 0)
+    memset(idt, 0, sizeof(idt));
+
+    // Set handlers for basic exceptions
+    set_idt_entry(13, fault_handler, 0x08, 0x8E); // General Protection Fault (vector 13)
+    set_idt_entry(14, fault_handler, 0x08, 0x8E); // Page Fault (vector 14)
+
+    // Load the IDT
+    load_idt();
+}
+
+
+void gpf_handler() {
+    asm volatile("cli; hlt"); // Halt on GPF
+}
+void double_fault_handler() {
+    asm volatile("cli; hlt"); // Halt on Double Fault
+}
+
 
 
 
@@ -296,7 +325,6 @@ void kmain(void) {
     }
 
     // Fetch the first framebuffer.
-    struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
 
     // Note: we assume the framebuffer model is RGB with 32-bit pixels.
 
@@ -305,6 +333,7 @@ void kmain(void) {
     //    fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
     //}
 
+    struct limine_framebuffer* framebuffer = framebuffer_request.response->framebuffers[0];
 
     struct flanterm_context* ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
         NULL,
@@ -321,6 +350,7 @@ void kmain(void) {
         0, 0,
         0
     );
+
 
     clear_framebuffer(framebuffer, BLACK);
 
@@ -342,19 +372,33 @@ void kmain(void) {
     gdt_table[2] = create_descriptor(0, 0xFFFFF, 0x92, 0x0c);
     gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);
     gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
+    load_gdt(gdt_table, framebuffer);
+
+    setup_idt();
+
+    load_idt();
 
     struct TSS tss __attribute__((aligned(16)));
-
+    //gdt_table[5] = create_descriptor(0, 0xFFFFF, 0x89, 0x40);
     memset(&tss, 0, sizeof(tss));
     tss.rsp[0] = 0x80000; // Kernel stack pointer for privilege level 0
     tss.ist[0] = 0x90000; // Example IST stack pointer
+
+    //*(volatile uint64_t*)0x80000 = 0xDEADBEEF; // Test write
+    //*(volatile uint64_t*)0x90000 = 0xCAFEBABE; // Test write
+
     tss.iomap_base = sizeof(tss); // End of TSS structure
 
     // Step 3: Create the TSS descriptor in the GDT
     create_tss_descriptor((uint64_t)&tss, sizeof(tss) - 1, gdt_table, 5);//for gdt_5
 
-    setup_idt(); // Initialize the IDT
-    load_gdt(gdt_table, framebuffer);
+    
+
+
+
+
+
+
 
     output_gdt_entries(gdt_table, 7, ft_ctx);
 
@@ -399,8 +443,8 @@ void kmain(void) {
 
 
 
-    //load_tss(framebuffer);
-    load_tss_asm();
+    load_tss(ft_ctx);
+    //load_tss_asm();
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     while (1) { asm("hlt"); }
     flanterm_write(ft_ctx, "helloworld", 10);

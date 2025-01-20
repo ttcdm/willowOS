@@ -20,6 +20,19 @@ all: $(IMAGE_NAME).iso
 .PHONY: all-hdd
 all-hdd: $(IMAGE_NAME).hdd
 
+#-s and -S are for gdb debugging
+
+.PHONY: run-debug
+run-debug: $(IMAGE_NAME).iso
+	qemu-system-x86_64 \
+		-s \
+		-S \
+		-M q35 \
+		-cdrom $(IMAGE_NAME).iso \
+		-boot d \
+		$(QEMUFLAGS)
+
+
 .PHONY: run
 run: $(IMAGE_NAME).iso
 	qemu-system-x86_64 \
