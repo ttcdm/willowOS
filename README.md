@@ -10,7 +10,8 @@ The kernel is inside main.c which is inside limine-c-template-x86-64
 https://github.com/limine-bootloader/limine-c-template-x86-64  
 https://github.com/mintsuki/flanterm
 
+./g-debug.sh to start up gdb debug after running make run-debug
+
 # Bootloader development is paused for now as Limine is now used as the bootloader
 
 ./qb.sh to assemble bootloader and run it in QEMU
-
