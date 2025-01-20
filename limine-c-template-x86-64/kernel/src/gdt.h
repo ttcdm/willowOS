@@ -69,9 +69,27 @@ struct TSS {
     uint16_t iomap_base;
 } __attribute__((packed));
 
+struct GDTPtr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
 
+// IDT entry structure (16 bytes per entry in long mode)
+struct IDTEntry {
+    uint16_t offset_low;     // Lower 16 bits of the handler function's address
+    uint16_t selector;       // Kernel code segment selector
+    uint8_t ist;             // Interrupt Stack Table offset (0 if unused)
+    uint8_t type_attr;       // Type and attributes
+    uint16_t offset_middle;  // Middle 16 bits of the handler function's address
+    uint32_t offset_high;    // Upper 32 bits of the handler function's address
+    uint32_t zero;           // Reserved, must be 0
+} __attribute__((packed));
 
-
+// IDT pointer structure
+struct IDTPtr {
+    uint16_t limit;          // Limit of the IDT (size - 1)
+    uint64_t base;           // Base address of the IDT
+} __attribute__((packed));
 
 void encodeGdtEntry(uint8_t* target, struct GDT source);
 
@@ -79,6 +97,14 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index);
 
-//void load_gdt(uint64_t* gdt_table, struct limine_framebuffer* framebuffer);
 
-//void load_tss();
+
+void load_gdt(struct GDTPtr* gdtr, uint64_t* gdt_table);
+void load_tss();
+void output_gdt_entries(uint64_t* gdt_table, size_t entry_count);
+void fault_handler();
+void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr);
+void load_idt();
+void setup_idt();
+void setup_gdt(uint64_t* gdt_table);
+void setup_tss(struct TSS* tss, uint64_t* gdt_table);
