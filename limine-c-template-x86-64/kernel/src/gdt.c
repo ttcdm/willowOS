@@ -4,6 +4,13 @@
 
 #include <limine.h>
 
+
+// Declare a global IDT with 256 entries
+struct IDTEntry idt[256];//chatgpt generated. not sure if i should actually do this.
+struct IDTPtr idtr;
+
+
+
 /*
 void encodeGdtEntry(uint8_t* target, struct GDT source)
 {
@@ -94,3 +101,114 @@ void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, i
 }
 
 
+void load_gdt(struct GDTPtr* gdtr, uint64_t* gdt_table) {//chatgpt generated
+    gdtr->limit = sizeof(uint64_t) * 7 - 1;  // GDT size
+    gdtr->base = (uint64_t)gdt_table;        // GDT base address
+
+    asm volatile("cli"); // Disable interrupts
+    // Load the GDTR register
+    asm volatile("lgdt %0" : : "m"(*gdtr));
+
+    // Perform a far jump to reload the CS segment
+    asm volatile(
+        "pushq $0x08\n"        // Push kernel code segment selector (GDT entry 1)
+        "lea 1f(%%rip), %%rax\n"
+        "pushq %%rax\n"
+        "lretq\n"              // Long return to update CS
+        "1:\n"
+        :
+    :
+        : "rax", "memory"
+        );
+
+    // Reload other segment registers
+    asm volatile(
+        "mov $0x10, %%ax\n"    // Kernel data segment selector (GDT entry 2)
+        "mov %%ax, %%ds\n"
+        "mov %%ax, %%es\n"
+        "mov %%ax, %%fs\n"
+        "mov %%ax, %%gs\n"
+        "mov %%ax, %%ss\n"
+        :
+    :
+        : "memory"
+        );
+    asm volatile("sti"); // Re-enable interrupts
+}
+
+
+void load_tss() {//chatgpt generated
+    asm volatile("ltr %%ax" : : "a"(0x28)); // 0x28: Selector for TSS descriptor (GDT entry 5)
+}
+
+void output_gdt_entries(uint64_t* gdt_table, size_t entry_count) {//chatgpt generated
+    char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
+    /*
+    for (size_t i = 0; i < entry_count; i++) {
+        uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
+        flanterm_write(ft_ctx, "GDT Entry ", 10);
+        flanterm_write(ft_ctx, buffer, 18); // Write the hex value
+        flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
+    }
+    */
+}
+
+
+// A simple fault handler (will halt the CPU for now)
+void fault_handler() {//chatgpt generated
+    asm volatile("cli; hlt");
+}
+
+// Set up an IDT entry
+void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr) {//chatgpt generated
+    uint64_t handler_address = (uint64_t)handler;
+
+    idt[vector].offset_low = handler_address & 0xFFFF;
+    idt[vector].selector = selector;
+    idt[vector].ist = 0; // No alternate stack
+    idt[vector].type_attr = type_attr;
+    idt[vector].offset_middle = (handler_address >> 16) & 0xFFFF;
+    idt[vector].offset_high = (handler_address >> 32) & 0xFFFFFFFF;
+    idt[vector].zero = 0;
+}
+
+// Load the IDT into the CPU
+void load_idt() {//chatgpt generated
+    idtr.limit = sizeof(idt) - 1;
+    idtr.base = (uint64_t)&idt;
+
+    asm volatile("lidt %0" : : "m"(idtr)); // Load IDT register
+}
+
+// Initialize the IDT
+void setup_idt() {//chatgpt generated
+    // Clear the IDT (set all entries to 0)
+    memset(idt, 0, sizeof(idt));
+
+    // Set handlers for basic exceptions
+    set_idt_entry(13, fault_handler, 0x08, 0x8E); // General Protection Fault (vector 13)
+    set_idt_entry(14, fault_handler, 0x08, 0x8E); // Page Fault (vector 14)
+
+    // Load the IDT
+    load_idt();
+}
+
+
+
+
+void setup_gdt(uint64_t* gdt_table) {//chatgpt generated
+    gdt_table[0] = 0;
+    gdt_table[1] = create_descriptor(0, 0xFFFFF, 0x9a, 0x0a);
+    gdt_table[2] = create_descriptor(0, 0xFFFFF, 0x92, 0x0c);
+    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);
+    gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
+}
+
+void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
+    memset(tss, 0, sizeof(tss));
+    tss->rsp[0] = 0x80000; // Kernel stack pointer for privilege level 0
+    tss->ist[0] = 0x90000; // Example IST stack pointer
+    tss->iomap_base = sizeof(tss); // End of TSS structure
+    create_tss_descriptor((uint64_t)tss, sizeof(*tss) - 1, gdt_table, 5);//for gdt_5
+
+}
