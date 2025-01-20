@@ -76,12 +76,14 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 }
 
 
-void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index) {
+
+
+void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index) {//chatgpt generated
     uint64_t low = 0;
     low |= (limit & 0xFFFF);                // Lower 16 bits of limit
     low |= (base & 0xFFFFFF) << 16;         // Lower 24 bits of base
     low |= (uint64_t)0x89 << 40;           // TSS type and attributes
-    low |= ((limit >> 16) & 0xF) << 48;    // Upper 4 bits of limit
+    low |= ((uint64_t)((limit >> 16) & 0xF) << 48);    // Upper 4 bits of limit
     low |= ((base >> 24) & 0xFF) << 56;    // Next 8 bits of base
 
     uint64_t high = 0;

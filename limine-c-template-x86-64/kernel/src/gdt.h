@@ -59,20 +59,19 @@ struct GDT {//chatgpt generated
 };
 
 
-struct TSS {//chatgpt generated
-    uint32_t reserved;    // Reserved (always 0)
-    uint64_t rsp[3];      // Stack pointers for privilege levels 0, 1, 2
-    uint64_t reserved2;   // Reserved
-    uint64_t ist[7];      // Interrupt Stack Table (IST) pointers
-    uint64_t reserved3;   // Reserved
-    uint16_t reserved4;   // Reserved
-    uint16_t iomap_base;  // I/O map base address
+struct TSS {
+    uint32_t reserved;
+    uint64_t rsp[3]; // Stack pointers for privilege levels 0, 1, 2
+    uint64_t reserved2;
+    uint64_t ist[7]; // Interrupt Stack Table
+    uint64_t reserved3;
+    uint16_t reserved4;
+    uint16_t iomap_base;
 } __attribute__((packed));
 
-struct GDTPtr {//chatgpt generated
-    uint16_t limit;
-    uint64_t base;
-} __attribute__((packed));
+
+
+
 
 void encodeGdtEntry(uint8_t* target, struct GDT source);
 
