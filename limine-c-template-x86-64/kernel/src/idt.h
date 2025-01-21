@@ -2,6 +2,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include <limine.h>
+
+#include <flanterm/flanterm.h>
+#include <flanterm/backends/fb.h>
 
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
@@ -20,9 +24,28 @@ typedef struct {
 	uint32_t	base;
 } __attribute__((packed)) idtr_t;
 
+//struct interrupt_frame
+//{
+//	uword_t ip;
+//	uword_t cs;
+//	uword_t flags;
+//	uword_t sp;
+//	uword_t ss;
+//};
+
+struct interrupt_frame;
+
 __attribute__((noreturn))
 void exception_handler(void);
+
+//__attribute__((noreturn))
+//void exception_handler_custom(struct flanterm_context* ft_ctx);
+
+__attribute__((interrupt))
+void interrupt_handler_custom(struct interrupt_frame* frame);
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
 
 void idt_init(void);
+
+void kprint(struct limine_framebuffer* framebuffer);
