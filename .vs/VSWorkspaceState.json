@@ -6,6 +6,6 @@
     "\\limine-c-template-x86-64\\kernel",
     "\\limine-c-template-x86-64\\kernel\\src"
   ],
-  "SelectedNode": "\\limine-c-template-x86-64\\kernel\\src\\main.c",
+  "SelectedNode": "\\limine-c-template-x86-64\\kernel\\src\\idt.asm",
   "PreviewInSolutionExplorer": false
 }
