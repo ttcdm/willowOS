@@ -1,5 +1,5 @@
 # willowOS
-A simple x86 operating system
+A simple x86-64 operating system
 
 Research period started during October 2024 and first lines of code was actually written during January 2025
 

@@ -14,6 +14,24 @@ void exception_handler() {
     __asm__ volatile ("cli; hlt"); // Completely hangs the computer
 }
 
+//__attribute__((noreturn))
+//void exception_handler_custom(struct flanterm_context* ft_ctx) {
+//    flanter_write(ft_ctx, "helloworld", 10);
+//    //__asm__ volatile ("cli; hlt"); // Completely hangs the computer
+//    
+//}
+
+__attribute__((interrupt))
+void interrupt_handler_custom(struct interrupt_frame* frame) {
+    __asm__ volatile ("cli; hlt");
+    //struct limine_framebuffer* framebuffer = framebuffer_request.response->framebuffers[0];
+    //kprint(framebuffer);
+}
+
+void kprint(struct limine_framebuffer* framebuffer) {
+    for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
+}
+
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
     idt_entry_t* descriptor = &idt[vector];
 
@@ -38,6 +56,9 @@ void idt_init() {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
+
+    idt_set_descriptor(32, isr_stub_table[32], 0x8E);
+    vectors[32] = true;
 
     __asm__ volatile ("lidt %0" : : "m"(idtr)); // load the new IDT
     __asm__ volatile ("sti"); // set the interrupt flag

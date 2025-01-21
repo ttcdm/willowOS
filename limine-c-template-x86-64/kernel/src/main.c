@@ -116,6 +116,8 @@ static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t c
 }
 
 
+
+
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
@@ -157,7 +159,6 @@ void kmain(void) {
         0
     );
 
-
     clear_framebuffer(framebuffer, BLACK);
 
 
@@ -169,10 +170,10 @@ void kmain(void) {
 
 
 
-    //setup_idt();
+    //setup_idt();//chatgpt'ed version
     //load_idt();
 
-    idt_init();
+    idt_init();//not chatgpt'ed version
 
 
 
@@ -183,8 +184,8 @@ void kmain(void) {
     load_tss();
 
 
-    for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
-    while (1) { asm("hlt"); }
+    //for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
+    //while (1) { asm("hlt"); }
 
 
     flanterm_write(ft_ctx, "helloworld", 10);
