@@ -4,6 +4,7 @@
 
 #include <keyboard.h>
 #include <gdt.h>
+#include <idt.h>
 
 #include <limine.h>
 
@@ -164,8 +165,19 @@ void kmain(void) {
     setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
-    setup_idt();
-    load_idt();
+
+
+
+
+    //setup_idt();
+    //load_idt();
+
+    idt_init();
+
+
+
+
+
     struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
