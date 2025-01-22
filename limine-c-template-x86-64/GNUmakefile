@@ -27,6 +27,8 @@ run-debug: $(IMAGE_NAME).iso
 	qemu-system-x86_64 \
 		-s \
 		-S \
+		-D ./qemu-log \
+		-d int,cpu_reset \
 		-M q35 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
@@ -36,6 +38,8 @@ run-debug: $(IMAGE_NAME).iso
 .PHONY: run
 run: $(IMAGE_NAME).iso
 	qemu-system-x86_64 \
+		-D ./qemu-log \
+		-d int,cpu_reset \
 		-M q35 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \

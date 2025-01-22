@@ -19,9 +19,9 @@ typedef struct idt_actual{
 	uint32_t    reserved;     // Set to zero
 } __attribute__((packed)) idt_entry_t;
 
-typedef struct {
+typedef struct idtr_t_actual {
 	uint16_t	limit;
-	uint32_t	base;
+	uint64_t	base;
 } __attribute__((packed)) idtr_t;
 
 //struct interrupt_frame
@@ -38,9 +38,6 @@ struct interrupt_frame;
 __attribute__((noreturn))
 void exception_handler(void);
 
-//__attribute__((noreturn))
-//void exception_handler_custom(struct flanterm_context* ft_ctx);
-
 __attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame);
 
@@ -48,4 +45,15 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
 
 void idt_init(void);
 
-void kprint(struct limine_framebuffer* framebuffer);
+
+
+void bp(void);
+
+static idtr_t idtr;
+
+typedef struct {
+	uint16_t limit;
+	uint32_t base;
+} __attribute__((packed)) idtr_value;
+
+static idtr_value idtr_v;
