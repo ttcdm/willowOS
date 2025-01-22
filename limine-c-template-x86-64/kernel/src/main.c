@@ -141,6 +141,7 @@ void kmain(void) {
         hcf();
     }
 
+
     struct limine_framebuffer* framebuffer = framebuffer_request.response->framebuffers[0];
 
     struct flanterm_context* ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
@@ -174,17 +175,16 @@ void kmain(void) {
     //load_idt();
 
     idt_init();//not chatgpt'ed version
-
-
-
-
-
+    //bp();
     struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
+    
 
+    //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
+    __asm__ volatile ("int $82");
 
-    //for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
+    for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }
 
 

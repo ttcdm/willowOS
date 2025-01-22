@@ -10,15 +10,9 @@ isr_stub_%+%1:
     iretq
 %endmacro
 
-%macro isr_custom 1
-isr_stub_%+%1:
-    call interrupt_handler_custom
-    iretq
-%endmacro
 
-extern exception_handler
 extern interrupt_handler_custom;remember to extern the functions
-
+extern exception_handler
 isr_no_err_stub 0
 isr_no_err_stub 1
 isr_no_err_stub 2
@@ -52,12 +46,24 @@ isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
 
-isr_custom 32
+isr_stub_82:
+    ;pushaq
+    push rbp
+    mov rbp, rsp
+    sub rsp, 8
+    mov [rbp - 8], rsp
+    mov rsi, [rbp - 8]
+    call exception_handler;interrupt_handler_custom
+    add rsp, 8
+    pop rbp
+    ;popaq
+    iretq
 
 global isr_stub_table
 isr_stub_table:
 %assign i 0 
-%rep    33
+%rep    32
     dq isr_stub_%+i ; use DQ instead if targeting 64-bit
 %assign i i+1 
 %endrep
+    dq isr_stub_82
