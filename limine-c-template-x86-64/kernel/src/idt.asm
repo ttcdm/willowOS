@@ -48,14 +48,9 @@ isr_no_err_stub 31
 
 isr_stub_82:
     ;pushaq
-    push rbp
-    mov rbp, rsp
-    sub rsp, 8
-    mov [rbp - 8], rsp
-    mov rsi, [rbp - 8]
-    call exception_handler;interrupt_handler_custom
-    add rsp, 8
-    pop rbp
+
+    call interrupt_handler_custom;exception_handler
+
     ;popaq
     iretq
 

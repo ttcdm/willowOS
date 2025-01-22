@@ -42,7 +42,7 @@ void bp(void) {
 }
 
 void idt_init() {
-    idtr.base = (uint64_t)&idt[0];//(uintptr_t)&idt[0];
+    idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];
     idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
     for (uint8_t vector = 0; vector < 32; vector++) {
@@ -50,8 +50,8 @@ void idt_init() {
         vectors[vector] = true;
     }
 
-    idt_set_descriptor(82, isr_stub_table[82], 0x8E);
-    vectors[82] = true;
+    idt_set_descriptor(32, isr_stub_table[32], 0x8E);
+    vectors[32] = true;
 
     //bp();
 

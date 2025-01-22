@@ -16,7 +16,8 @@ CC := cc
 AR := ar
 
 # User controllable C flags.
-CFLAGS := -g -O2 -pipe
+# -mgeneral-regs-only // for compiling with interrupts or something
+CFLAGS := -g -O2 -pipe -mgeneral-regs-only
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=
