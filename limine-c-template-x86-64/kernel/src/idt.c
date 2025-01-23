@@ -11,16 +11,13 @@ static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for perf
 
 __attribute__((noreturn))
 void exception_handler() {
+    kprint("oops");
     __asm__ volatile ("cli; hlt"); // Completely hangs the computer
 }
 
-__attribute__((interrupt))
+//__attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame) {
-    kprint("hii");
-    //__asm__ volatile ("cli; hlt");
-    //for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
-    //while (1) { asm("hlt"); }
-    //flanterm_write(ft_ctx, "helloworld", 10);
+    kprint("hi");
 }
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {

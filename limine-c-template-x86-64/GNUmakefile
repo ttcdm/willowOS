@@ -11,7 +11,7 @@ override IMAGE_NAME := template
 HOST_CC := cc
 # -mgeneral-regs-only // for compiling with interrupts or something
 # -O2 for the default compilation with optimization. O0 is for no optimization
-HOST_CFLAGS := -g -O0 -pipe -mgeneral-regs-only
+HOST_CFLAGS := -g -O2 -pipe
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
