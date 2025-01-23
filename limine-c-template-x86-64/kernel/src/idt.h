@@ -45,9 +45,9 @@ void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
 
 void idt_init(void);
 
-
-
 void bp(void);
+
+
 
 static idtr_t idtr;
 
@@ -57,3 +57,5 @@ typedef struct {
 } __attribute__((packed)) idtr_value;
 
 static idtr_value idtr_v;
+
+void kprint(char* str);
