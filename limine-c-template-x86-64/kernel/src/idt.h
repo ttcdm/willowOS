@@ -38,7 +38,7 @@ struct interrupt_frame;
 __attribute__((noreturn))
 void exception_handler(void);
 
-__attribute__((interrupt))
+//__attribute__((interrupt))//apparently this disallowed the interrupt handler from returning for whatever reason
 void interrupt_handler_custom(struct interrupt_frame* frame);
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
@@ -58,4 +58,3 @@ typedef struct {
 
 static idtr_value idtr_v;
 
-void kprint(char* str);

@@ -5,6 +5,7 @@
 #include <keyboard.h>
 #include <gdt.h>
 #include <idt.h>
+#include <kutils.h>
 
 #include <limine.h>
 
@@ -107,8 +108,8 @@ static void hcf(void) {
     }
 }
 
-//need to make functions static so they persist and don't get overwritten for whatever reason
-static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
+//need to make functions static so they persist and don't get overwritten for whatever reason. idk actually
+void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     volatile uint32_t* fb_ptr = framebuffer->address;
     for (size_t i = 0; i < framebuffer->height * framebuffer->width; i++) {
         fb_ptr[i] = color;
@@ -116,11 +117,13 @@ static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t c
 }
 
 
-static struct limine_framebuffer* framebuffer;
-static struct flanterm_context* ft_ctx;
+
+
+struct limine_framebuffer* framebuffer;
+struct flanterm_context* ft_ctx;
 
 void kprint(char* msg) {
-	flanterm_write(ft_ctx, msg, sizeof(msg));
+    flanterm_write(ft_ctx, msg, sizeof(msg));
 }
 
 // The following will be our kernel's entry point.
@@ -188,7 +191,7 @@ void kmain(void) {
     
 
     //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
-    __asm__ volatile ("int $64");
+    asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }

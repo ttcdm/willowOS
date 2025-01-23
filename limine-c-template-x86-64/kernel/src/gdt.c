@@ -108,49 +108,18 @@ void load_gdt(struct GDTPtr* gdtr, uint64_t* gdt_table) {//chatgpt generated
     asm volatile("cli"); // Disable interrupts
     // Load the GDTR register
     asm volatile("lgdt %0" : : "m"(*gdtr));
-    jump_gdt();
-    //asm volatile (
-    //    ".byte 0xEA\n"         // Opcode for `ljmp`
-    //    ".word longjmp_after_gdt\n"
-    //    ".word 0x08\n"         // Code segment selector
-    //    "longjmp_after_gdt:\n"
-    //    "mov $0x10, %%ax\n"
-    //    "mov %%ax, %%ds\n"
-    //    "mov %%ax, %%es\n"
-    //    "mov %%ax, %%fs\n"
-    //    "mov %%ax, %%gs\n"
-    //    "mov %%ax, %%ss\n"
-    //    :
-    //:
-    //    : "memory", "rax"
-    //    );
-    //return;
-    //asm volatile (
-    //    "ljmp $0x08, $longjmp_after_gdt\n"
-    //    "longjmp_after_gdt:\n"
-    //    // Repoint segment registers to proper selectors
-    //    "mov $0x10, %%ax\n"  // Load data segment selector (0x10 for example)
-    //    "mov %%ax, %%ds\n"
-    //    "mov %%ax, %%es\n"
-    //    "mov %%ax, %%fs\n"
-    //    "mov %%ax, %%gs\n"
-    //    "mov %%ax, %%ss\n"
-    //    : // No outputs
-    //: // No inputs
-    //    : "memory", "rax"
-    //    );
-    //return;
+
     // Perform a far jump to reload the CS segment
-    //__asm__ volatile(
-    //    "pushq $0x08\n"        // Push kernel code segment selector (GDT entry 1)
-    //    "lea 1f(%%rip), %%rax\n"
-    //    "pushq %%rax\n"
-    //    "lretq\n"              // Long return to update CS
-    //    "1:\n"
-    //    :
-    //:
-    //    : "rax", "memory"
-    //    );
+    asm volatile(
+        "pushq $0x08\n"        // Push kernel code segment selector (GDT entry 1)
+        "lea 1f(%%rip), %%rax\n"
+        "pushq %%rax\n"
+        "lretq\n"              // Long return to update CS
+        "1:\n"
+        :
+    :
+        : "rax", "memory"
+        );
 
     // Reload other segment registers
     asm volatile(
