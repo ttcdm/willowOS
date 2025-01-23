@@ -16,7 +16,7 @@ void exception_handler() {
 
 __attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame) {
-    __asm__ volatile ("cli; hlt");
+    //__asm__ volatile ("cli; hlt");
     //for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }
     //flanterm_write(ft_ctx, "helloworld", 10);
@@ -45,13 +45,13 @@ void idt_init() {
     idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];
     idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
-    for (uint8_t vector = 0; vector < 32; vector++) {
+    for (uint8_t vector = 0; vector < 64; vector++) {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
 
-    idt_set_descriptor(32, isr_stub_table[32], 0x8E);
-    vectors[32] = true;
+    idt_set_descriptor(64, isr_stub_table[64], 0x8E);
+    vectors[64] = true;
 
     //bp();
 

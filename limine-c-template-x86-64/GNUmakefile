@@ -9,7 +9,9 @@ override IMAGE_NAME := template
 
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
-HOST_CFLAGS := -g -O2 -pipe
+# -mgeneral-regs-only // for compiling with interrupts or something
+# -O2 for the default compilation with optimization. O0 is for no optimization
+HOST_CFLAGS := -g -O0 -pipe -mgeneral-regs-only
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
