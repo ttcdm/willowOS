@@ -116,7 +116,12 @@ static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t c
 }
 
 
+static struct limine_framebuffer* framebuffer;
+static struct flanterm_context* ft_ctx;
 
+void kprint(char* msg) {
+	flanterm_write(ft_ctx, msg, sizeof(msg));
+}
 
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
@@ -142,9 +147,9 @@ void kmain(void) {
     }
 
 
-    struct limine_framebuffer* framebuffer = framebuffer_request.response->framebuffers[0];
+    framebuffer = framebuffer_request.response->framebuffers[0];
 
-    struct flanterm_context* ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
+    ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
         NULL,
         NULL,
         framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,//remember to use framebuffer->address as the framebuffer arg. framebuffer is just a struct, so we need to pass its actual address in as well
@@ -161,6 +166,7 @@ void kmain(void) {
     );
 
     clear_framebuffer(framebuffer, BLACK);
+
 
 
     uint64_t gdt_table[7];
@@ -188,7 +194,7 @@ void kmain(void) {
     //while (1) { asm("hlt"); }
 
 
-    flanterm_write(ft_ctx, "helloworld", 10);
+    //flanterm_write(ft_ctx, "helloworld", 10);
 
     // We're done, just hang...
     hcf();

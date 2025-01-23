@@ -16,6 +16,7 @@ void exception_handler() {
 
 __attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame) {
+    kprint("hii");
     //__asm__ volatile ("cli; hlt");
     //for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }

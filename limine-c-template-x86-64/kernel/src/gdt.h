@@ -108,3 +108,5 @@ void load_idt();
 void setup_idt();
 void setup_gdt(uint64_t* gdt_table);
 void setup_tss(struct TSS* tss, uint64_t* gdt_table);
+
+void jump_from_gdt(void);
