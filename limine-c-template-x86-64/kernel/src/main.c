@@ -182,7 +182,7 @@ void kmain(void) {
     
 
     //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
-    __asm__ volatile ("int $32");
+    __asm__ volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }
