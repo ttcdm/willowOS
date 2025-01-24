@@ -11,13 +11,13 @@ static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for perf
 
 __attribute__((noreturn))
 void exception_handler() {
-    kprint("oops");
+    kprint("exception occurred");
     __asm__ volatile ("cli; hlt"); // Completely hangs the computer
 }
 
 //__attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame) {
-    kprint("hi");
+    kprint("interrupt occured");
 }
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
@@ -36,8 +36,6 @@ static bool vectors[IDT_MAX_DESCRIPTORS];
 
 extern void* isr_stub_table[];
 
-void bp(void) {
-}
 
 void idt_init() {
     idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];

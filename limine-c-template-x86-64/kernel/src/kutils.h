@@ -8,3 +8,7 @@
 
 
 void kprint(char* str);
+
+void bp(void);
+
+void uint64_to_string(uint64_t value, char* buffer);

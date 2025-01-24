@@ -35,6 +35,15 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
     .revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0
+};
+
+
+
+
 // Finally, define the start and end markers for the Limine requests.
 // These can also be moved anywhere, to any .c file, as seen fit.
 
@@ -122,8 +131,16 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
 
+
 void kprint(char* msg) {
-    flanterm_write(ft_ctx, msg, sizeof(msg));
+    int s = 0;
+    for (int i = 0;; i++) {//strlen
+        if (msg[i] == '\0') {
+            break;
+        }
+        s++;
+    }
+    flanterm_write(ft_ctx, msg, s);
 }
 
 // The following will be our kernel's entry point.
@@ -153,23 +170,39 @@ void kmain(void) {
     framebuffer = framebuffer_request.response->framebuffers[0];
 
     ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
-        NULL,
-        NULL,
-        framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,//remember to use framebuffer->address as the framebuffer arg. framebuffer is just a struct, so we need to pass its actual address in as well
-        framebuffer->red_mask_size, framebuffer->red_mask_shift,
-        framebuffer->green_mask_size, framebuffer->green_mask_shift,
-        framebuffer->blue_mask_size, framebuffer->blue_mask_shift,
-        NULL,
-        NULL, NULL,
-        NULL, NULL,
-        NULL, NULL,
-        NULL, 0, 0, 1,
-        0, 0,
-        0
+        NULL, NULL, framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,//remember to use framebuffer->address as the framebuffer arg. framebuffer is just a struct, so we need to pass its actual address in as well
+        framebuffer->red_mask_size, framebuffer->red_mask_shift, framebuffer->green_mask_size, framebuffer->green_mask_shift, framebuffer->blue_mask_size, framebuffer->blue_mask_shift, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 0, 0, 0
     );
 
     clear_framebuffer(framebuffer, BLACK);
 
+    kprint("helloworld\n");
+    //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
+    
+
+    int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+        if (memmap_request.response->entries[i]->type == 0) {
+            usable_memmaps_number++;
+        }
+    }
+    struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
+    usable_memmaps_number = 0;//reset to 0
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {
+        if (memmap_request.response->entries[i]->type == 0) {
+            usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
+            usable_memmaps_number++;
+        }
+    }
+
+    for (int i = 0; i < usable_memmaps_number; i++) {
+        char strr[32];
+        uint64_to_string(usable_memmaps[i]->length, strr);
+        kprint(strr);
+        kprint("\n");
+    }
+
+    bp();
 
 
     uint64_t gdt_table[7];
@@ -184,7 +217,6 @@ void kmain(void) {
     //load_idt();
 
     idt_init();//not chatgpt'ed version
-    //bp();
     struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
