@@ -200,7 +200,7 @@ void setup_gdt(uint64_t* gdt_table) {//chatgpt generated
     gdt_table[0] = 0;
     gdt_table[1] = create_descriptor(0, 0xFFFFF, 0x9a, 0x0a);
     gdt_table[2] = create_descriptor(0, 0xFFFFF, 0x92, 0x0c);
-    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);
+    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);//the limit may need to larger: https://github.com/limine-bootloader/limine/blob/v8.x/PROTOCOL.md under the machine state at entry
     gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
 }
 

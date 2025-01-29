@@ -6,6 +6,7 @@
 #include <gdt.h>
 #include <idt.h>
 #include <kutils.h>
+#include <paging.h>
 
 #include <limine.h>
 
@@ -32,13 +33,13 @@ static volatile LIMINE_BASE_REVISION(3);
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
+    .revision = 0//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0
+    .revision = 0//may need to change it to 3 but idk
 };
 
 
@@ -125,11 +126,44 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     }
 }
 
+struct limine_memmap_entry** usable_memmaps_1_ptr;//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
 
 
+void init_memmaps() {//remember that it's plural
+    int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+        if (memmap_request.response->entries[i]->type == 0) {
+            usable_memmaps_number++;
+        }
+    }
+
+    //not sure if i should put this as global
+    struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
+    usable_memmaps_number = 0;//reset to 0
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {
+        if (memmap_request.response->entries[i]->type == 0) {
+            usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
+            usable_memmaps_number++;
+        }
+    }
+
+    usable_memmaps_1_ptr = &usable_memmaps[1];//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
+
+
+    for (int i = 0; i < usable_memmaps_number; i++) {
+        char strr[32];
+        uint64_to_string(usable_memmaps[i]->base, strr);
+        kprint(strr);
+        kprint("  ");
+        uint64_to_string(usable_memmaps[i]->length, strr);
+        kprint(strr);
+        kprint("\n");
+    }
+}
 
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
+
 
 
 void kprint(char* msg) {
@@ -147,6 +181,8 @@ void kprint(char* msg) {
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
 void kmain(void) {
+
+
 
     /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
     uint32_t RED = 0xff0000;
@@ -179,38 +215,16 @@ void kmain(void) {
     kprint("helloworld\n");
     //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
     
+    init_memmaps();
 
-    int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
-        if (memmap_request.response->entries[i]->type == 0) {
-            usable_memmaps_number++;
-        }
-    }
-    struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
-    usable_memmaps_number = 0;//reset to 0
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {
-        if (memmap_request.response->entries[i]->type == 0) {
-            usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
-            usable_memmaps_number++;
-        }
-    }
+    //init_paging();
 
-    for (int i = 0; i < usable_memmaps_number; i++) {
-        char strr[32];
-        uint64_to_string(usable_memmaps[i]->length, strr);
-        kprint(strr);
-        kprint("\n");
-    }
-
-    bp();
-
+    //bp();
 
     uint64_t gdt_table[7];
     setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
-
-
 
 
     //setup_idt();//chatgpt'ed version
@@ -221,6 +235,14 @@ void kmain(void) {
     setup_tss(&tss, gdt_table);
     load_tss();
     
+
+
+
+
+
+
+
+
 
     //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
     asm volatile ("int $64");
