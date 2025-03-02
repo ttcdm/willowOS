@@ -4,9 +4,9 @@
 
 #include <limine.h>
 
+void map_page(uint64_t address);
 
-
-void alloc_frame(void);
+uint64_t alloc_frame(void);
 
 void free_frame(void);
 
