@@ -43,6 +43,13 @@ static volatile struct limine_memmap_request memmap_request = {
 };
 
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0//may need to change it to 3 but idk
+};
+
+
 
 
 // Finally, define the start and end markers for the Limine requests.
@@ -60,9 +67,9 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 // DO NOT remove or rename these functions, or stuff will eventually break!
 // They CAN be moved to a different .c file.
 
-void *memcpy(void *dest, const void *src, size_t n) {
-    uint8_t *pdest = (uint8_t *)dest;
-    const uint8_t *psrc = (const uint8_t *)src;
+void* memcpy(void* dest, const void* src, size_t n) {
+    uint8_t* pdest = (uint8_t*)dest;
+    const uint8_t* psrc = (const uint8_t*)src;
 
     for (size_t i = 0; i < n; i++) {
         pdest[i] = psrc[i];
@@ -71,8 +78,8 @@ void *memcpy(void *dest, const void *src, size_t n) {
     return dest;
 }
 
-void *memset(void *s, int c, size_t n) {
-    uint8_t *p = (uint8_t *)s;
+void* memset(void* s, int c, size_t n) {
+    uint8_t* p = (uint8_t*)s;
 
     for (size_t i = 0; i < n; i++) {
         p[i] = (uint8_t)c;
@@ -81,26 +88,27 @@ void *memset(void *s, int c, size_t n) {
     return s;
 }
 
-void *memmove(void *dest, const void *src, size_t n) {
-    uint8_t *pdest = (uint8_t *)dest;
-    const uint8_t *psrc = (const uint8_t *)src;
+void* memmove(void* dest, const void* src, size_t n) {
+    uint8_t* pdest = (uint8_t*)dest;
+    const uint8_t* psrc = (const uint8_t*)src;
 
     if (src > dest) {
         for (size_t i = 0; i < n; i++) {
             pdest[i] = psrc[i];
         }
-    } else if (src < dest) {
+    }
+    else if (src < dest) {
         for (size_t i = n; i > 0; i--) {
-            pdest[i-1] = psrc[i-1];
+            pdest[i - 1] = psrc[i - 1];
         }
     }
 
     return dest;
 }
 
-int memcmp(const void *s1, const void *s2, size_t n) {
-    const uint8_t *p1 = (const uint8_t *)s1;
-    const uint8_t *p2 = (const uint8_t *)s2;
+int memcmp(const void* s1, const void* s2, size_t n) {
+    const uint8_t* p1 = (const uint8_t*)s1;
+    const uint8_t* p2 = (const uint8_t*)s2;
 
     for (size_t i = 0; i < n; i++) {
         if (p1[i] != p2[i]) {
@@ -114,7 +122,7 @@ int memcmp(const void *s1, const void *s2, size_t n) {
 // Halt and catch fire function.
 static void hcf(void) {
     for (;;) {
-        asm ("hlt");
+        asm("hlt");
     }
 }
 
@@ -177,6 +185,12 @@ void kprint(char* msg) {
     flanterm_write(ft_ctx, msg, s);
 }
 
+kprint_uint64(uint64_t num) {
+    char strr[64];//might be a bit wasteful
+    uint64_to_string(num, strr);
+    kprint(strr);
+}
+
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
@@ -198,7 +212,7 @@ void kmain(void) {
 
     // Ensure we got a framebuffer.
     if (framebuffer_request.response == NULL
-     || framebuffer_request.response->framebuffer_count < 1) {
+        || framebuffer_request.response->framebuffer_count < 1) {
         hcf();
     }
 
@@ -214,10 +228,37 @@ void kmain(void) {
 
     kprint("helloworld\n");
     //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
-    
+
     init_memmaps();
 
     //init_paging();
+
+
+
+    volatile uint64_t* lptr;
+
+    for (int i = 0; i < 10; i++) {
+        uint64_t pa = alloc_frame();
+        uint64_t hhdm_offset = hhdm_request.response->offset;
+        uint64_t va = pa + hhdm_offset;
+        volatile uint64_t* ptr = (uint64_t*)va;
+
+        *ptr = (uint64_t)i;
+
+        //      if (frame_bitmap[i] == (uint8_t) 1) {
+              //	kprint_uint64(va);
+              //	kprint("\n");
+              //}
+    }
+    kprint("hi\n");
+    for (int i = 0; i < 10; i++) {
+        if (frame_bitmap[i] == (uint8_t)1) {
+            uint64_t a = ((i * 4096) + starting_address) + hhdm_request.response->offset;
+            lptr = (uint64_t*)a;
+            kprint_uint64(*lptr);
+            kprint("\n");
+        }
+    }
 
     //bp();
 
@@ -234,17 +275,24 @@ void kmain(void) {
     struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
-    
+
+
+    //   char buf[64];
+
+    //   uint64_t pml4;
+       //asm volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
+       //kprint("pml4: ");
+       //uint64_to_string(pml4, buf);
+       //kprint(buf);
+       //kprint("\n");
+
+
+       //__asm__ volatile ("mv %0, cr3 : "=r"");
 
 
 
 
-
-
-
-
-
-    //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
+       //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
     asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
