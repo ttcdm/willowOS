@@ -43,6 +43,13 @@ static volatile struct limine_memmap_request memmap_request = {
 };
 
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0//may need to change it to 3 but idk
+};
+
+
 
 
 // Finally, define the start and end markers for the Limine requests.
@@ -177,6 +184,12 @@ void kprint(char* msg) {
     flanterm_write(ft_ctx, msg, s);
 }
 
+kprint_uint64(uint64_t num) {
+	char strr[64];//might be a bit wasteful
+	uint64_to_string(num, strr);
+	kprint(strr);
+}
+
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
@@ -219,6 +232,33 @@ void kmain(void) {
 
     //init_paging();
 
+
+    uint64_t pa = alloc_frame();
+
+    uint64_t hhdm_offset = hhdm_request.response->offset;
+
+    uint64_t va= pa + hhdm_offset;
+    kprint("addresses:\n");
+    kprint_uint64(pa);
+    kprint("\n");
+    kprint_uint64(hhdm_offset);
+    kprint("\n");
+    kprint_uint64(va);
+    kprint("\n");
+
+
+    volatile uint64_t* ptr = (uint64_t*)va;
+
+    *ptr = 2;
+
+    if (*ptr == 2) {
+        kprint("success\n");
+	}
+	else {
+		kprint("failed\n");
+	}
+
+
     //bp();
 
     uint64_t gdt_table[7];
@@ -236,10 +276,17 @@ void kmain(void) {
     load_tss();
     
 
+ //   char buf[64];
+
+ //   uint64_t pml4;
+	//asm volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
+	//kprint("pml4: ");
+	//uint64_to_string(pml4, buf);
+	//kprint(buf);
+	//kprint("\n");
 
 
-
-
+    //__asm__ volatile ("mv %0, cr3 : "=r"");
 
 
 

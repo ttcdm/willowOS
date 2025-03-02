@@ -9,6 +9,8 @@
 
 void kprint(char* str);
 
+void kprint_uint64(uint64_t num);
+
 void bp(void);
 
 void uint64_to_string(uint64_t value, char* buffer);
