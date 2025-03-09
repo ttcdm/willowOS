@@ -42,44 +42,130 @@ It's easier to follow if you throw out Intel's dumb names and call them PML3, PM
 */
 
 
-uintptr_t pml4;
-uintptr_t pdpt;
-uintptr_t pd;
-uintptr_t pt;
+//uintptr_t pml4;
+//uintptr_t pdpt;
+//uintptr_t pd;
+//uintptr_t pt;
 
-void map_page(uint64_t address) {
-
-}
 
 void walk_page(uintptr_t structure) {
 
 }
 
-uint8_t frame_bitmap[10000] = { 0 };//10000*4096 = 40.96 mb of memory. make sure it doesn't exceed the max amount of allocatable memory
-
-
+//uint8_t frame_bitmap[10000];//10000*4096 = 40.96 mb of memory. make sure it doesn't exceed the max amount of allocatable memory
 //remember to prevent overflows and underflows. make this more secure
 uint64_t starting_address;
 uint8_t last_alloced_frame;
-uint64_t alloc_frame(void) {//not sure how this would be used with hhdm yet
-    starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096
-    for (int i = 0; i < 10000; i++) {
-        if (frame_bitmap[i] == 0x00) {
-            frame_bitmap[i] = 0x01;
-            last_alloced_frame = i;
-            return starting_address + (i * 4096);
-        }
-    }
-    kprint("no more frames to allocate. returning last allocated frame's address\n");
-    return starting_address + (last_alloced_frame * 4096);
+uint64_t hhdm_offset;
+
+
+//init_physical_memory() is put in main.c because hhdm_request is static and can only be used in main.c i think
+
+//uint64_t alloc_frame(void) {//not sure how this would be used with hhdm yet
+//    //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096
+//    for (int i = 0; i < 10000; i++) {
+//        if (frame_bitmap[i] == 0x00) {
+//            frame_bitmap[i] = 0x01;
+//            last_alloced_frame = i;
+//            return starting_address + (i * 4096);
+//        }
+//    }
+//    kprint("no more frames to allocate. returning last allocated frame's address\n");
+//    return starting_address + (last_alloced_frame * 4096);//returns an address instead of a pointer
+//}
+
+uint64_t alloc_frame(void) {
+    starting_address = memmap_arr[0].base;
+	for (int i = 0; i < 10000; i++) {
+		if (frame_bitmap[i] == 0x00) {
+			frame_bitmap[i] = 0x01;
+			last_alloced_frame = i;
+			return starting_address + (i * 4096);
+		}
+	}
+	kprint("no more frames to allocate. returning last allocated frame's address\n");
+	return starting_address + (last_alloced_frame * 4096);//returns an address instead of a pointer
 }
 
-void free_frame(void) {//kind of a stack allocator
-    if (last_alloced_frame > (uint8_t)0) {//to prevent 
-        frame_bitmap[last_alloced_frame] = 0x00;
-        last_alloced_frame--;
+//void free_frame(void) {//kind of a stack allocator
+//    if (last_alloced_frame > (uint8_t)0) {//to prevent 
+//        frame_bitmap[last_alloced_frame] = 0x00;
+//        last_alloced_frame--;
+//    }
+//    else if (last_alloced_frame == (uint8_t)0) {
+//        kprint("no more frames to free\n");
+//    }
+//}
+
+void free_frame(uint64_t address) {//right now, it's using an address instead of a pointer; uses physical address
+    //uint8_t index = (address - hhdm_offset - starting_address) / 4096;//revert hhdm
+    uint8_t index = (address - starting_address) / 4096;//uses physical address
+    kprint("index: ");
+    kprint_uint64(index);
+    kprint("\n");
+    frame_bitmap[index] = 0x00;
+}
+
+
+
+
+uint64_t pml4_address;
+uint64_t* pml4;
+
+//void init_paging() {//right now, i'm loading the pml4 address into the already provided address in cr3
+//    //pml4 = (uint64_t*) alloc_frame();
+//    kprintln("allocating pml4");
+//    //__asm__ volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
+//    //for (int i = 0; i < 512; i++) pml4[i] = 0;
+//    //asm volatile ("mov %0, %%cr3" :: "r"(pml4));
+//    kprintln("pml4:");
+//    //kprintln_uint64(pml4);
+//    //kprintln_uint64(pml4[0]);
+//}
+
+void init_paging() {
+    //pml4_address = 0;//initialize memory
+    //kprintln("allocating pml4");
+    //asm volatile ("mov %%cr3, %0" : "=r"(pml4_address));//=r for output register and r for input register
+    //pml4_address += hhdm_offset;
+    //pml4 = (uint64_t*)pml4_address;
+
+    struct usable_memmaps_region* current= &memmap_arr[0];
+    while (current->next != NULL) {
+        
     }
-    else if (last_alloced_frame == (uint8_t)0) {
-        kprint("no more frames to free\n");
-    }
+
+
+    pml4_address = alloc_frame();
+    pml4_address += hhdm_offset;
+    pml4 = (uint64_t*)pml4_address;
+    kprintln("pml4:");
+    kprintln_uint64(pml4);
+    for (int i = 0; i < 512; i++) pml4[i] = 0;
+    //for (int i = 0; i < 512; i++) kprintln_uint64(pml4[i]);
+    
+
+
+}
+
+uint64_t virt_lookup(uint64_t virt_address) {//currently returns 0
+    uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
+    uint64_t pd_index = (virt_address >> 21) & 0x1FF;
+    uint64_t pt_index = (virt_address >> 12) & 0x1FF;
+    uint64_t offset = virt_address & 0xFFF;
+
+    kprintln("Virtual Address Breakdown:");
+    kprintln_uint64(virt_address);
+    kprintln("PML4 Index:"); kprintln_uint64(pml4_index);
+    kprintln("PDPT Index:"); kprintln_uint64(pdpt_index);
+    kprintln("PD Index:"); kprintln_uint64(pd_index);
+    kprintln("PT Index:"); kprintln_uint64(pt_index);
+    kprintln("Offset:"); kprintln_uint64(offset);
+    return 0;
+}
+
+void map_page(uint64_t phys_address, uint64_t virt_address) {
+
+    return;
 }

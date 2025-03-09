@@ -137,7 +137,9 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
 struct limine_memmap_entry** usable_memmaps_1_ptr;//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
 
 
-void init_memmaps() {//remember that it's plural
+struct usable_memmaps_region memmap_arr[16];//HERE. might run into issues with statically declaring the amount of memmaps
+
+struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
     for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
         if (memmap_request.response->entries[i]->type == 0) {
@@ -167,6 +169,43 @@ void init_memmaps() {//remember that it's plural
         kprint(strr);
         kprint("\n");
     }
+    //HERE
+    //usable_memmaps is plural
+    //usable_memmap is singular
+
+
+ //   struct usable_memmaps_region first_memmap;
+ //   first_memmap.base = usable_memmaps[0]->base;
+ //   first_memmap.length = usable_memmaps[0]->length;
+	//first_memmap.next = NULL;
+    memmap_arr[0].base = usable_memmaps[0]->base;
+	memmap_arr[0].length = usable_memmaps[0]->length;
+	memmap_arr[0].next = NULL;
+    //struct usable_memmaps_region* current = &first_memmap;
+	struct usable_memmaps_region* current = &memmap_arr[0];
+    for (int i = 1; i < usable_memmaps_number; i++) {
+        //struct usable_memmaps_region* usable_memmap = usable_memmaps[i];
+  //      usable_memmap->base = usable_memmaps[i]->base;
+		//usable_memmap->length = usable_memmaps[i]->length;
+  //      usable_memmap->next = NULL;
+		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
+		usable_memmap->base = usable_memmaps[i]->base;
+		usable_memmap->length = usable_memmaps[i]->length;
+		usable_memmap->next = NULL;
+        current->next = usable_memmap;
+        current = current->next;
+    }
+    //struct usable_memmaps_region* current_memmap = &first_memmap;
+
+    //for (int i = 0; i < 4; i++) {
+    //    kprint("base: ");
+    //    kprintln_uint64(current_memmap->base);
+    //    kprint("length: ");
+    //    kprintln_uint64(current_memmap->length);
+    //    current_memmap = current_memmap->next;
+    //}
+    //return &first_memmap;
+    return &memmap_arr[0];
 }
 
 struct limine_framebuffer* framebuffer;
@@ -185,10 +224,29 @@ void kprint(char* msg) {
     flanterm_write(ft_ctx, msg, s);
 }
 
-kprint_uint64(uint64_t num) {
+void kprintln(char* msg) {//i think the args are being pass through fine idk
+    kprint(msg);
+    kprint("\n");
+}
+
+void kprint_uint64(uint64_t num) {
     char strr[64];//might be a bit wasteful
     uint64_to_string(num, strr);
     kprint(strr);
+}
+
+void kprintln_uint64(uint64_t num) {
+    kprint_uint64(num);
+    kprint("\n");
+}
+
+void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
+    for (int i = 0; i < 10000; i++) {
+        frame_bitmap[i] = 0x00;//not sure if using frame_bitmap[10000] = { 0 } as a declaration is bug free so i'm doing this just to be safe
+    }
+    //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096. also only declare this once because i think it was causing issues when it was called multiple times because of alloc_frame() redefining it multiple times
+    starting_address = memmap_arr[0].base;
+    hhdm_offset = hhdm_request.response->offset;
 }
 
 // The following will be our kernel's entry point.
@@ -229,36 +287,54 @@ void kmain(void) {
     kprint("helloworld\n");
     //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
 
-    init_memmaps();
+
+
+    struct usable_memmaps_region* memmap = init_memmaps();
+
+    struct usable_memmaps_region* current_memmap = memmap;
+
+    for (int i = 0; i < 4; i++) {
+        kprint("base: ");
+        kprintln_uint64(current_memmap->base);
+        kprint("length: ");
+        kprintln_uint64(current_memmap->length);
+        current_memmap = current_memmap->next;
+    }
+
+    init_physical_memory();//make sure this is called first
 
     //init_paging();
 
-
-
     volatile uint64_t* lptr;
-
     for (int i = 0; i < 10; i++) {
-        uint64_t pa = alloc_frame();
-        uint64_t hhdm_offset = hhdm_request.response->offset;
+        uint64_t pa = alloc_frame();//pa = physical address; va = virtual address
         uint64_t va = pa + hhdm_offset;
         volatile uint64_t* ptr = (uint64_t*)va;
-
-        *ptr = (uint64_t)i;
-
-        //      if (frame_bitmap[i] == (uint8_t) 1) {
-              //	kprint_uint64(va);
-              //	kprint("\n");
-              //}
-    }
-    kprint("hi\n");
-    for (int i = 0; i < 10; i++) {
-        if (frame_bitmap[i] == (uint8_t)1) {
-            uint64_t a = ((i * 4096) + starting_address) + hhdm_request.response->offset;
-            lptr = (uint64_t*)a;
-            kprint_uint64(*lptr);
-            kprint("\n");
+        *ptr = (uint64_t) i;
+        if (frame_bitmap[i] == 1) {
+            //kprintln_uint64(va);
         }
     }
+    for (int i = 0; i < 10; i++) {
+        if (frame_bitmap[i] == (uint8_t) 1) {
+            uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+            lptr = (uint64_t*)a;
+            //kprintln_uint64(*lptr);
+            free_frame(a-hhdm_offset);
+        }
+    }
+    for (int i = 0; i < 10; i++) {
+        //kprintln("hi");
+        if (frame_bitmap[i] == (uint8_t) 1) {
+            uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+            lptr = (uint64_t*)a;
+            //kprintln_uint64(*lptr);
+        }
+    }
+
+
+    init_paging();
+
 
     //bp();
 
@@ -277,9 +353,8 @@ void kmain(void) {
     load_tss();
 
 
-    //   char buf[64];
-
-    //   uint64_t pml4;
+       //char buf[64];
+       //uint64_t pml4;
        //asm volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
        //kprint("pml4: ");
        //uint64_to_string(pml4, buf);
