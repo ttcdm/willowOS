@@ -76,15 +76,21 @@ uint64_t hhdm_offset;
 
 uint64_t alloc_frame(void) {
     starting_address = memmap_arr[0].base;
-	for (int i = 0; i < 10000; i++) {
-		if (frame_bitmap[i] == 0x00) {
-			frame_bitmap[i] = 0x01;
-			last_alloced_frame = i;
-			return starting_address + (i * 4096);
+    struct usable_memmaps_region* current = &memmap_arr[0];
+    while (current->next != NULL) {
+        for (int i = 0; i < current->length/4096; i++) {//hopefully there's no off by 1 error
+            if (current->frame_bitmap[i] == 0x00) {
+				current->frame_bitmap[i] = 0x01;
+				last_alloced_frame = i;//idek if this is even supposed to be here atp
+                kprint("current region: ");
+                kprintln_uint64(current->base);
+				return current->base + (i * 4096);
+			}
 		}
-	}
+        current = current->next;
+    }
 	kprint("no more frames to allocate. returning last allocated frame's address\n");
-	return starting_address + (last_alloced_frame * 4096);//returns an address instead of a pointer
+    return 0;
 }
 
 //void free_frame(void) {//kind of a stack allocator
@@ -103,7 +109,8 @@ void free_frame(uint64_t address) {//right now, it's using an address instead of
     kprint("index: ");
     kprint_uint64(index);
     kprint("\n");
-    frame_bitmap[index] = 0x00;
+    //frame_bitmap[index] = 0x00;
+    //HERE
 }
 
 
@@ -130,11 +137,7 @@ void init_paging() {
     //pml4_address += hhdm_offset;
     //pml4 = (uint64_t*)pml4_address;
 
-    struct usable_memmaps_region* current= &memmap_arr[0];
-    while (current->next != NULL) {
-        
-    }
-
+    
 
     pml4_address = alloc_frame();
     pml4_address += hhdm_offset;
@@ -143,6 +146,9 @@ void init_paging() {
     kprintln_uint64(pml4);
     for (int i = 0; i < 512; i++) pml4[i] = 0;
     //for (int i = 0; i < 512; i++) kprintln_uint64(pml4[i]);
+
+    virt_lookup(pml4_address);
+    kprintln_uint64(pml4_address-hhdm_offset);
     
 
 

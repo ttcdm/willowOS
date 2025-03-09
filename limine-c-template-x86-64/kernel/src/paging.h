@@ -34,6 +34,7 @@ void map_page(uint64_t phys_address, uint64_t virt_address);
 struct usable_memmaps_region {
 	uint64_t base;
 	uint64_t length;
+	uint8_t frame_bitmap[600000];//i'm so sorry
 	struct usable_memmaps_region* next;
 };
 

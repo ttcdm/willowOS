@@ -180,6 +180,8 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 	//first_memmap.next = NULL;
     memmap_arr[0].base = usable_memmaps[0]->base;
 	memmap_arr[0].length = usable_memmaps[0]->length;
+    memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096)-1);
+    memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//we use 2 as the terminating character/value
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
 	struct usable_memmaps_region* current = &memmap_arr[0];
@@ -191,6 +193,8 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
+        memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096)-1);
+        usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//we use 2 as the terminating character/value; hopefully there's no off by 1 error
 		usable_memmap->next = NULL;
         current->next = usable_memmap;
         current = current->next;
@@ -241,9 +245,9 @@ void kprintln_uint64(uint64_t num) {
 }
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
-    for (int i = 0; i < 10000; i++) {
-        frame_bitmap[i] = 0x00;//not sure if using frame_bitmap[10000] = { 0 } as a declaration is bug free so i'm doing this just to be safe
-    }
+    //for (int i = 0; i < 10000; i++) {
+    //    frame_bitmap[i] = 0x00;//not sure if using frame_bitmap[10000] = { 0 } as a declaration is bug free so i'm doing this just to be safe
+    //}
     //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096. also only declare this once because i think it was causing issues when it was called multiple times because of alloc_frame() redefining it multiple times
     starting_address = memmap_arr[0].base;
     hhdm_offset = hhdm_request.response->offset;
@@ -305,32 +309,32 @@ void kmain(void) {
 
     //init_paging();
 
-    volatile uint64_t* lptr;
-    for (int i = 0; i < 10; i++) {
-        uint64_t pa = alloc_frame();//pa = physical address; va = virtual address
-        uint64_t va = pa + hhdm_offset;
-        volatile uint64_t* ptr = (uint64_t*)va;
-        *ptr = (uint64_t) i;
-        if (frame_bitmap[i] == 1) {
-            //kprintln_uint64(va);
-        }
-    }
-    for (int i = 0; i < 10; i++) {
-        if (frame_bitmap[i] == (uint8_t) 1) {
-            uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
-            lptr = (uint64_t*)a;
-            //kprintln_uint64(*lptr);
-            free_frame(a-hhdm_offset);
-        }
-    }
-    for (int i = 0; i < 10; i++) {
-        //kprintln("hi");
-        if (frame_bitmap[i] == (uint8_t) 1) {
-            uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
-            lptr = (uint64_t*)a;
-            //kprintln_uint64(*lptr);
-        }
-    }
+    //volatile uint64_t* lptr;//old r/w to memory test
+    //for (int i = 0; i < 10; i++) {
+    //    uint64_t pa = alloc_frame();//pa = physical address; va = virtual address
+    //    uint64_t va = pa + hhdm_offset;
+    //    volatile uint64_t* ptr = (uint64_t*)va;
+    //    *ptr = (uint64_t) i;
+    //    if (frame_bitmap[i] == 1) {
+    //        //kprintln_uint64(va);
+    //    }
+    //}
+    //for (int i = 0; i < 10; i++) {
+    //    if (frame_bitmap[i] == (uint8_t) 1) {
+    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+    //        lptr = (uint64_t*)a;
+    //        //kprintln_uint64(*lptr);
+    //        free_frame(a-hhdm_offset);
+    //    }
+    //}
+    //for (int i = 0; i < 10; i++) {
+    //    //kprintln("hi");
+    //    if (frame_bitmap[i] == (uint8_t) 1) {
+    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+    //        lptr = (uint64_t*)a;
+    //        //kprintln_uint64(*lptr);
+    //    }
+    //}
 
 
     init_paging();
