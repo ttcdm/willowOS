@@ -180,7 +180,10 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 	//first_memmap.next = NULL;
     memmap_arr[0].base = usable_memmaps[0]->base;
 	memmap_arr[0].length = usable_memmaps[0]->length;
-    memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096)-1);
+    //memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
+    for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
+        memmap_arr[0].frame_bitmap[i] = 0x00;
+	}
     memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//we use 2 as the terminating character/value
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
@@ -193,9 +196,16 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
-        memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096)-1);
+        //memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
+        for (int i = 0; i < usable_memmap->length / 4096; i++) {
+            usable_memmap->frame_bitmap[i] = 0x00;
+        }
         usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//we use 2 as the terminating character/value; hopefully there's no off by 1 error
 		usable_memmap->next = NULL;
+
+
+
+
         current->next = usable_memmap;
         current = current->next;
     }
@@ -338,6 +348,8 @@ void kmain(void) {
 
 
     init_paging();
+
+
 
 
     //bp();

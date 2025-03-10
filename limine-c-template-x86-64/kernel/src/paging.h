@@ -25,11 +25,10 @@ void init_physical_memory();//init_physical_memory() is put in main.c because hh
 
 void init_paging();
 
-extern uint64_t* pml4;
 
 uint64_t virt_lookup(uint64_t virt_address);
 
-void map_page(uint64_t phys_address, uint64_t virt_address);
+void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions);
 
 struct usable_memmaps_region {
 	uint64_t base;
@@ -39,3 +38,7 @@ struct usable_memmaps_region {
 };
 
 extern struct usable_memmaps_region memmap_arr[16];
+
+//extern typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
+//	uint64_t entries[512];
+//} page_struct;
