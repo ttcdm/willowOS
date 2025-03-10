@@ -146,6 +146,7 @@ uint64_t virt_lookup(uint64_t virt_address) {//currently returns 0
     return 0;
 }
 
+void* get_cr3(void);
 void init_paging() {
     //pml4_address = 0;//initialize memory
     //kprintln("allocating pml4");
@@ -154,37 +155,97 @@ void init_paging() {
     //pml4 = (uint64_t*)pml4_address;
 
     
-    uint64_t pml4_address;
-    uint64_t* pml4;
-    pml4_address = alloc_frame() & ~0xfff;
-    
-    //asm volatile ("mov %%cr3, %0" : "=r"(pml4_address));//=r for output register and r for input register
-    //__asm__ volatile ("mov %%cr3, %0" : "=r"(pml4_address));
+    //uint64_t pml4_address;
+    //uint64_t* pml4;
+    //pml4_address = alloc_frame() & ~0xfff;
+    //
+    ////asm volatile ("mov %%cr3, %0" : "=r"(pml4_address));//=r for output register and r for input register
+    ////__asm__ volatile ("mov %%cr3, %0" : "=r"(pml4_address));
 
-    uint64_t pml4_address_phys = pml4_address;
-    pml4_address += hhdm_offset;
-    pml4 = (uint64_t*)pml4_address;
-    kprintln("pml4:");
-    kprintln_uint64(pml4);
-    for (int i = 0; i < 512; i++) pml4[i] = 0;
-    //for (int i = 0; i < 512; i++) kprintln_uint64(pml4[i]);
+    //uint64_t pml4_address_phys = pml4_address;
+    //pml4_address += hhdm_offset;
+    //pml4 = (uint64_t*)pml4_address;
+    //kprintln("pml4:");
+    //kprintln_uint64(pml4);
+    ////for (int i = 0; i < 512; i++) pml4[i] = 0;
+    ////for (int i = 0; i < 512; i++) kprintln_uint64(pml4[i]);
 
-    virt_lookup(pml4_address);
-    kprintln_uint64(pml4_address-hhdm_offset);
+    //virt_lookup(pml4_address);
+    //kprintln_uint64(pml4_address-hhdm_offset);
 
 
-    uint64_t self_map_addr = (uint64_t)511 << 39;
 
-    map_page(pml4, pml4_address_phys, self_map_addr, 0b11);//maps pml4 to itself
-    kprintln("pml4 mapped to itself");
+
+    //uint64_t self_map_addr = (uint64_t)511 << 39;
+    //uint64_t pml4_address_phys = (uint64_t) page;
+    //kprintln("mapping pml4");
+    //map_page(page, pml4_address_phys, self_map_addr, 0b11);//maps pml4 to itself
+    //kprintln("pml4 mapped to itself");
+
+    //kprintln("cr3 loaded successfully");
+    //kprintln_uint64(pml4_address_phys);
+    //asm volatile ("invlpg (%0)" :: "r" (self_map_addr) : "memory");
+
+
+    kprint("cr3:   ");
+    kprintln_uint64((uint64_t)get_cr3());
+
+
+    uint64_t* page = (void*)alloc_frame() + hhdm_offset;
+    uint64_t* cr3 = (void*)get_cr3() + hhdm_offset;
+    for (int i = 0; i < 512; i++) {
+        page[i] = cr3[i];
+    }
+    map_page(((void*)page), 0x1000, 0x100000, 0b11);
+    kprintln("hi");
+    uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
-    kprintln("cr3 loaded successfully");
-    kprintln_uint64(pml4_address_phys);
-    asm volatile ("invlpg (%0)" :: "r" (self_map_addr) : "memory");
+    kprintln("bye");
+
+
+
 
 }
 
 void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
+    uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
+    uint64_t pd_index = (virt_address >> 21) & 0x1FF;
+    uint64_t pt_index = (virt_address >> 12) & 0x1FF;
+    uint64_t offset = virt_address & 0xFFF;
+
+    page_struct* pml4 = (void*)pml4_address;
+    uint64_t pml4_entry = pml4->entries[pml4_index];
+    if (!(pml4_entry & 1)) {
+        uint64_t new_entry = (alloc_frame()) | 0b11;
+        pml4->entries[pml4_index] = new_entry;
+        pml4_entry = new_entry;
+    }
+
+    page_struct* pdpt = (page_struct*)((pml4_entry & ~0xfff) + hhdm_offset);
+    uint64_t pdpt_entry = pdpt->entries[pdpt_index];
+    if (!(pdpt_entry & 1)) {
+        uint64_t new_entry = (alloc_frame()) | 0b11;
+        pdpt->entries[pdpt_index] = new_entry;
+        pdpt_entry = new_entry;
+    }
+
+    page_struct* pd = (page_struct*)((pdpt_entry & ~0xfff) + hhdm_offset);
+    uint64_t pd_entry = pd->entries[pd_index];
+    if (!(pd_entry & 1)) {
+        uint64_t new_entry = (alloc_frame()) | 0b11;
+        pd->entries[pd_index] = new_entry;
+        pd_entry = new_entry;
+    }
+
+    page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
+    pt->entries[pt_index] = phys_address | permissions;
+    asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+}
+
+
+
+void map_page_bad(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;

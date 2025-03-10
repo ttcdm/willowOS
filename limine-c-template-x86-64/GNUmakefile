@@ -37,6 +37,7 @@ run-debug: $(IMAGE_NAME).iso
 		$(QEMUFLAGS)
 
 
+#		-no-reboot \
 .PHONY: run
 run: $(IMAGE_NAME).iso
 	qemu-system-x86_64 \
