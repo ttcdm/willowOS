@@ -11,6 +11,47 @@ isr_stub_%+%1:
 %endmacro
 
 
+%macro push_reg 0
+    pushfq                  ; Save RFLAGS ; chatgpt put this here. not sure if i need this
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push rbp
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+%endmacro
+
+%macro pop_reg 0
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rbp
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+    popfq                   ; Restore RFLAGS
+%endmacro
+
+
+
+
 extern interrupt_handler_custom;remember to extern the functions
 extern exception_handler
 isr_no_err_stub 0
@@ -81,11 +122,13 @@ isr_no_err_stub 62
 isr_no_err_stub 63
 
 isr_stub_64:
-    ;pushaq
-
+    cli
+    push_reg
+    mov rdi, rsp
     call interrupt_handler_custom
-
-    ;popaq
+    pop_reg
+    add rsp, 16
+    sti
     iretq
 
 global isr_stub_table
