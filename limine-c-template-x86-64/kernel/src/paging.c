@@ -245,7 +245,7 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
 
 
 
-void map_page_bad(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
+void map_page_bad(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {//tried debugging with chatgpt. doesn't work. don't use
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
