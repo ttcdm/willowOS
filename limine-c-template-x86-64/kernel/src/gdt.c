@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stddef.h>
+
 #include <gdt.h>
+#include <kutils.h>
 
 #include <limine.h>
 

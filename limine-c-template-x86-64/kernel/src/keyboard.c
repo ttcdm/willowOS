@@ -25,7 +25,7 @@ static uint8_t get_kb_status() {
     return status;
 }
 
-static scancode_to_string(uint8_t scancode, char* str) {
+static void scancode_to_string(uint8_t scancode, char* str) {
     //since the uint8_t scancode can be represented in binary, we just shift it and mask part of it to grab the 4 bits we want
     char h[] = "0123456789abcdef";
     str[0] = '0';
