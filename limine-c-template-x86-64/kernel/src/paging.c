@@ -146,7 +146,10 @@ uint64_t virt_lookup(uint64_t virt_address) {//currently returns 0
     return 0;
 }
 
-void* get_cr3(void);
+// void* get_cr3(void);//moved to paging.h
+
+uint64_t pml4_address_phys_glob;
+
 void init_paging() {
     //pml4_address = 0;//initialize memory
     //kprintln("allocating pml4");
@@ -199,11 +202,9 @@ void init_paging() {
     map_page(((void*)page), 0x1000, 0x100000, 0b11);//credit to .linux_dude for making this thing work
     kprintln("hi");
     uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
+    pml4_address_phys_glob = (uint64_t) page;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
     kprintln("bye");
-
-
-
 
 }
 
