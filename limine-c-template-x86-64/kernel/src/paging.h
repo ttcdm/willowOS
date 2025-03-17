@@ -44,3 +44,7 @@ extern struct usable_memmaps_region memmap_arr[16];
 //extern typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
 //	uint64_t entries[512];
 //} page_struct;
+
+void* get_cr3(void);
+
+extern uint64_t pml4_address_phys_glob;//i'm sorry

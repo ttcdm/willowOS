@@ -387,6 +387,8 @@ void kmain(void) {
 
        //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
 
+    
+    
     uint64_t heap_start_virt = init_heap();
 
 
