@@ -5,9 +5,9 @@
 #include <stdbool.h>
 
 #include <kutils.h>
-#include <paging.c>
+#include <paging.h>
 
-#define HEAP_START_VIRT_DEFINED 0xfffc000000000000
+#define HEAP_START_VIRT_DEFINED 0xffffc00000000000
 
 
 uint64_t init_heap();
