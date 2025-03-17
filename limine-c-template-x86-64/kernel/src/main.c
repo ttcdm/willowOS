@@ -7,6 +7,7 @@
 #include <idt.h>
 #include <kutils.h>
 #include <paging.h>
+#include <vmm.h>
 
 #include <limine.h>
 
@@ -385,6 +386,12 @@ void kmain(void) {
 
 
        //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
+
+    uint64_t heap_start_virt = init_heap();
+
+
+
+    
     asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }

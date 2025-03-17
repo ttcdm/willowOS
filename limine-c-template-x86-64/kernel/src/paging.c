@@ -196,7 +196,7 @@ void init_paging() {
     for (int i = 0; i < 512; i++) {
         page[i] = cr3[i];
     }
-    map_page(((void*)page), 0x1000, 0x100000, 0b11);
+    map_page(((void*)page), 0x1000, 0x100000, 0b11);//credit to .linux_dude for making this thing work
     kprintln("hi");
     uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
