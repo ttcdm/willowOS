@@ -1,4 +1,4 @@
-// #pragma once//HERE not sure if i should put this here but it seemed to solve the memmap_arr issue where it was defined as extern in this file and as the actual thing in main.c and the compiler was complaining
+#pragma once//HERE not sure if i should put this here but it seemed to solve the memmap_arr issue where it was defined as extern in this file and as the actual thing in main.c and the compiler was complaining
 
 #include <stdint.h>
 #include <stddef.h>
