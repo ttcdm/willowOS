@@ -1,5 +1,6 @@
 #define IDT_MAX_DESCRIPTORS 200//make sure that you don't exeed 64 or something like that unless you raise this
 #include <idt.h>
+#include <kutils.h>
 
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
