@@ -12,13 +12,13 @@ static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for perf
 
 __attribute__((noreturn))
 void exception_handler() {
-    kprint("exception occurred");
+    kprintln("exception occurred");
     __asm__ volatile ("cli; hlt"); // Completely hangs the computer
 }
 
 //__attribute__((interrupt))
 void interrupt_handler_custom(struct interrupt_frame* frame) {
-    kprint("interrupt occured");
+    kprintln("interrupt occured");
 }
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {

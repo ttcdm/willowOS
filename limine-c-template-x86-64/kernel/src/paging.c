@@ -84,12 +84,13 @@ uint64_t alloc_frame(void) {
             if (current->frame_bitmap[i] == 0x00) {
 				current->frame_bitmap[i] = 0x01;
 				last_alloced_frame = i;//idek if this is even supposed to be here atp
-                kprint("current region: ");
-                kprintln_uint64(current->base);
-                kprint("index: ");
+                kprint("current region's base: ");
+                kprint_uint64(current->base);
+                kprint("  index: ");
                 kprintln_uint64(i);//i'm honestly not sure why the 0th index is 1. it's set to 0 when it's first initialized
                 memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
-				return current->base + (i * 4096);
+				kprintln("page allocated successfully");
+                return current->base + (i * 4096);
 			}
 		}
         current = current->next;
@@ -148,7 +149,7 @@ uint64_t virt_lookup(uint64_t virt_address) {//currently returns 0
 
 // void* get_cr3(void);//moved to paging.h
 
-uint64_t pml4_address_phys_glob;
+uint64_t pml4_address_virt_glob;
 
 void init_paging() {
     //pml4_address = 0;//initialize memory
@@ -190,21 +191,21 @@ void init_paging() {
     //asm volatile ("invlpg (%0)" :: "r" (self_map_addr) : "memory");
 
 
-    kprint("cr3:   ");
+    kprint("cr3: ");
     kprintln_uint64((uint64_t)get_cr3());
 
 
     uint64_t* page = (void*)alloc_frame() + hhdm_offset;
     uint64_t* cr3 = (void*)get_cr3() + hhdm_offset;
     for (int i = 0; i < 512; i++) {
-        page[i] = cr3[i];
+        page[i] = cr3[i];//not 100% sure what's going on honestly
     }
     map_page(((void*)page), 0x1000, 0x100000, 0b11);//credit to .linux_dude for making this thing work
-    kprintln("hi");
+    // kprintln("hi");
     uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
-    pml4_address_phys_glob = (uint64_t) page;
+    pml4_address_virt_glob = (uint64_t) page;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
-    kprintln("bye");
+    kprintln("successfully initialized pml4");
 
 }
 
