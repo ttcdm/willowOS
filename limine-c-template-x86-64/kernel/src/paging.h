@@ -47,4 +47,4 @@ extern struct usable_memmaps_region memmap_arr[16];
 
 void* get_cr3(void);
 
-extern uint64_t pml4_address_phys_glob;//i'm sorry
+extern uint64_t pml4_address_virt_glob;//i'm sorry

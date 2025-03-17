@@ -164,11 +164,11 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     for (int i = 0; i < usable_memmaps_number; i++) {
         char strr[32];
         uint64_to_string(usable_memmaps[i]->base, strr);
-        kprint(strr);
-        kprint("  ");
+        // kprint(strr);
+        // kprint("  ");
         uint64_to_string(usable_memmaps[i]->length, strr);
-        kprint(strr);
-        kprint("\n");
+        // kprint(strr);
+        // kprint("\n");
     }
     //HERE
     //usable_memmaps is plural
@@ -220,6 +220,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     //    current_memmap = current_memmap->next;
     //}
     //return &first_memmap;
+    kprintln("initialized memmaps");
     return &memmap_arr[0];
 }
 
@@ -299,7 +300,8 @@ void kmain(void) {
 
     clear_framebuffer(framebuffer, BLACK);
 
-    kprint("helloworld\n");
+    // kprint("helloworld\n");
+    kprintln("willowOS");
     //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
 
 
@@ -309,9 +311,9 @@ void kmain(void) {
     struct usable_memmaps_region* current_memmap = memmap;
 
     for (int i = 0; i < 4; i++) {
-        kprint("base: ");
+        kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
-        kprint("length: ");
+        kprint("memmap region's length: ");
         kprintln_uint64(current_memmap->length);
         current_memmap = current_memmap->next;
     }
