@@ -84,12 +84,12 @@ uint64_t alloc_frame(void) {
             if (current->frame_bitmap[i] == 0x00) {
 				current->frame_bitmap[i] = 0x01;
 				last_alloced_frame = i;//idek if this is even supposed to be here atp
-                kprint("current region's base: ");
-                kprint_uint64(current->base);
-                kprint("  index: ");
-                kprintln_uint64(i);//i'm honestly not sure why the 0th index is 1. it's set to 0 when it's first initialized
+                // kprint("current region's base: ");
+                // kprint_uint64(current->base);
+                // kprint("  index: ");
+                // kprintln_uint64(i);//i'm honestly not sure why the 0th index is 1. it's set to 0 when it's first initialized
                 memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
-				kprintln("page allocated successfully");
+				// kprintln("page allocated successfully");
                 return current->base + (i * 4096);
 			}
 		}

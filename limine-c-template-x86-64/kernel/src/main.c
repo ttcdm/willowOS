@@ -393,8 +393,13 @@ void kmain(void) {
     
     uint64_t heap_start_virt = init_heap();
 
-
-
+    uint64_t alloc0 = kmalloc(1);
+    kprintln_uint64(alloc0);
+    alloc0 = kmalloc(2);
+    kprintln_uint64(alloc0);
+    // hhhh = kmalloc(3);
+    // hhhh = kmalloc(4);
+    // hhhh = kmalloc(5);
     
     asm volatile ("int $64");
 
