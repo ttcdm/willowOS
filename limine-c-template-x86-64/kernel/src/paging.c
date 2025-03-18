@@ -79,7 +79,8 @@ uint64_t hhdm_offset;
 uint64_t alloc_frame(void) {
     starting_address = memmap_arr[0].base;
     struct usable_memmaps_region* current = &memmap_arr[0];
-    while (current->next != NULL) {
+    // while (current->next != NULL) {
+    while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
         for (int i = 0; i < current->length/4096; i++) {//hopefully there's no off by 1 error
             if (current->frame_bitmap[i] == 0x00) {
 				current->frame_bitmap[i] = 0x01;
@@ -95,7 +96,7 @@ uint64_t alloc_frame(void) {
 		}
         current = current->next;
     }
-	kprint("no more frames to allocate. returning last allocated frame's address\n");
+	kprintln("no more frames to allocate. returning 0");
     return 0;
 }
 
@@ -109,14 +110,36 @@ uint64_t alloc_frame(void) {
 //    }
 //}
 
-void free_frame(uint64_t address) {//right now, it's using an address instead of a pointer; uses physical address
-    //uint8_t index = (address - hhdm_offset - starting_address) / 4096;//revert hhdm
-    uint8_t index = (address - starting_address) / 4096;//uses physical address
-    kprint("index: ");
-    kprint_uint64(index);
-    kprint("\n");
-    //frame_bitmap[index] = 0x00;
-    //HERE
+// void free_frame(uint64_t address) {//right now, it's using an address instead of a pointer; uses physical address
+//     //uint8_t index = (address - hhdm_offset - starting_address) / 4096;//revert hhdm
+//     uint8_t index = (address - starting_address) / 4096;//uses physical address
+//     kprint("index: ");
+//     kprint_uint64(index);
+//     kprint("\n");
+//     //frame_bitmap[index] = 0x00;
+//     //HERE
+// }
+
+void free_frame(uint64_t phys_address) {
+    uint8_t index;
+    struct usable_memmaps_region* current = &memmap_arr[0];
+    while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
+        if (current->next != NULL) {
+            if ((phys_address > current->base) && (phys_address < current->next->base)) {
+                current->frame_bitmap[(phys_address-current->base)/4096] = 0;
+                return;
+            }
+            else if (phys_address > current->base) {
+                current = current->next;
+            }
+        }
+        else if (current->next == NULL) {
+            current->frame_bitmap[(phys_address-current->base)/4096] = 0;
+            // kprintln_uint64((phys_address-current->base)/4096);
+            return;
+        }
+    }
+
 }
 
 //void init_paging() {//right now, i'm loading the pml4 address into the already provided address in cr3
