@@ -34,14 +34,22 @@ uint64_t kmalloc(uint64_t size) {
     heap_page* current = heap_page_head;
     uint64_t index = 0;
     while (current->next != NULL) {
+        int fits = 0;//0 for fits 1 for does not fit
         if (current->status == 0) {
             heap_page* probe = current;//probe should be stored in memory or something idk instead of stack. idk actually
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < size-1; i++) {//we do size-1 because the last line sets it as the last node we need but it doesn't actually check it, and so it gets checked by the if block at the end
                 if (probe->next == NULL) {
                     kprintln("heap is full");
                     return 0;
                 }
+                if (probe->status == 1) {
+                    fits = 1;
+                    break;
+                }
                 probe = probe->next;
+            }
+            if (fits == 1) {
+                continue;
             }
             if (probe->status == 0) {
                 probe = current;
@@ -49,7 +57,7 @@ uint64_t kmalloc(uint64_t size) {
                     probe->status = 1;
                     probe = probe->next;
                 }
-                // kprintln_uint64(index);
+                kprintln_uint64(index);
                 return HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED);
             }
         }
