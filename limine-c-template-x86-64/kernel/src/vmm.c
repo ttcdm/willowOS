@@ -33,7 +33,8 @@ uint64_t init_heap() {
 uint64_t kmalloc(uint64_t size) {
     heap_page* current = heap_page_head;
     uint64_t index = 0;
-    while (current->next != NULL) {
+    // while (current->next != NULL) {
+    while (current != NULL) {//fixes the same off by one error in alloc_frame()
         int fits = 0;//0 for fits 1 for does not fit
         if (current->status == 0) {
             heap_page* probe = current;//probe should be stored in memory or something idk instead of stack. idk actually

@@ -185,7 +185,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
         memmap_arr[0].frame_bitmap[i] = 0x00;
 	}
-    memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//we use 2 as the terminating character/value
+    memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//HERE we use 2 as the terminating character/value
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
 	struct usable_memmaps_region* current = &memmap_arr[0];
@@ -201,7 +201,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
         for (int i = 0; i < usable_memmap->length / 4096; i++) {
             usable_memmap->frame_bitmap[i] = 0x00;
         }
-        usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//we use 2 as the terminating character/value; hopefully there's no off by 1 error
+        usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//HERE we use 2 as the terminating character/value; hopefully there's no off by 1 error
 		usable_memmap->next = NULL;
 
 
@@ -401,9 +401,12 @@ void kmain(void) {
     heap_page_head->next->next->next->status = 0;
     kmalloc(2);
     kmalloc(2);
-    // hhhh = kmalloc(3);
-    // hhhh = kmalloc(4);
-    // hhhh = kmalloc(5);
+
+
+    uint64_t alloc1 = 2146541568+4096;
+    free_frame(alloc1);
+
+
     
     asm volatile ("int $64");
 
