@@ -394,9 +394,13 @@ void kmain(void) {
     uint64_t heap_start_virt = init_heap();
 
     uint64_t alloc0 = kmalloc(1);
-    kprintln_uint64(alloc0);
-    alloc0 = kmalloc(2);
-    kprintln_uint64(alloc0);
+    kmalloc(3);
+    kmalloc(1);
+    heap_page_head->next->status = 0;
+    heap_page_head->next->next->status = 0;
+    heap_page_head->next->next->next->status = 0;
+    kmalloc(2);
+    kmalloc(2);
     // hhhh = kmalloc(3);
     // hhhh = kmalloc(4);
     // hhhh = kmalloc(5);
