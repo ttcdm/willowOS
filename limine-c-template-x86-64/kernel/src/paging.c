@@ -120,7 +120,7 @@ uint64_t alloc_frame(void) {
 //     //HERE
 // }
 
-void free_frame(uint64_t phys_address) {
+void free_frame(uint64_t phys_address) {//pretty sure this works
     uint8_t index;
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well

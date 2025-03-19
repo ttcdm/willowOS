@@ -37,7 +37,7 @@ struct usable_memmaps_region {
 	uint64_t length;
 	uint8_t frame_bitmap[600000];//i'm so sorry
 	struct usable_memmaps_region* next;
-};
+};//HERE not sure if i need to align or use packed for general structures
 
 extern struct usable_memmaps_region memmap_arr[16];
 

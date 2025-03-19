@@ -14,11 +14,16 @@
 
 uint64_t init_heap();
 
-uint64_t kmalloc();
+uint64_t kmalloc(uint64_t size);
+
+void kfree(uint64_t);
+
+void print_heap(uint64_t length);
 
 typedef struct heap_page_virt {
     uint8_t status;//0 for free and 1 for used
     uint64_t size;
+    uint64_t alloc_length;//same as the normal lengths like len() in python (1 indexed?)
     struct heap_page_virt* next;
 } heap_page;
 
