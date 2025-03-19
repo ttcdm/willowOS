@@ -61,6 +61,7 @@ uint64_t* kmalloc(uint64_t size) {
                     probe = probe->next;
                 }
                 current->alloc_length = size;//size of allocated memory
+				kprint("allocated heap at index: ");
                 kprintln_uint64(index);
                 return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
