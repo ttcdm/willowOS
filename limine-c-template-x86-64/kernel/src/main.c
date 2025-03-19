@@ -391,25 +391,31 @@ void kmain(void) {
 
     
     
-    uint64_t heap_start_virt = init_heap();
+    uint64_t heap_start_virt = init_heap();//must call to initialize heap
 
-    uint64_t alloc0 = kmalloc(5);
-    uint64_t alloc1 = kmalloc(3);
-    uint64_t alloc2 = kmalloc(1);
-    uint64_t alloc3 = kmalloc(6);
-    uint64_t alloc4 = kmalloc(4);
-    print_heap(20);
-    kfree(alloc1);
-    print_heap(20);
-    kprintln_uint64(alloc3);
+    // uint64_t alloc0 = kmalloc(5);
+    // uint64_t alloc1 = kmalloc(3);
+    // uint64_t alloc2 = kmalloc(1);
+    // uint64_t alloc3 = kmalloc(6);
+    // uint64_t alloc4 = kmalloc(4);
+    // print_heap(20);
+    // kfree(alloc1);
+    // print_heap(20);
+    // kprintln_uint64(alloc3);
 
-    uint64_t* x = (uint64_t*) alloc3;
-    for (int i = 0; i < 10; i++) {
-        x[i] = i;
-    }
-    for (int i = 3; i < 13; i++) {
-        kprintln_uint64(x[i]);
-    }
+    // uint64_t* x = (uint64_t*) alloc3;
+    // for (int i = 0; i < 10; i++) {
+    //     x[i] = i;
+    // }
+    // for (int i = 3; i < 13; i++) {
+    //     kprintln_uint64(x[i]);
+    // }
+
+
+    uint64_t* y = kmalloc(10);
+    *y = 2;
+    kprintln("hihi");
+    kprintln_uint64(*y);
 
 
     uint64_t frame_alloc_0 = 2146541568+4096;
