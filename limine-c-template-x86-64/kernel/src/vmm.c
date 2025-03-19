@@ -32,7 +32,7 @@ uint64_t init_heap() {
     return heap_start;
 }
 
-uint64_t kmalloc(uint64_t size) {
+uint64_t* kmalloc(uint64_t size) {
     heap_page* current = heap_page_head;
     uint64_t index = 0;
     // while (current->next != NULL) {
@@ -62,7 +62,7 @@ uint64_t kmalloc(uint64_t size) {
                 }
                 current->alloc_length = size;//size of allocated memory
                 kprintln_uint64(index);
-                return HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED);
+                return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
         }
         current = current->next;
@@ -72,8 +72,8 @@ uint64_t kmalloc(uint64_t size) {
     return 0;
 }
 
-void kfree(uint64_t virt_address) {
-    uint64_t index = (virt_address - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
+void kfree(uint64_t* virt_address) {
+    uint64_t index = ((uint64_t) virt_address - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
     for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
         current = current->next;//we do the second last one because at the end of the loop it moves onto the last node

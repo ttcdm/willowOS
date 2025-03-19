@@ -14,9 +14,9 @@
 
 uint64_t init_heap();
 
-uint64_t kmalloc(uint64_t size);
+uint64_t* kmalloc(uint64_t size);
 
-void kfree(uint64_t);
+void kfree(uint64_t*);
 
 void print_heap(uint64_t length);
 
