@@ -265,6 +265,25 @@ void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
     hhdm_offset = hhdm_request.response->offset;
 }
 
+void test_memory() {//mini test
+    uint64_t* x = kmalloc(10);
+    for (int i = 0; i < 10; i++) {
+        x[i] = i;
+    }
+    if (!((*x == 0) && (x[5] == 5)) && heap_page_head->status == 1 && heap_page_head->alloc_length == 10) {
+        kprintln("memory test failed");
+        return;
+    }
+    kfree(x);
+    if ((heap_page_head->status == 0 && heap_page_head->alloc_length == 0)) {
+        kprintln("memory test passed");
+    }
+    else {
+		kprintln("memory test failed");
+        print_heap(10);
+    }
+}
+
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
@@ -412,14 +431,12 @@ void kmain(void) {
     // }
 
 
-    uint64_t* y = kmalloc(10);
-    *y = 2;
-    kprintln("hihi");
-    kprintln_uint64(*y);
+    test_memory();//make sure this gets called right after init_heap()
 
 
-    uint64_t frame_alloc_0 = 2146541568+4096;
-    free_frame(frame_alloc_0);
+
+    //uint64_t frame_alloc_0 = 2146541568+4096;
+    //free_frame(frame_alloc_0);
     
 
 
