@@ -368,12 +368,7 @@ void kmain(void) {
     //    }
     //}
 
-    
-
     init_paging();
-
-
-
 
     //bp();
 
@@ -400,16 +395,10 @@ void kmain(void) {
        //kprint(buf);
        //kprint("\n");
 
-
        //__asm__ volatile ("mv %0, cr3 : "=r"");
-
-
-
 
        //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
 
-    
-    
     uint64_t heap_start_virt = init_heap();//must call to initialize heap
 
     // uint64_t alloc0 = kmalloc(5);
@@ -430,16 +419,10 @@ void kmain(void) {
     //     kprintln_uint64(x[i]);
     // }
 
-
     test_memory();//make sure this gets called right after init_heap()
-
-
 
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
-    
-
-
     
     asm volatile ("int $64");
 
