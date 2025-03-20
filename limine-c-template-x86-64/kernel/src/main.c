@@ -175,10 +175,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     //usable_memmap is singular
 
 
- //   struct usable_memmaps_region first_memmap;
- //   first_memmap.base = usable_memmaps[0]->base;
- //   first_memmap.length = usable_memmaps[0]->length;
-	//first_memmap.next = NULL;
+
     memmap_arr[0].base = usable_memmaps[0]->base;
 	memmap_arr[0].length = usable_memmaps[0]->length;
     //memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
@@ -190,10 +187,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
     //struct usable_memmaps_region* current = &first_memmap;
 	struct usable_memmaps_region* current = &memmap_arr[0];
     for (int i = 1; i < usable_memmaps_number; i++) {
-        //struct usable_memmaps_region* usable_memmap = usable_memmaps[i];
-  //      usable_memmap->base = usable_memmaps[i]->base;
-		//usable_memmap->length = usable_memmaps[i]->length;
-  //      usable_memmap->next = NULL;
+
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
@@ -210,16 +204,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
         current->next = usable_memmap;
         current = current->next;
     }
-    //struct usable_memmaps_region* current_memmap = &first_memmap;
 
-    //for (int i = 0; i < 4; i++) {
-    //    kprint("base: ");
-    //    kprintln_uint64(current_memmap->base);
-    //    kprint("length: ");
-    //    kprintln_uint64(current_memmap->length);
-    //    current_memmap = current_memmap->next;
-    //}
-    //return &first_memmap;
     kprintln("initialized memmaps");
     return &memmap_arr[0];
 }
@@ -257,10 +242,6 @@ void kprintln_uint64(uint64_t num) {
 }
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
-    //for (int i = 0; i < 10000; i++) {
-    //    frame_bitmap[i] = 0x00;//not sure if using frame_bitmap[10000] = { 0 } as a declaration is bug free so i'm doing this just to be safe
-    //}
-    //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096. also only declare this once because i think it was causing issues when it was called multiple times because of alloc_frame() redefining it multiple times
     starting_address = memmap_arr[0].base;
     hhdm_offset = hhdm_request.response->offset;
 }
@@ -289,8 +270,6 @@ void test_memory() {//mini test
 // linker script accordingly.
 void kmain(void) {
 
-
-
     /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
     uint32_t RED = 0xff0000;
     uint32_t GREEN = 0x00ff00;
@@ -309,7 +288,6 @@ void kmain(void) {
         hcf();
     }
 
-
     framebuffer = framebuffer_request.response->framebuffers[0];
 
     ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
@@ -321,9 +299,6 @@ void kmain(void) {
 
     // kprint("helloworld\n");
     kprintln("willowOS");
-    //char strrr[32];//remember to initialize strings as an actual array instead of a pointer sometimes to avoid a seg fault
-
-
 
     struct usable_memmaps_region* memmap = init_memmaps();
 
@@ -339,35 +314,6 @@ void kmain(void) {
 
     init_physical_memory();//make sure this is called first
 
-    //init_paging();
-
-    //volatile uint64_t* lptr;//old r/w to memory test
-    //for (int i = 0; i < 10; i++) {
-    //    uint64_t pa = alloc_frame();//pa = physical address; va = virtual address
-    //    uint64_t va = pa + hhdm_offset;
-    //    volatile uint64_t* ptr = (uint64_t*)va;
-    //    *ptr = (uint64_t) i;
-    //    if (frame_bitmap[i] == 1) {
-    //        //kprintln_uint64(va);
-    //    }
-    //}
-    //for (int i = 0; i < 10; i++) {
-    //    if (frame_bitmap[i] == (uint8_t) 1) {
-    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
-    //        lptr = (uint64_t*)a;
-    //        //kprintln_uint64(*lptr);
-    //        free_frame(a-hhdm_offset);
-    //    }
-    //}
-    //for (int i = 0; i < 10; i++) {
-    //    //kprintln("hi");
-    //    if (frame_bitmap[i] == (uint8_t) 1) {
-    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
-    //        lptr = (uint64_t*)a;
-    //        //kprintln_uint64(*lptr);
-    //    }
-    //}
-
     init_paging();
 
     //bp();
@@ -377,7 +323,6 @@ void kmain(void) {
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
 
-
     //setup_idt();//chatgpt'ed version
     //load_idt();
 
@@ -386,38 +331,7 @@ void kmain(void) {
     setup_tss(&tss, gdt_table);
     load_tss();
 
-
-       //char buf[64];
-       //uint64_t pml4;
-       //asm volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
-       //kprint("pml4: ");
-       //uint64_to_string(pml4, buf);
-       //kprint(buf);
-       //kprint("\n");
-
-       //__asm__ volatile ("mv %0, cr3 : "=r"");
-
-       //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
-
     uint64_t heap_start_virt = init_heap();//must call to initialize heap
-
-    // uint64_t alloc0 = kmalloc(5);
-    // uint64_t alloc1 = kmalloc(3);
-    // uint64_t alloc2 = kmalloc(1);
-    // uint64_t alloc3 = kmalloc(6);
-    // uint64_t alloc4 = kmalloc(4);
-    // print_heap(20);
-    // kfree(alloc1);
-    // print_heap(20);
-    // kprintln_uint64(alloc3);
-
-    // uint64_t* x = (uint64_t*) alloc3;
-    // for (int i = 0; i < 10; i++) {
-    //     x[i] = i;
-    // }
-    // for (int i = 3; i < 13; i++) {
-    //     kprintln_uint64(x[i]);
-    // }
 
     test_memory();//make sure this gets called right after init_heap()
 

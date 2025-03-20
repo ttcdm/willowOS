@@ -22,13 +22,6 @@ uint64_t init_heap() {
         current = current->next;
     }
     kprintln("successfully initalized heap");
-    // current = head;
-    // int i = 0;
-    // while (current->next != NULL) {        
-    //     i++;
-    //     current = current->next;
-    // }
-    // kprintln_uint64(i);
     return heap_start;
 }
 
