@@ -51,6 +51,11 @@ static volatile struct limine_hhdm_request hhdm_request = {
     .revision = 0//may need to change it to 3 but idk
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
+    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+};
 
 
 
@@ -136,7 +141,7 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     }
 }
 
-struct limine_memmap_entry** usable_memmaps_1_ptr;//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
+struct limine_memmap_entry** usable_memmaps_1_ptr;//HERE we use linked lists now so this shouldn't really matter. (strikethrough) for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish (strikethrough)
 
 
 struct usable_memmaps_region memmap_arr[16];//HERE. might run into issues with statically declaring the amount of memmaps
@@ -205,6 +210,8 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
         current->next = usable_memmap;
         current = current->next;
     }
+    kprint("number of usable memmaps (1 indexed): ");
+    kprintln_uint64(usable_memmaps_number);
 
     kprintln("initialized memmaps");
     return &memmap_arr[0];
@@ -266,6 +273,20 @@ void test_memory() {//mini test
     }
 }
 
+uint64_t get_lapic_physical_address() {
+    uint64_t rsdp_phys_addr = rsdp_request.response->address;
+    kprint("rsdp physical address: ");
+    kprintln_uint64(rsdp_phys_addr);
+    for (uint64_t i = 0;; i++) {
+        if (*((uint64_t*)(rsdp_phys_addr + hhdm_offset + (i*8))) == 0x43495041) {
+            kprint("found lapic signature at address: ");
+            kprintln_uint64((rsdp_phys_addr + (i*8)));
+            break;
+        }
+    }
+    return 0;
+}
+
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
 // linker script accordingly.
@@ -304,14 +325,15 @@ void kmain(void) {
     struct usable_memmaps_region* memmap = init_memmaps();
 
     struct usable_memmaps_region* current_memmap = memmap;
-
-    for (int i = 0; i < 4; i++) {
+    
+    for (int i = 0; i < 3; i++) {//using 3 for now but it will break if the # of usable memmaps changes
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
         kprint("memmap region's length: ");
         kprintln_uint64(current_memmap->length);
         current_memmap = current_memmap->next;
     }
+
 
     init_physical_memory();//make sure this is called first
 
@@ -340,9 +362,12 @@ void kmain(void) {
     //free_frame(frame_alloc_0);
     
 
-    pic_disable();
+    pic_disable();//we disable the pic and set up the local apic (lapic)
 
-    check_pic_status();
+    enable_lapic();
+    
+    get_lapic_physical_address();
+
 
     asm volatile ("int $64");
 

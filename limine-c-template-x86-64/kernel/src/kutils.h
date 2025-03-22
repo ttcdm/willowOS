@@ -11,6 +11,7 @@ void kprint(char* str);
 void kprintln(char* str);
 void kprint_uint64(uint64_t num);
 void kprintln_uint64(uint64_t num);
+void kprintln_uint64_to_binary(uint64_t value);
 
 void bp(void);
 

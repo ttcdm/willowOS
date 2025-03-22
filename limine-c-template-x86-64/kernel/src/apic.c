@@ -13,20 +13,22 @@ static inline uint8_t inb(uint16_t port) {
 void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     outb(PIC1_DATA, 0xff);
     outb(PIC2_DATA, 0xff);
+    kprintln("pic disabled");
 }
 
-uint8_t read_pic_mask(uint8_t pic_data_port) {
-    uint8_t mask;
-    asm volatile ("inb %1, %0" : "=a"(mask) : "Nd"(pic_data_port));
-    return mask;
-}
+void enable_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
+    uint32_t msr_high;
+    uint32_t msr_low;
+    uint64_t msr;
+    __asm__ volatile("rdmsr" : "=a"(msr_low), "=d"(msr_high) : "c"(0x1b));
+    msr = ((uint64_t) msr_high) << 32 | msr_low;//concatenate
+    //msr &= ~0x800;//disable lapic
+    msr |= 0x800;//enable lapic via the 11th bit (0 indexed)
+    kprint("msr: ");
+	kprintln_uint64_to_binary(msr);
 
-void check_pic_status() {
-    uint8_t master_mask = read_pic_mask(0x21);  // Read master PIC mask
-    uint8_t slave_mask = read_pic_mask(0xA1);   // Read slave PIC mask
+	msr_low = (uint32_t) msr;
+	msr_high = (uint32_t) (msr >> 32);
 
-    kprint("Master PIC Mask: ");
-    kprintln_uint64(master_mask);
-    kprint("Slave PIC Mask: ");
-    kprintln_uint64(slave_mask);
+    __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high) , "c"(0x1b));
 }
