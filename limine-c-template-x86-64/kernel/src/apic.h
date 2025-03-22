@@ -20,6 +20,19 @@ static inline void outb(uint16_t port, uint8_t val);
 static inline uint8_t inb(uint16_t port);
 
 void pic_disable(void);
+void enable_lapic(void);
 
-uint8_t read_pic_mask(uint8_t pic_data_port);
-void check_pic_status();
+typedef struct {//chatgpt generated
+    uint32_t signature;       // "APIC"
+    uint32_t length;
+    uint8_t revision;
+    uint8_t checksum;
+    char oem_id[6];
+    char oem_table_id[8];
+    uint32_t oem_revision;
+    uint32_t creator_id;
+    uint32_t creator_revision;
+
+    uint32_t lapic_address;    // << The LAPIC base address (usually 0xFEE00000)
+    uint32_t flags;
+} MADT;
