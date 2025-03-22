@@ -340,7 +340,9 @@ void kmain(void) {
     //free_frame(frame_alloc_0);
     
 
-    // pic_disable();
+    pic_disable();
+
+    check_pic_status();
 
     asm volatile ("int $64");
 
