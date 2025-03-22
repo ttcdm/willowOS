@@ -8,8 +8,6 @@
 __attribute__((aligned(0x10)))
 static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for performance
 
-
-
 __attribute__((noreturn))
 void exception_handler() {
     kprintln("exception occurred");
@@ -17,45 +15,31 @@ void exception_handler() {
 }
 
 //__attribute__((interrupt))
-// void interrupt_handler_custom(struct interrupt_frame* frame) {
-// // void interrupt_handler_custom(void* frame) {
-//     kprintln("Custom Interrupt Handler Triggered!");
-
-//     kprint("RFLAGS: ");
-//     kprintln_uint64(frame->rflags);
-
-//     kprint("CS: ");
-//     kprintln_uint64(frame->cs);
-
-//     kprint("RIP: ");
-//     kprintln_uint64(frame->rip);
-//     kprintln("interrupt occurred");
-// }
-
 void interrupt_handler_custom(struct interrupt_frame *frame) {
-    kprintln("Custom Interrupt Handler Triggered!");
+    kprintln("interrupt occurred");
 
-    // Print the actual address of 'frame'
-    kprint("Frame Pointer Address: ");
-    kprintln_uint64((uint64_t)frame);
-
-    // Print the raw memory contents
-    for (int i = 0; i < 5; i++) {
-        kprint("Value at frame[");
-        kprint_uint64(i);
-        kprint("] = ");
-        kprintln_uint64(((uint64_t*)frame)[i]);
-    }
-
-    // Print interpreted values
-    kprint("RIP: ");
-    kprintln_uint64(frame->rip);
-
-    kprint("CS: ");
-    kprintln_uint64(frame->cs);
-
-    kprint("RFLAGS: ");
+    kprint("Interrupt frame dump and the instruction address: ");
+    kprintln_uint64((uint64_t)frame);/*
+    kprintln_uint64(frame->r15);
+    kprintln_uint64(frame->r14);
+    kprintln_uint64(frame->r13);
+    kprintln_uint64(frame->r12);
+    kprintln_uint64(frame->r11);
+    kprintln_uint64(frame->r10);
+    kprintln_uint64(frame->r9);
+    kprintln_uint64(frame->r8);
+    kprintln_uint64(frame->rbp);
+    kprintln_uint64(frame->rdi);
+    kprintln_uint64(frame->rsi);
+    kprintln_uint64(frame->rdx);
+    kprintln_uint64(frame->rcx);
+    kprintln_uint64(frame->rbx);
+    kprintln_uint64(frame->rax);
     kprintln_uint64(frame->rflags);
+    kprintln_uint64(frame->rip);
+    kprintln_uint64(frame->cs);*/
+
+    //asm volatile ("int $64");
 }
 
 

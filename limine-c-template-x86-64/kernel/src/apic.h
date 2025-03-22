@@ -15,7 +15,6 @@
 // https://wiki.osdev.org/8259_PIC#Disabling
 
 
-
 // https://wiki.osdev.org/Inline_Assembly/Examples#I/O_access
 static inline void outb(uint16_t port, uint8_t val);
 static inline uint8_t inb(uint16_t port);

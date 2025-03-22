@@ -12,7 +12,6 @@ isr_stub_%+%1:
 
 
 %macro push_reg 0
-    pushfq                  ; Save RFLAGS ; chatgpt put this here. not sure if i need this
     push rax
     push rbx
     push rcx
@@ -46,7 +45,6 @@ isr_stub_%+%1:
     pop rcx
     pop rbx
     pop rax
-    popfq                   ; Restore RFLAGS
 %endmacro
 
 
@@ -121,31 +119,15 @@ isr_no_err_stub 61
 isr_no_err_stub 62
 isr_no_err_stub 63
 
-isr_stub_64:
-    cli
-    push_reg                  ; Push all registers (defined in your macro)
-    mov rdi, rsp               ; Pass stack pointer to C handler
-    sub rsp, 8                 ; Maintain 16-byte alignment before calling
+
+isr_stub_64:;pretty sure this works. it doesn't throw an error anymroe. we don't cli nor sti because we want to allow nested interrupts
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
     call interrupt_handler_custom
-    add rsp, 8                 ; Restore stack alignment
-    pop_reg                    ; Restore all registers
-    sti
+    add rsp, 8
+    pop_reg
     iretq
-
-
-
-
-
-
-;isr_stub_64:;non chatgpt version
-;    cli
-;    push_reg
-;    mov rdi, rsp
-;    call interrupt_handler_custom
-;    pop_reg
-;    add rsp, 16
-;    sti
-;    iretq
 
 global isr_stub_table
 isr_stub_table:
