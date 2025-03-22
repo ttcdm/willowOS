@@ -123,13 +123,29 @@ isr_no_err_stub 63
 
 isr_stub_64:
     cli
-    push_reg
-    mov rdi, rsp
+    push_reg                  ; Push all registers (defined in your macro)
+    mov rdi, rsp               ; Pass stack pointer to C handler
+    sub rsp, 8                 ; Maintain 16-byte alignment before calling
     call interrupt_handler_custom
-    pop_reg
-    add rsp, 16
+    add rsp, 8                 ; Restore stack alignment
+    pop_reg                    ; Restore all registers
     sti
     iretq
+
+
+
+
+
+
+;isr_stub_64:;non chatgpt version
+;    cli
+;    push_reg
+;    mov rdi, rsp
+;    call interrupt_handler_custom
+;    pop_reg
+;    add rsp, 16
+;    sti
+;    iretq
 
 global isr_stub_table
 isr_stub_table:
