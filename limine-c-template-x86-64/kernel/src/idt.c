@@ -17,9 +17,47 @@ void exception_handler() {
 }
 
 //__attribute__((interrupt))
-void interrupt_handler_custom(struct interrupt_frame* frame) {
-    kprintln("interrupt occured");
+// void interrupt_handler_custom(struct interrupt_frame* frame) {
+// // void interrupt_handler_custom(void* frame) {
+//     kprintln("Custom Interrupt Handler Triggered!");
+
+//     kprint("RFLAGS: ");
+//     kprintln_uint64(frame->rflags);
+
+//     kprint("CS: ");
+//     kprintln_uint64(frame->cs);
+
+//     kprint("RIP: ");
+//     kprintln_uint64(frame->rip);
+//     kprintln("interrupt occurred");
+// }
+
+void interrupt_handler_custom(struct interrupt_frame *frame) {
+    kprintln("Custom Interrupt Handler Triggered!");
+
+    // Print the actual address of 'frame'
+    kprint("Frame Pointer Address: ");
+    kprintln_uint64((uint64_t)frame);
+
+    // Print the raw memory contents
+    for (int i = 0; i < 5; i++) {
+        kprint("Value at frame[");
+        kprint_uint64(i);
+        kprint("] = ");
+        kprintln_uint64(((uint64_t*)frame)[i]);
+    }
+
+    // Print interpreted values
+    kprint("RIP: ");
+    kprintln_uint64(frame->rip);
+
+    kprint("CS: ");
+    kprintln_uint64(frame->cs);
+
+    kprint("RFLAGS: ");
+    kprintln_uint64(frame->rflags);
 }
+
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags) {
     idt_entry_t* descriptor = &idt[vector];

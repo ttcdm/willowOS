@@ -8,6 +8,7 @@
 #include <kutils.h>
 #include <paging.h>
 #include <vmm.h>
+#include <apic.h>
 
 #include <limine.h>
 
@@ -338,6 +339,9 @@ void kmain(void) {
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
     
+
+    // pic_disable();
+
     asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }

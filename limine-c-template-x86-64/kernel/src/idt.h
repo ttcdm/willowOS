@@ -33,13 +33,32 @@ typedef struct idtr_t_actual {
 //	uword_t ss;
 //};
 
-struct interrupt_frame;
+// struct interrupt_frame;
+
+// struct interrupt_frame {//chatgpt version
+//     uint64_t rip;
+//     uint64_t cs;
+//     uint64_t rflags;
+//     uint64_t rsp;    // Only if privilege level change occurs (user -> kernel)
+//     uint64_t ss;      // Only if privilege level change occurs
+// };
+
+struct interrupt_frame {
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rdi, rsi, rbp, rdx, rcx, rbx, rax;
+    uint64_t rflags; 
+    uint64_t rip;
+    uint64_t cs;
+};
+
+
 
 __attribute__((noreturn))
 void exception_handler(void);
 
 //__attribute__((interrupt))//apparently this disallowed the interrupt handler from returning for whatever reason
 void interrupt_handler_custom(struct interrupt_frame* frame);
+// void interrupt_handler_custom(void* frame);
 
 void idt_set_descriptor(uint8_t vector, void* isr, uint8_t flags);
 
