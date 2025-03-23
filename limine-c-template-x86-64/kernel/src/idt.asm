@@ -47,11 +47,13 @@ isr_stub_%+%1:
     pop rax
 %endmacro
 
-
-
-
-extern interrupt_handler_custom;remember to extern the functions
+;HERE remember to extern the functions
 extern exception_handler
+extern interrupt_handler_custom;remember to extern the functions
+extern page_fault_handler
+extern gpf_handler
+
+
 isr_no_err_stub 0
 isr_no_err_stub 1
 isr_no_err_stub 2
@@ -65,8 +67,8 @@ isr_no_err_stub 9
 isr_err_stub    10
 isr_err_stub    11
 isr_err_stub    12
-isr_err_stub    13
-isr_err_stub    14
+;isr_err_stub    13;we replace this with our own gpf handler
+;isr_err_stub    14;we replace this with our own page fault handler
 isr_no_err_stub 15
 isr_no_err_stub 16
 isr_err_stub    17
@@ -118,6 +120,25 @@ isr_no_err_stub 60
 isr_no_err_stub 61
 isr_no_err_stub 62
 isr_no_err_stub 63
+
+
+isr_stub_13:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call gpf_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
+isr_stub_14:;page fault handler
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call page_fault_handler
+    add rsp, 8
+    pop_reg
+    iretq
 
 
 isr_stub_64:;pretty sure this works. it doesn't throw an error anymroe. we don't cli nor sti because we want to allow nested interrupts

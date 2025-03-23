@@ -283,7 +283,10 @@ uint64_t get_lapic_physical_address() {
    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
    // kprintln_uint64(xsdp_p->length);
    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
-   acpi_parse_rsdp((void*)  rsdp_phys_addr);
+   map_page(get_cr3(), rsdp_phys_addr, rsdp_phys_addr+hhdm_offset, 0b1000);
+   //acpi_parse_rsdp((void*)  (rsdp_phys_addr+hhdm_offset));
+   struct XSDP* XSDP_p = (void*) (rsdp_phys_addr+hhdm_offset);
+   kprintln_uint64(XSDP_p->length);
 
    return 0;
 

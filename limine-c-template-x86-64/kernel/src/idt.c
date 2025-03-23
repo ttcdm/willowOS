@@ -15,7 +15,7 @@ void exception_handler() {
 }
 
 //__attribute__((interrupt))
-void interrupt_handler_custom(struct interrupt_frame *frame) {
+void interrupt_handler_custom(struct interrupt_frame* frame) {
     kprintln("interrupt occurred");
 
     kprint("Interrupt frame dump and the instruction address: ");
@@ -40,6 +40,15 @@ void interrupt_handler_custom(struct interrupt_frame *frame) {
     kprintln_uint64(frame->cs);*/
 
     //asm volatile ("int $64");
+}
+
+void page_fault_handler(struct interrupt_frame* frame) {
+    kprintln("page fault occurred");
+}
+
+void gpf_handler(struct interrupt_frame* frame) {
+	kprintln("general protection fault occurred. halting...");
+	asm volatile("cli; hlt");
 }
 
 
