@@ -91,20 +91,20 @@ void acpi_parse_rsdp(const void *pRSDP) {
     if (has_xsdp) {
         validate_xsdp(pXSDP);
 
-        const struct XSDT *pXSDT = pXSDP->xsdt_address+hhdm_offset;
+        const struct XSDT *pXSDT = (struct XSDT*)(pXSDP->xsdt_address+hhdm_offset);
         validate_sdt(&pXSDT->h);
 
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pXSDT->sdt64[i]+hhdm_offset);
+            parse_sdt((struct SDTHeader*) (pXSDT->sdt64[i]+hhdm_offset));
         }
     } else {
-        const struct RSDT *pRSDT = pXSDP->rsdp.rsdt_address+hhdm_offset;
+        const struct RSDT *pRSDT = (struct RSDT*) (pXSDP->rsdp.rsdt_address+hhdm_offset);
         validate_sdt(&pRSDT->h);
 
         const size_t num_sdts = (pRSDT->h.length - offsetof(struct RSDT, sdt32)) / sizeof(uint32_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pRSDT->sdt32[i]+hhdm_offset);
+            parse_sdt((struct SDTHeader*) (pRSDT->sdt32[i]+hhdm_offset));
         }
     }
 }
