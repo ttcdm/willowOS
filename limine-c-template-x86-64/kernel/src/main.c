@@ -289,7 +289,7 @@ uint64_t get_lapic_physical_address() {
    // kprintln_uint64(xsdp_p->length);
    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
 
-   uint64_t rsdp_virt_addr = alloc_frame();
+   uint64_t rsdp_virt_addr = alloc_frame();//+hhdm_offset;
    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
    acpi_parse_rsdp((void*) (rsdp_virt_addr));
    //struct XSDP* XSDP_p = (void*)(rsdp_virt_addr);

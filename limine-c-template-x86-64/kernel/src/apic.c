@@ -34,15 +34,10 @@ void enable_lapic(void) {//this can be rewritten to be a lot cleaner but it's ex
 }
 
 int strncmp(const char* s1, const char* s2, size_t n) {
-    while (n-- > 0) {
-        if (*s1 != *s2) {
-            return (unsigned char)*s1 - (unsigned char)*s2;
+    for (size_t i = 0; i < n; i++) {
+        if (s1[i] != s2[i] || s1[i] == '\0') {
+            return (unsigned char)s1[i] - (unsigned char)s2[i];
         }
-        if (*s1 == '\0') {
-            return 0;
-        }
-        s1++;
-        s2++;
     }
     return 0;
 }
@@ -50,6 +45,8 @@ int strncmp(const char* s1, const char* s2, size_t n) {
 const struct MADT *ACPI_MADT;
 
 static void validate_sdt(const struct SDTHeader *pSDT) {
+    //uint64_t ppa = alloc_frame();
+    //map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pSDT), 0b11);
     uint8_t checksum = 0;
     for (size_t i = 0; i < pSDT->length; ++i) {
         checksum += ((const uint8_t *)pSDT)[i];
@@ -77,9 +74,12 @@ static void validate_xsdp(const struct XSDP *pXSDP) {
 }
 
 static void parse_sdt(const struct SDTHeader *pSDT) {
-    validate_sdt(pSDT);
-    if (!strncmp(pSDT->signature, "APIC", 4)) {
-        ACPI_MADT = (const void *)pSDT;
+    //validate_sdt(pSDT);
+    //if (!strncmp(pSDT->signature, "APIC", 4)) {
+    //    ACPI_MADT = (const void *)pSDT;
+    //}
+    if (pSDT->signature[0] == 'A' && pSDT->signature[1] == 'P') {
+        ACPI_MADT = (const void*)pSDT;
     }
 }
 
@@ -91,25 +91,50 @@ void acpi_parse_rsdp(const void* pRSDP) {
     if (has_xsdp) {
         validate_xsdp(pXSDP);
 
-        const struct XSDT* pXSDT = pXSDP->xsdt_address;// +hhdm_offset;
-        uint64_t pva = alloc_frame();
+        //const struct XSDT* pXSDT = (struct XSDT*) pXSDP->xsdt_address;// +hhdm_offset;
+        //uint64_t pva = alloc_frame();
         //map_page((uint64_t*) pml4_address_virt_glob, &pXSDT, pva, 0b11);
+
+
+        //uint64_t ppa = alloc_frame()+hhdm_offset;
+        ////map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
+        //map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
+        //const struct XSDT* pXSDT = (struct XSDT*) ppa;
+        //kprintln_uint64(pXSDT->h.length);
+        //kprintln("hi");
         //validate_sdt(&pXSDT->h);
+        //kprintln("bye");
+
+        uint64_t ppa = alloc_frame()+hhdm_offset;
+        //map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
+        map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
+        const struct XSDT* pXSDT = (struct XSDT*) ppa;
+        //kprintln_uint64(pXSDT->sdt64[0]);
         kprintln("hi");
-        //uint64_t a = (uint64_t)(pXSDP->xsdt_address);
-        //kprintln_uint64(a);
-
-        map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), pva, 0b11);
-        struct XSDT* a = (void*)pva;
-		kprintln_uint64(a->h.length);
-
-
-
-
+        validate_sdt(&pXSDT->h);
         kprintln("bye");
+
+
+  //      //uint64_t a = (uint64_t)(pXSDP->xsdt_address);
+  //      //kprintln_uint64(a);
+  //      //
+  //      uint64_t ppa = alloc_frame();
+  //      map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
+  //      struct XSDT* a = (void*)pXSDP->xsdt_address;
+		//kprintln_uint64(&a->h.length);
+
+
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
+        //const size_t num_sdts = (pXSDT->h.length - sizeof(struct SDTHeader)) / sizeof(uint64_t);
+
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pXSDT->sdt64[i] + hhdm_offset);
+            kprintln("aa");
+            //parse_sdt(pXSDT->sdt64[i]);
+            //(struct XSDT*)(pXSDT->sdt64[i]))->signature[0]
+            if ((struct XSDT*)(pXSDT->sdt64[i])->signature[0]) == 'A' && (struct XSDT*)(pXSDT->sdt64[i]))->signature[1] == 'P') {
+                ACPI_MADT = (const void*)pXSDT->sdt64[i];
+            }
+            kprintln("bb");
         }
     }
     else {
