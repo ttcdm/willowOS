@@ -275,19 +275,19 @@ void test_memory() {//mini test
 
 
 
-uint64_t get_lapic_physical_address() {
-    uint64_t rsdp_phys_addr = rsdp_request.response->address;
-    //kprint("rsdp physical address: ")/;
-    //kprintln_uint64(rsdp_phys_addr);
-
-    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
-    // kprintln_uint64(xsdp_p->length);
-    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
-    acpi_parse_rsdp((void*)  rsdp_phys_addr);
-
-    return 0;
-
-}
+//uint64_t get_lapic_physical_address() {
+//    uint64_t rsdp_phys_addr = rsdp_request.response->address;
+//    //kprint("rsdp physical address: ")/;
+//    //kprintln_uint64(rsdp_phys_addr);
+//
+//    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
+//    // kprintln_uint64(xsdp_p->length);
+//    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
+//    acpi_parse_rsdp((void*)  rsdp_phys_addr);
+//
+//    return 0;
+//
+//}
 
 // uint64_t get_lapic_physical_address() {
 //     uint64_t rsdp_phys_addr = rsdp_request.response->address;
@@ -386,7 +386,15 @@ void kmain(void) {
 
     enable_lapic();
     
-    get_lapic_physical_address();
+    //get_lapic_physical_address();
+    uint64_t rsdp_phys_addr = rsdp_request.response->address;
+    //kprint("rsdp physical address: ")/;
+    //kprintln_uint64(rsdp_phys_addr);
+
+    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
+    // kprintln_uint64(xsdp_p->length);
+    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
+    acpi_parse_rsdp((void*)rsdp_phys_addr);
 
 
     asm volatile ("int $64");
