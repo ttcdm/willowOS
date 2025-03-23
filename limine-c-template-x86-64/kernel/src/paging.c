@@ -10,20 +10,20 @@ uint64_t starting_address;
 uint8_t last_alloced_frame;
 uint64_t hhdm_offset;
 
-uint64_t alloc_frame(void) {
+uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
     starting_address = memmap_arr[0].base;
     struct usable_memmaps_region* current = &memmap_arr[0];
     // while (current->next != NULL) {
     while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
-        for (int i = 0; i < current->length/4096; i++) {//hopefully there's no off by 1 error
-            if (current->frame_bitmap[i] == 0x00) {
-				current->frame_bitmap[i] = 0x01;
-				last_alloced_frame = i;//idek if this is even supposed to be here atp
+        for (int i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
+            if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
+                current->frame_bitmap[i] = 0x01;
+                last_alloced_frame = i;//idek if this is even supposed to be here atp
                 memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
-				// kprintln("page allocated successfully");
+                // kprintln("page allocated successfully");
                 return current->base + (i * 4096);
-			}
-		}
+            }
+        }
         current = current->next;
     }
 	kprintln("no more frames to allocate. returning 0");
@@ -37,7 +37,7 @@ void free_frame(uint64_t phys_address) {//pretty sure this works
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
             if ((phys_address > current->base) && (phys_address < current->next->base)) {
-                current->frame_bitmap[(phys_address-current->base)/4096] = 0;
+                current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
                 return;
             }
             else if (phys_address > current->base) {
@@ -45,7 +45,7 @@ void free_frame(uint64_t phys_address) {//pretty sure this works
             }
         }
         else if (current->next == NULL) {
-            current->frame_bitmap[(phys_address-current->base)/4096] = 0;
+            current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
             // kprintln_uint64((phys_address-current->base)/4096);
             return;
         }
@@ -74,9 +74,11 @@ uint64_t virt_lookup(uint64_t virt_address) {//currently returns 0
 
 uint64_t pml4_address_virt_glob;
 
+uint64_t cr3_global;
 void init_paging() {
     kprint("cr3: ");
-    kprintln_uint64((uint64_t)get_cr3());
+    cr3_global = (uint64_t)get_cr3();//get_cr3() somehow returns the wrong value after this so i just set it as a variable
+    kprintln_uint64(cr3_global);
 
     uint64_t* page = (void*)alloc_frame() + hhdm_offset;
     uint64_t* cr3 = (void*)get_cr3() + hhdm_offset;

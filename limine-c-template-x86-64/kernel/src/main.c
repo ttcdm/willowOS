@@ -144,24 +144,27 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
 struct limine_memmap_entry** usable_memmaps_1_ptr;//HERE we use linked lists now so this shouldn't really matter. (strikethrough) for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish (strikethrough)
 
 
-struct usable_memmaps_region memmap_arr[16];//HERE. might run into issues with statically declaring the amount of memmaps
+struct usable_memmaps_region memmap_arr[32];//HERE. might run into issues with statically declaring the amount of memmaps
 
-struct usable_memmaps_region* init_memmaps() {//remember that it's plural
+struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there is.remember that it's plural
     int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
     for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
-        if (memmap_request.response->entries[i]->type == 0) {
-            usable_memmaps_number++;
-        }
+        //if (memmap_request.response->entries[i]->type == 0) {
+        //    usable_memmaps_number++;
+        //}
+        usable_memmaps_number++;
     }
 
     //not sure if i should put this as global
     struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
     usable_memmaps_number = 0;//reset to 0
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {/*
         if (memmap_request.response->entries[i]->type == 0) {
             usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
             usable_memmaps_number++;
-        }
+        }*/
+        usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
+        usable_memmaps_number++;
     }
 
     usable_memmaps_1_ptr = &usable_memmaps[1];//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
@@ -184,6 +187,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 
     memmap_arr[0].base = usable_memmaps[0]->base;
 	memmap_arr[0].length = usable_memmaps[0]->length;
+	memmap_arr[0].type = usable_memmaps[0]->type;
     //memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
     for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
         memmap_arr[0].frame_bitmap[i] = 0x00;
@@ -197,6 +201,7 @@ struct usable_memmaps_region* init_memmaps() {//remember that it's plural
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
+        usable_memmap->type = usable_memmaps[i]->type;
         //memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
         for (int i = 0; i < usable_memmap->length / 4096; i++) {
             usable_memmap->frame_bitmap[i] = 0x00;
@@ -283,10 +288,12 @@ uint64_t get_lapic_physical_address() {
    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
    // kprintln_uint64(xsdp_p->length);
    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
-   map_page(get_cr3(), rsdp_phys_addr, rsdp_phys_addr+hhdm_offset, 0b1000);
-   //acpi_parse_rsdp((void*)  (rsdp_phys_addr+hhdm_offset));
-   struct XSDP* XSDP_p = (void*) (rsdp_phys_addr+hhdm_offset);
-   kprintln_uint64(XSDP_p->length);
+
+   uint64_t rsdp_virt_addr = (uint64_t) 0x100000;
+   map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+   //acpi_parse_rsdp((void*) (rsdp_virt_addr));
+   struct XSDP* XSDP_p = (void*)(0x100000 + hhdm_offset);
+   kprintln_uint64(XSDP_p->xsdt_address);
 
    return 0;
 
@@ -349,11 +356,13 @@ void kmain(void) {
 
     struct usable_memmaps_region* current_memmap = memmap;
     
-    for (int i = 0; i < 3; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
         kprint("memmap region's length: ");
         kprintln_uint64(current_memmap->length);
+        kprint("memmap region's type  : ");
+        kprintln_uint64(current_memmap->type);
         current_memmap = current_memmap->next;
     }
 
