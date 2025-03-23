@@ -30,12 +30,14 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
 struct usable_memmaps_region {
 	uint64_t base;
 	uint64_t length;
+	uint8_t type;
 	uint8_t frame_bitmap[600000];//i'm so sorry. may have issues with array being so large but idk
 	struct usable_memmaps_region* next;
 };//HERE not sure if i need to align or use packed for general structures
 
-extern struct usable_memmaps_region memmap_arr[16];
+extern struct usable_memmaps_region memmap_arr[32];
 
 void* get_cr3(void);
+extern uint64_t cr3_global;
 
 extern uint64_t pml4_address_virt_glob;//i'm sorry
