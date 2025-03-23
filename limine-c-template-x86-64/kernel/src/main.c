@@ -54,7 +54,7 @@ static volatile struct limine_hhdm_request hhdm_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_rsdp_request rsdp_request = {
     .id = LIMINE_RSDP_REQUEST,
-    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+    .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
 
@@ -273,19 +273,39 @@ void test_memory() {//mini test
     }
 }
 
+
+
 uint64_t get_lapic_physical_address() {
     uint64_t rsdp_phys_addr = rsdp_request.response->address;
-    kprint("rsdp physical address: ");
-    kprintln_uint64(rsdp_phys_addr);
-    for (uint64_t i = 0;; i++) {
-        if (*((uint64_t*)(rsdp_phys_addr + hhdm_offset + (i*8))) == 0x43495041) {
-            kprint("found lapic signature at address: ");
-            kprintln_uint64((rsdp_phys_addr + (i*8)));
-            break;
-        }
-    }
+    //kprint("rsdp physical address: ")/;
+    //kprintln_uint64(rsdp_phys_addr);
+
+    // struct XSDP* xsdp_p = (void*) (rsdp_phys_addr+hhdm_offset);
+    // kprintln_uint64(xsdp_p->length);
+    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
+    acpi_parse_rsdp((void*)  rsdp_phys_addr);
+
     return 0;
+
 }
+
+// uint64_t get_lapic_physical_address() {
+//     uint64_t rsdp_phys_addr = rsdp_request.response->address;
+//     kprint("rsdp physical address: ");
+//     kprintln_uint64(rsdp_phys_addr);
+//     for (uint64_t i = 0;; i++) {
+//         uint64_t* madt_pointer_address = (uint64_t*) (rsdp_phys_addr + hhdm_offset + (i*4));
+//         if (*madt_pointer_address == 0x43495041) {
+//             kprint("found lapic signature at address: ");
+//             kprintln_uint64((uint64_t) madt_pointer_address);
+//             // MADT* madt_entry = (MADT*) madt_pointer_address;
+//             kprint("lapic address: ");
+//             // kprintln_uint64(madt_entry->lapic_address);
+//             break;
+//         }
+//     }
+//     return 0;
+// }
 
 // The following will be our kernel's entry point.
 // If renaming kmain() to something else, make sure to change the
