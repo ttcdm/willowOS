@@ -289,11 +289,11 @@ uint64_t get_lapic_physical_address() {
    // kprintln_uint64(xsdp_p->length);
    // struct XSDT* xsdt_p = xsdp_p->xsdt_address + hhdm_offset;
 
-   uint64_t rsdp_virt_addr = (uint64_t) 0x100000;
+   uint64_t rsdp_virt_addr = alloc_frame();
    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
-   //acpi_parse_rsdp((void*) (rsdp_virt_addr));
-   struct XSDP* XSDP_p = (void*)(0x100000 + hhdm_offset);
-   kprintln_uint64(XSDP_p->xsdt_address);
+   acpi_parse_rsdp((void*) (rsdp_virt_addr));
+   //struct XSDP* XSDP_p = (void*)(rsdp_virt_addr);
+   //kprintln_uint64(XSDP_p->xsdt_address);
 
    return 0;
 
@@ -356,7 +356,7 @@ void kmain(void) {
 
     struct usable_memmaps_region* current_memmap = memmap;
     
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+    for (int i = 0; i < 10; i++) { //memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
         kprint("memmap region's length: ");
