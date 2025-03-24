@@ -34,7 +34,10 @@ void enable_lapic(void) {//this can be rewritten to be a lot cleaner but it's ex
 }
 
 
-const struct MADT *ACPI_MADT;
+
+//thanks to hildarthedorf for this code//
+
+const struct MADT *ACPI_MADT;//HERE
 
 static void validate_sdt(const struct SDTHeader *pSDT) {
     //uint64_t ppa = alloc_frame();
@@ -53,7 +56,7 @@ static void validate_rsdp(const struct RSDP *pRSDP) {
         checksum += ((const uint8_t *)pRSDP)[i];
     }
     //if (checksum) panic("Invalid RSDP. Expected 0, got %u\n", checksum);
-    //if (checksum) { kprint("Invalid RSDP. Expected 0, got "); kprintln_uint64(checksum); }
+    if (checksum) { kprint("Invalid RSDP. Expected 0, got "); kprintln_uint64(checksum); }
 }
 
 static void validate_xsdp(const struct XSDP *pXSDP) {
@@ -67,12 +70,23 @@ static void validate_xsdp(const struct XSDP *pXSDP) {
 
 static void parse_sdt(const struct SDTHeader *pSDT) {
     validate_sdt(pSDT);
+    kprint("sdt signature: ");
+    kprint_char(pSDT->signature[0]);
+    kprint_char(pSDT->signature[1]);
+    kprint_char(pSDT->signature[2]);
+    kprint_char(pSDT->signature[3]);
+    kprintln("");
     char* s = "APIC";
+    bool match = 1;//match starts off as true. i should probably implement strcmp or strncmp
     for (int i = 0; i < 4; i++) {
-        if (pSDT->signature[i] == s[i]) {
-            ACPI_MADT = (const void*)pSDT;
-            kprintln("madt found");
+        if (pSDT->signature[i] != s[i]) {
+            match = 0;
         }
+    }
+    if (match == 1) {
+        ACPI_MADT = (const void*)pSDT;
+        kprint("madt found. lapic address: ");
+        kprintln_uint64((uint64_t)(ACPI_MADT->lapic_addr));
     }
 }
 
@@ -81,11 +95,12 @@ void acpi_parse_rsdp(const void* pRSDP) {
     validate_rsdp(&pXSDP->rsdp);
 
     bool has_xsdp = pXSDP->rsdp.revision > 0;
-    char oemid_str[7];  // 6 characters + 1 for null terminator
+    char oemid_str[7];
     for (int i = 0; i < 6; i++) {
         oemid_str[i] = pXSDP->rsdp.OEMID[i];
     }
-    oemid_str[6] = '\0';  // Null-terminate the string
+    oemid_str[6] = '\0';
+    kprint("OEMID: ");
     kprintln(oemid_str);
     if (has_xsdp) {
         validate_xsdp(pXSDP);
@@ -95,7 +110,7 @@ void acpi_parse_rsdp(const void* pRSDP) {
         validate_sdt(&pXSDT->h);
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pXSDT->sdt64[i]+hhdm_offset);
+            parse_sdt(pXSDT->sdt64[i]);
         }
     }
     else {
@@ -104,6 +119,7 @@ void acpi_parse_rsdp(const void* pRSDP) {
         validate_sdt(&pRSDT->h);
 
         const size_t num_sdts = (pRSDT->h.length - offsetof(struct RSDT, sdt32)) / sizeof(uint32_t);
+
         for (size_t i = 0; i < num_sdts; ++i) {
             parse_sdt(pRSDT->sdt32[i]);
         }
