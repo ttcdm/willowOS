@@ -26,6 +26,8 @@ void enable_lapic(void);
 
 void acpi_parse_rsdp(const void *pRSDP);
 
+extern const struct MADT* ACPI_MADT;//HERE
+
 struct SDTHeader {
     char signature[4];
     uint32_t length;
