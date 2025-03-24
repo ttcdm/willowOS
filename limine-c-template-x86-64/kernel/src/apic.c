@@ -131,19 +131,29 @@ void acpi_parse_rsdp(const void* pRSDP) {
             kprintln("aa");
             //parse_sdt(pXSDT->sdt64[i]);
             //(struct XSDT*)(pXSDT->sdt64[i]))->signature[0]
-            if ((struct XSDT*)(pXSDT->sdt64[i])->signature[0]) == 'A' && (struct XSDT*)(pXSDT->sdt64[i]))->signature[1] == 'P') {
+            if (((struct SDTHeader*)(pXSDT->sdt64[i]))->signature[0] == 'A' && ((struct SDTHeader*)(pXSDT->sdt64[i]))->signature[1] == 'P') {
                 ACPI_MADT = (const void*)pXSDT->sdt64[i];
+                kprintln("madt found");
             }
             kprintln("bb");
         }
     }
     else {
-        const struct RSDT* pRSDT = pXSDP->rsdp.rsdt_address + hhdm_offset;
-        validate_sdt(&pRSDT->h);
+        // const struct RSDT* pRSDT = pXSDP->rsdp.rsdt_address + hhdm_offset;
+        // validate_sdt(&pRSDT->h);
+
+        uint64_t ppa = alloc_frame()+hhdm_offset;
+        //map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
+        map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
+        const struct RSDT* pRSDT = (struct RSDT*) ppa;
 
         const size_t num_sdts = (pRSDT->h.length - offsetof(struct RSDT, sdt32)) / sizeof(uint32_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pRSDT->sdt32[i] + hhdm_offset);
+            // parse_sdt(pRSDT->sdt32[i] + hhdm_offset);
+            if (((struct SDTHeader*)(pRSDT->sdt32[i]))->signature[0] == 'A' && ((struct SDTHeader*)(pRSDT->sdt32[i]))->signature[1] == 'P') {
+                ACPI_MADT = (const void*)pRSDT->sdt32[i];
+                kprintln("madt found");
+            }
         }
     }
 }
