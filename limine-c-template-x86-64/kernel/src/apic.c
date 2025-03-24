@@ -33,14 +33,6 @@ void enable_lapic(void) {//this can be rewritten to be a lot cleaner but it's ex
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high) , "c"(0x1b));
 }
 
-int strncmp(const char* s1, const char* s2, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        if (s1[i] != s2[i] || s1[i] == '\0') {
-            return (unsigned char)s1[i] - (unsigned char)s2[i];
-        }
-    }
-    return 0;
-}
 
 const struct MADT *ACPI_MADT;
 
@@ -52,7 +44,7 @@ static void validate_sdt(const struct SDTHeader *pSDT) {
         checksum += ((const uint8_t *)pSDT)[i];
     }
     //if (checksum) panic("Invalid SDT. Expected 0, got %u\n", checksum);
-    //if (checksum) { kprint("Invalid SDT. Expected 0, got "); kprintln_uint64(checksum); }
+    if (checksum) { kprint("Invalid SDT. Expected 0, got "); kprintln_uint64(checksum); }
 }
 
 static void validate_rsdp(const struct RSDP *pRSDP) {
@@ -69,17 +61,18 @@ static void validate_xsdp(const struct XSDP *pXSDP) {
     for (size_t i = 0; i < sizeof(struct XSDP); ++i) {
         checksum += ((const uint8_t *)pXSDP)[i];
     }
-    //if (checksum) { kprint("Invalid XSDP. Expected 0, got "); kprintln_uint64(checksum); }
     //if (checksum) panic("Invalid XSDP. Expected 0, got %u\n", checksum);
+    if (checksum) { kprint("Invalid XSDP. Expected 0, got "); kprintln_uint64(checksum); }
 }
 
 static void parse_sdt(const struct SDTHeader *pSDT) {
-    //validate_sdt(pSDT);
-    //if (!strncmp(pSDT->signature, "APIC", 4)) {
-    //    ACPI_MADT = (const void *)pSDT;
-    //}
-    if (pSDT->signature[0] == 'A' && pSDT->signature[1] == 'P') {
-        ACPI_MADT = (const void*)pSDT;
+    validate_sdt(pSDT);
+    char* s = "APIC";
+    for (int i = 0; i < 4; i++) {
+        if (pSDT->signature[i] == s[i]) {
+            ACPI_MADT = (const void*)pSDT;
+            kprintln("madt found");
+        }
     }
 }
 
@@ -88,72 +81,31 @@ void acpi_parse_rsdp(const void* pRSDP) {
     validate_rsdp(&pXSDP->rsdp);
 
     bool has_xsdp = pXSDP->rsdp.revision > 0;
+    char oemid_str[7];  // 6 characters + 1 for null terminator
+    for (int i = 0; i < 6; i++) {
+        oemid_str[i] = pXSDP->rsdp.OEMID[i];
+    }
+    oemid_str[6] = '\0';  // Null-terminate the string
+    kprintln(oemid_str);
     if (has_xsdp) {
         validate_xsdp(pXSDP);
-
-        //const struct XSDT* pXSDT = (struct XSDT*) pXSDP->xsdt_address;// +hhdm_offset;
-        //uint64_t pva = alloc_frame();
-        //map_page((uint64_t*) pml4_address_virt_glob, &pXSDT, pva, 0b11);
-
-
-        //uint64_t ppa = alloc_frame()+hhdm_offset;
-        ////map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
-        //map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
-        //const struct XSDT* pXSDT = (struct XSDT*) ppa;
-        //kprintln_uint64(pXSDT->h.length);
-        //kprintln("hi");
-        //validate_sdt(&pXSDT->h);
-        //kprintln("bye");
-
-        uint64_t ppa = alloc_frame()+hhdm_offset;
-        //map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
-        map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
-        const struct XSDT* pXSDT = (struct XSDT*) ppa;
-        //kprintln_uint64(pXSDT->sdt64[0]);
+        map_page((uint64_t*)pml4_address_virt_glob, pXSDP->xsdt_address, pXSDP->xsdt_address, 0b11);
+        const struct XSDT* pXSDT = pXSDP->xsdt_address;
         kprintln("hi");
         validate_sdt(&pXSDT->h);
-        kprintln("bye");
-
-
-  //      //uint64_t a = (uint64_t)(pXSDP->xsdt_address);
-  //      //kprintln_uint64(a);
-  //      //
-  //      uint64_t ppa = alloc_frame();
-  //      map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
-  //      struct XSDT* a = (void*)pXSDP->xsdt_address;
-		//kprintln_uint64(&a->h.length);
-
-
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
-        //const size_t num_sdts = (pXSDT->h.length - sizeof(struct SDTHeader)) / sizeof(uint64_t);
-
         for (size_t i = 0; i < num_sdts; ++i) {
-            kprintln("aa");
-            //parse_sdt(pXSDT->sdt64[i]);
-            //(struct XSDT*)(pXSDT->sdt64[i]))->signature[0]
-            if (((struct SDTHeader*)(pXSDT->sdt64[i]))->signature[0] == 'A' && ((struct SDTHeader*)(pXSDT->sdt64[i]))->signature[1] == 'P') {
-                ACPI_MADT = (const void*)pXSDT->sdt64[i];
-                kprintln("madt found");
-            }
-            kprintln("bb");
+            parse_sdt(pXSDT->sdt64[i]+hhdm_offset);
         }
     }
     else {
-        // const struct RSDT* pRSDT = pXSDP->rsdp.rsdt_address + hhdm_offset;
-        // validate_sdt(&pRSDT->h);
-
-        uint64_t ppa = alloc_frame()+hhdm_offset;
-        //map_page((uint64_t*)pml4_address_virt_glob, ppa, (uint64_t)(pXSDP->xsdt_address), 0b11);
-        map_page((uint64_t*)pml4_address_virt_glob, (uint64_t)(pXSDP->xsdt_address), ppa, 0b11);
-        const struct RSDT* pRSDT = (struct RSDT*) ppa;
+        map_page((uint64_t*)pml4_address_virt_glob, pXSDP->rsdp.rsdt_address, pXSDP->rsdp.rsdt_address, 0b11);
+        const struct RSDT* pRSDT = pXSDP->rsdp.rsdt_address;
+        validate_sdt(&pRSDT->h);
 
         const size_t num_sdts = (pRSDT->h.length - offsetof(struct RSDT, sdt32)) / sizeof(uint32_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            // parse_sdt(pRSDT->sdt32[i] + hhdm_offset);
-            if (((struct SDTHeader*)(pRSDT->sdt32[i]))->signature[0] == 'A' && ((struct SDTHeader*)(pRSDT->sdt32[i]))->signature[1] == 'P') {
-                ACPI_MADT = (const void*)pRSDT->sdt32[i];
-                kprintln("madt found");
-            }
+            parse_sdt(pRSDT->sdt32[i]);
         }
     }
 }
