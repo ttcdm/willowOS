@@ -115,18 +115,34 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
     map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
     acpi_parse_rsdp((void*)(rsdp_virt_addr));
     
+    //may need to map msr but idk
     uint32_t msr_high;
     uint32_t msr_low;
     uint64_t msr;
     __asm__ volatile("rdmsr" : "=a"(msr_low), "=d"(msr_high) : "c"(0x1b));
     msr = ((uint64_t)msr_high) << 32 | msr_low;//concatenate
     //msr &= ~0x800;//disable lapic
-    msr |= 0x800;//enable lapic via the 11th bit (0 indexed)
-    kprint("msr: ");
+    msr |= 0x800;//enable lapic via the 11th msr bit (0 indexed)
+    kprintln("msr: ");
     kprintln_uint64_to_binary(msr);
     msr_low = (uint32_t)msr;
     msr_high = (uint32_t)(msr >> 32);
 
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
+
+    map_page((uint32_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
+    uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);
+    //*lapic_svr &= ~0x100;//disable lapic
+    *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
+    kprintln("lapic svr: ");
+    kprintln_uint64_to_binary(*lapic_svr);
     kprintln("local apic enabled");
+
+
+    volatile uint32_t* icr_low = (uint32_t*)(ACPI_MADT->lapic_addr + 0x300);
+    volatile uint32_t* icr_high = (uint32_t*)(ACPI_MADT->lapic_addr + 0x310);
+
+    *icr_high = 0;                  // Target Local APIC (self)
+    *icr_low = 0x00004000 | 0x40;    // Trigger interrupt vector 0x40 (64)
+
 }
