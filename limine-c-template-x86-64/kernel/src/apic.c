@@ -16,25 +16,6 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     kprintln("pic disabled");
 }
 
-void enable_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
-    uint32_t msr_high;
-    uint32_t msr_low;
-    uint64_t msr;
-    __asm__ volatile("rdmsr" : "=a"(msr_low), "=d"(msr_high) : "c"(0x1b));
-    msr = ((uint64_t) msr_high) << 32 | msr_low;//concatenate
-    //msr &= ~0x800;//disable lapic
-    msr |= 0x800;//enable lapic via the 11th bit (0 indexed)
-    kprint("msr: ");
-	kprintln_uint64_to_binary(msr);
-
-	msr_low = (uint32_t) msr;
-	msr_high = (uint32_t) (msr >> 32);
-
-    __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high) , "c"(0x1b));
-}
-
-
-
 //thanks to hildarthedorf for this code//
 
 const struct MADT *ACPI_MADT;//HERE
@@ -124,4 +105,28 @@ void acpi_parse_rsdp(const void* pRSDP) {
             parse_sdt(pRSDT->sdt32[i]);
         }
     }
+}
+
+void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
+    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    kprint("rsdp physical address: ");
+    kprintln_uint64(rsdp_phys_addr);
+    uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    acpi_parse_rsdp((void*)(rsdp_virt_addr));
+    
+    uint32_t msr_high;
+    uint32_t msr_low;
+    uint64_t msr;
+    __asm__ volatile("rdmsr" : "=a"(msr_low), "=d"(msr_high) : "c"(0x1b));
+    msr = ((uint64_t)msr_high) << 32 | msr_low;//concatenate
+    //msr &= ~0x800;//disable lapic
+    msr |= 0x800;//enable lapic via the 11th bit (0 indexed)
+    kprint("msr: ");
+    kprintln_uint64_to_binary(msr);
+    msr_low = (uint32_t)msr;
+    msr_high = (uint32_t)(msr >> 32);
+
+    __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
+    kprintln("local apic enabled");
 }
