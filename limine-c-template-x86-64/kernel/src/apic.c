@@ -86,23 +86,23 @@ void acpi_parse_rsdp(const void* pRSDP) {
     if (has_xsdp) {
         validate_xsdp(pXSDP);
         map_page((uint64_t*)pml4_address_virt_glob, pXSDP->xsdt_address, pXSDP->xsdt_address, 0b11);
-        const struct XSDT* pXSDT = pXSDP->xsdt_address;
+        const struct XSDT* pXSDT = (struct XSDT*) (pXSDP->xsdt_address);
         kprintln("hi");
         validate_sdt(&pXSDT->h);
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pXSDT->sdt64[i]);
+            parse_sdt((struct SDTHeader*) (pXSDT->sdt64[i]));
         }
     }
     else {
         map_page((uint64_t*)pml4_address_virt_glob, pXSDP->rsdp.rsdt_address, pXSDP->rsdp.rsdt_address, 0b11);
-        const struct RSDT* pRSDT = pXSDP->rsdp.rsdt_address;
+        const struct RSDT* pRSDT = (struct RSDT*) ((uint64_t) (pXSDP->rsdp.rsdt_address));
         validate_sdt(&pRSDT->h);
 
         const size_t num_sdts = (pRSDT->h.length - offsetof(struct RSDT, sdt32)) / sizeof(uint32_t);
 
         for (size_t i = 0; i < num_sdts; ++i) {
-            parse_sdt(pRSDT->sdt32[i]);
+            parse_sdt((struct SDTHeader*) ((uint64_t)(pRSDT->sdt32[i])));
         }
     }
 }
