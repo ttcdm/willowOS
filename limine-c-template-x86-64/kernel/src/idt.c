@@ -42,7 +42,7 @@ void interrupt_handler_custom(struct interrupt_frame* frame) {
     //asm volatile ("int $64");
 }
 
-void page_fault_handler(struct interrupt_frame* frame) {
+void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
 }
 
@@ -77,7 +77,7 @@ void idt_init() {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
-
+    //HERE not sure if i have to manuall set them for gpf and page faults as well since i did define them in idt.asm as separate things
     idt_set_descriptor(64, isr_stub_table[64], 0x8E);
     vectors[64] = true;
 

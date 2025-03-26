@@ -56,3 +56,9 @@ void kprint_char(char c) {
     s[1] = '\0';
     kprint(s);
 }
+
+void kpass(uint64_t cycles) {
+    for (uint64_t i = 0; i < cycles; i++) {
+        asm volatile ("nop");
+    }
+}

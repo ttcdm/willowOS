@@ -57,6 +57,12 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_mp_request mp_request = {
+    .id = LIMINE_MP_REQUEST,
+    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+};
+
 
 
 // Finally, define the start and end markers for the Limine requests.
@@ -324,12 +330,14 @@ void kmain(void) {
     struct usable_memmaps_region* current_memmap = memmap;
     
     for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+        if (current_memmap->type == 0) {
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
         kprint("memmap region's length: ");
         kprintln_uint64(current_memmap->length);
         kprint("memmap region's type  : ");
         kprintln_uint64(current_memmap->type);
+        }
         current_memmap = current_memmap->next;
     }
 
@@ -363,6 +371,15 @@ void kmain(void) {
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_lapic();
+
+    init_mp(&mp_request);
+
+
+
+
+
+
+
 
     asm volatile ("int $64");
 
