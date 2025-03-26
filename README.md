@@ -6,11 +6,11 @@ All suggestions are welcome, as I am pretty inexperienced compared to the norm i
 The kernel source files are inside `limine-c-template-x86-64/kernel/src`<br>
 
 ## Current progress:
-GDT - DONE<br>
-IDT - Interrupts are set up and callable. Refer to the ACPI entry for more info.<br>
-Memory management - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap.<br>
-ACPI - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working, but have yet to get it set up for other physical cpu cores.
-Multiprocessing - Currently using 4 physical cores. Currently trying to get the application processors to execute C code. They can start up but I'm still trying to work out the assembly so I can set up their local APIC's and send IPI's and have a proper working system.
+**GDT** - DONE<br>
+**IDT** - Interrupts are set up and callable. Refer to the ACPI entry for more info.<br>
+**Memory Management** - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap.<br>
+**ACPI** - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working, but have yet to get it set up for other physical cpu cores.<br>
+**Multiprocessing** - Currently using 4 physical cores. Currently trying to get the application processors to execute C code. They can start up but I'm still trying to work out the assembly so I can set up their local APIC's and send IPI's and have a proper working system.<br>
 
 ### To run,<br>
 ```
