@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include <limine.h>
+
 #include <kutils.h>
 #include <paging.h>
 
@@ -26,7 +28,17 @@ void init_lapic(void);
 
 void acpi_parse_rsdp(const void *pRSDP);
 
+void init_mp(struct limine_mp_request* );
+
 extern const struct MADT* ACPI_MADT;//HERE
+
+void ap_trampoline(void);
+
+extern volatile uint8_t aprunning;
+extern volatile uint8_t bspdone;
+extern volatile uint32_t stack_top;
+
+extern void ap_startup(int apicid);
 
 struct SDTHeader {
     char signature[4];
@@ -94,12 +106,20 @@ struct MADTIOAPIC {
     uint32_t global_system_interrupt_base;
 } __attribute__ ((packed));
 
-struct MADTInterruptSourceOverride {
+struct MADTIOAPICInterruptSourceOverride {
     struct MADTEntryHeader h;
     uint8_t bus_source;
     uint8_t irq_source;
     uint32_t global_system_interrupt;
     uint16_t flags;
+} __attribute__ ((packed));
+
+struct MADTIOAPICNMISource {
+    struct MADTEntryHeader h;
+    uint8_t nmi_source;
+    uint8_t reserved;
+    uint16_t flags;
+    uint32_t global_system_interrupt;
 } __attribute__ ((packed));
 
 struct MADTLocalAPICNMI {

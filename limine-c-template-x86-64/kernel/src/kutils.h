@@ -28,3 +28,5 @@ void* memmove(void* dest, const void* src, size_t n);
 int memcmp(const void* s1, const void* s2, size_t n);
 
 uint64_t get_rsdp_physical_address(void);
+
+void kpass(uint64_t cycles);
