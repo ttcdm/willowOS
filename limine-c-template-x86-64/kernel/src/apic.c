@@ -148,11 +148,13 @@ void init_mp(struct limine_mp_request* mp_request) {
     kprintln_uint64(mp_request->response->cpu_count);
     kprint("bsp lapic id: ");
     kprintln_uint64(mp_request->response->bsp_lapic_id);
+    // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ap_start_address, (uint64_t) ap_start_address + hhdm_offset, 0b11);
     for (int i = 0; i < mp_request->response->cpu_count; i++) {
         struct limine_mp_info** a = mp_request->response->cpus;
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
+        // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(1000000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz
+        kpass(100000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 
