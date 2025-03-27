@@ -45,7 +45,7 @@ run: $(IMAGE_NAME).iso
 		-D ./qemu-log \
 		-d int,cpu_reset \
 		-M q35 \
-		-smp 2 \
+		-smp 4 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
 		$(QEMUFLAGS)
