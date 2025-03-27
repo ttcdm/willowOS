@@ -32,13 +32,7 @@ void init_mp(struct limine_mp_request* );
 
 extern const struct MADT* ACPI_MADT;//HERE
 
-void ap_trampoline(void);
-
-extern volatile uint8_t aprunning;
-extern volatile uint8_t bspdone;
-extern volatile uint32_t stack_top;
-
-extern void ap_startup(int apicid);
+void start_ap(void);
 
 struct SDTHeader {
     char signature[4];

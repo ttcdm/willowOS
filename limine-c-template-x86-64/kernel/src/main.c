@@ -361,9 +361,9 @@ void kmain(void) {
     setup_tss(&tss, gdt_table);
     load_tss();
 
-    uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    // uint64_t heap_start_virt = init_heap();//must call to initialize heap
 
-    test_memory();//make sure this gets called right after init_heap()
+    // test_memory();//make sure this gets called right after init_heap()
 
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
@@ -373,12 +373,6 @@ void kmain(void) {
     init_lapic();
 
     init_mp(&mp_request);
-
-
-
-
-
-
 
 
     asm volatile ("int $64");
@@ -391,4 +385,103 @@ void kmain(void) {
 
     // We're done, just hang...
     hcf();
+}
+
+uint64_t alloc_frame_fake(void) {//can only allocate usable memmaps for now
+    starting_address = memmap_arr[0].base;
+    struct usable_memmaps_region* current = &memmap_arr[0];
+    // while (current->next != NULL) {
+    while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
+        for (int i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
+            if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
+                current->frame_bitmap[i] = 0x01;
+                last_alloced_frame = i;//idek if this is even supposed to be here atp
+                kprintln("hi");
+                kprintln_uint64(current->base);
+                kprintln_uint64(last_alloced_frame);
+                // memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
+                // kprintln("page allocated successfully");
+                return current->base + (i * 4096);
+            }
+        }
+        current = current->next;
+    }
+	kprintln("no more frames to allocate. returning 0");
+    return 0;
+}
+
+
+__attribute__((noreturn))
+void start_ap() {
+    asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
+    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    // *lapic_svr &= ~0x100;//disable lapic
+    *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
+    // kprintln("lapic svr: ");
+    // kprintln_uint64_to_binary(*lapic_svr);
+    // kprintln("local apic enabled");
+    // uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    // uint64_t* a = kmalloc(16);
+    // kfree(a);
+    // init_lapic();
+    // kmain();
+    kprintln("willowOS");
+
+    struct usable_memmaps_region* memmap = init_memmaps();
+
+    struct usable_memmaps_region* current_memmap = memmap;
+    
+    for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+        if (current_memmap->type == 0) {
+        kprint("memmap region's base  : ");
+        kprintln_uint64(current_memmap->base);
+        kprint("memmap region's length: ");
+        kprintln_uint64(current_memmap->length);
+        kprint("memmap region's type  : ");
+        kprintln_uint64(current_memmap->type);
+        }
+        current_memmap = current_memmap->next;
+    }
+
+
+    init_physical_memory();//make sure this is called first
+
+    // init_paging();
+
+    //bp();
+
+    uint64_t gdt_table[7];
+    setup_gdt(gdt_table);
+    struct GDTPtr gdtr;
+    load_gdt(&gdtr, gdt_table);
+
+    //setup_idt();//chatgpt'ed version
+    //load_idt();
+
+    idt_init();//not chatgpt'ed version
+    struct TSS tss __attribute__((aligned(16)));
+    setup_tss(&tss, gdt_table);
+    load_tss();
+
+
+
+
+
+    uint64_t a = alloc_frame_fake();
+    // kprintln("hi");
+    // kprintln_uint64(starting_address);
+    // uint64_t heap_start_virt = init_heap();//must call to initialize heap
+
+    // test_memory();//make sure this gets called right after init_heap()
+
+    //uint64_t frame_alloc_0 = 2146541568+4096;
+    //free_frame(frame_alloc_0);
+
+    pic_disable();//we disable the pic and set up the local apic (lapic)
+
+    init_lapic();
+    kprintln("lapic svr: ");
+    kprintln_uint64_to_binary(*lapic_svr);
+    kprintln("ap initialized!");
+    while (1) {asm volatile ("hlt");}
 }

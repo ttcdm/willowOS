@@ -1,4 +1,5 @@
 #include <apic.h>
+#include <vmm.h>
 
 static inline void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
@@ -139,77 +140,21 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
     kprintln("local apic enabled");
 }
 
-void init_mp(struct limine_mp_request* mp_request) {
-    volatile uint32_t* icr_low = (uint32_t*) (ACPI_MADT->lapic_addr + 0x300);
-    volatile uint32_t* icr_high = (uint32_t*) (ACPI_MADT->lapic_addr + 0x310);
 
-    *icr_high = 0;
-    *icr_low = 0x000322C0;//we init before start up. i don't think i'm supposed to set the delivery status bit but apparently it gets ignored by the cpu or something so i guess that it's fine/??
-    kpass(10000000);
-    *icr_high = 0;//HERE not sure if i should actually zero this out which also zeros out the reserved bits as well
-    *icr_low = 0x00032340;//start up all other cores exluding self. args: 110010001101000000
-    kpass(10000000000000000);
-    kprintln("cpus:");
+
+void init_mp(struct limine_mp_request* mp_request) {
+    void* ap_start_address = (void*) start_ap;
+    kprint("cpus: ");
     kprintln_uint64(mp_request->response->cpu_count);
-    // kprintln_uint64(mp_request->response->bsp_lapic_id);
-    kprintln("---");
+    kprint("bsp lapic id: ");
+    kprintln_uint64(mp_request->response->bsp_lapic_id);
     for (int i = 0; i < mp_request->response->cpu_count; i++) {
         struct limine_mp_info** a = mp_request->response->cpus;
-        kprintln_uint64(a[i]->processor_id);
-        // kprintln_uint64(a[i]->lapic_id);
-        // kprintln_uint64((uint64_t) a[i]->goto_address);
-        // kprintln_uint64(a[i]->extra_argument);
-        kprintln("--------");
-
-        
+        //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
+        a[i]->goto_address = ap_start_address;
+        kpass(1000000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz
     }
 
 
-    //https://osdev.wiki/wiki/Symmetric_Multiprocessing
-
-
-    volatile uint32_t stack_top = 0x10000;
-
-    volatile uint8_t aprunning = 0;  // count how many APs have started
-    volatile uint8_t bspdone;
-    uint8_t bspid = 0;      // BSP id and spinlock flag
-    // get the BSP's Local APIC ID
-    __asm__ __volatile__ ("mov $1, %%eax; cpuid; shrl $24, %%ebx;": "=b"(bspid) : : );
-
-    // copy the AP trampoline code to a fixed address in low conventional memory (to address 0x0800:0x0000)
-    memcpy((void*)0x8000, &ap_trampoline, 4096);
-    int numcores = mp_request->response->cpu_count;
-    // for each Local APIC ID we do...
-    for(int i = 0; i < numcores; i++) {
-        // do not start BSP, that's already running this code
-        if(mp_request->response->cpus[i]->lapic_id == bspid) continue;
-        // send INIT IPI
-        *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x280)) = 0;                                                                             // clear APIC errors
-        *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) & 0x00ffffff) | (i << 24);         // select AP
-        *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & 0xfff00000) | 0x00C500;          // trigger INIT IPI
-        do { __asm__ __volatile__ ("pause" : : : "memory"); }while(*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & (1 << 12));         // wait for delivery
-        *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) & 0x00ffffff) | (i << 24);         // select AP
-        *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & 0xfff00000) | 0x008500;          // deassert
-        do { __asm__ __volatile__ ("pause" : : : "memory"); }while(*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & (1 << 12));         // wait for delivery
-        // mdelay(10);
-        kpass(100000);                                                                                                                 // wait 10 msec
-        // send STARTUP IPI (twice)
-        for(int j = 0; j < 2; j++) {
-            *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x280)) = 0;                                                                     // clear APIC errors
-            *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x310)) & 0x00ffffff) | (i << 24); // select AP
-            *((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) = (*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & 0xfff0f800) | 0x000608;  // trigger STARTUP IPI for 0800:0000
-            // udelay(200);    
-            kpass(100000);                                                                                                    // wait 200 usec
-            do { __asm__ __volatile__ ("pause" : : : "memory"); }while(*((volatile uint32_t*)(ACPI_MADT->lapic_addr + 0x300)) & (1 << 12)); // wait for delivery
-        }
-    }
-    // release the AP spinlocks
-    bspdone = 1;
-    // now you'll have the number of running APs in 'aprunning'
 }
 
-// this C code can be anywhere you want it, no relocation needed
-void ap_startup(int apicid) {
-	// do what you want to do on the AP
-	while(1);
-}
