@@ -19,6 +19,10 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
             if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
                 current->frame_bitmap[i] = 0x01;
                 last_alloced_frame = i;//idek if this is even supposed to be here atp
+                kprint("frame: ");
+                kprint_uint64(i);
+                kprint(" ");
+                kprintln_uint64(last_alloced_frame);
                 memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
                 // kprintln("page allocated successfully");
                 return current->base + (i * 4096);
