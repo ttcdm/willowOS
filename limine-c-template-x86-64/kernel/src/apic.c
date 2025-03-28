@@ -138,6 +138,44 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
     kprintln("local apic enabled");
+
+    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
+    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
+    volatile uint32_t*  lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t*  lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
+    volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+
+
+    uint32_t reg = 0;
+    reg = 0b01;
+    reg = reg << 1;
+    reg |= 0b0;
+    reg = reg << 1;
+    reg |= 0b1;
+    reg = reg << 1;
+    reg |= 0b0;
+    reg = reg << 1;
+    reg |= 0b0;
+    reg = reg << 1;
+    reg = reg << 1;
+    reg = reg << 3;
+    reg |= 0b000;
+    reg = reg << 8;
+    reg |= 0x40;
+
+    //kprint("reg: ");
+    //kprintln_uint64_to_binary((uint64_t) reg);
+
+    //just refer to the sdm for the layout and stuff in vol 3 ch 2
+
+    *lapic_lvt_timer = (uint32_t) 0b00100000000001000001;// reg
+    *lapic_divider = 0b111;
+    *lapic_initial_count = 10000000;
+
+    //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
+    volatile uint32_t* lapic_eoi = (uint32_t*) (ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;
 }
 
 

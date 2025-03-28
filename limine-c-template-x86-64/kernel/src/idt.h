@@ -55,6 +55,8 @@ void exception_handler(void);
 void interrupt_handler_custom(struct interrupt_frame* frame);
 // void interrupt_handler_custom(void* frame);
 
+void apic_tick_handler(struct interrupt_frame* frame);
+
 void page_fault_handler(struct interrupt_frame* frame);
 
 void gpf_handler(struct interrupt_frame* frame);

@@ -374,7 +374,7 @@ void kmain(void) {
 
     init_mp(&mp_request);
 
-    asm volatile ("int $64");
+    //asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
     //while (1) { asm("hlt"); }
