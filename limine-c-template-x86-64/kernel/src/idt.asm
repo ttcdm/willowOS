@@ -52,6 +52,7 @@ extern exception_handler
 extern interrupt_handler_custom;remember to extern the functions
 extern page_fault_handler
 extern gpf_handler
+extern apic_tick_handler
 
 
 isr_no_err_stub 0
@@ -150,10 +151,19 @@ isr_stub_64:;pretty sure this works. it doesn't throw an error anymroe. we don't
     pop_reg
     iretq
 
+isr_stub_65:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call apic_tick_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
 global isr_stub_table
 isr_stub_table:
 %assign i 0 
-%rep    65
+%rep    66;remember to adjust this for additional vectors
     dq isr_stub_%+i ; use DQ instead if targeting 64-bit
 %assign i i+1 
 %endrep
