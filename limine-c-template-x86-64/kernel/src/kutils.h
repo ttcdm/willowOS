@@ -6,6 +6,7 @@
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
 
+size_t kstrlen(char* msg);
 
 void kprint(char* str);
 void kprintln(char* str);

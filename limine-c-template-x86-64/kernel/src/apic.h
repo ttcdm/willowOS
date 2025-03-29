@@ -1,3 +1,4 @@
+//#pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -16,12 +17,14 @@
 #define PIC2_COMMAND	PIC2
 #define PIC2_DATA	(PIC2+1)
 
+#define PIT_FREQ 1193182//in hz
+
 // https://wiki.osdev.org/8259_PIC#Disabling
 
 
 // https://wiki.osdev.org/Inline_Assembly/Examples#I/O_access
-static inline void outb(uint16_t port, uint8_t val);
-static inline uint8_t inb(uint16_t port);
+void outb(uint16_t port, uint8_t val);
+uint8_t inb(uint16_t port);
 
 void pic_disable(void);
 void init_lapic(void);
@@ -33,6 +36,8 @@ void init_mp(struct limine_mp_request* );
 extern const struct MADT* ACPI_MADT;//HERE
 
 void start_ap(void);
+
+extern uint32_t lapic_count_before;
 
 struct SDTHeader {
     char signature[4];
