@@ -2,6 +2,7 @@
 #include <idt.h>
 #include <kutils.h>
 #include <apic.h>
+#include <tsc.h>
 
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
@@ -16,7 +17,7 @@ void exception_handler() {
 }
 
 //__attribute__((interrupt))
-void interrupt_handler_custom(struct interrupt_frame* frame) {
+void interrupt_handler_custom(struct interrupt_frame* frame) {//64
     kprint("interrupt occurred! ");
 
     kprint("interrupt frame dump and the instruction address: ");
@@ -44,20 +45,23 @@ void interrupt_handler_custom(struct interrupt_frame* frame) {
 
 }
 
-void apic_tick_handler(struct interrupt_frame* frame) {
+void apic_tick_handler(struct interrupt_frame* frame) {//65
     volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
     volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
     volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
     volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+
     uint32_t lapic_count_after = *lapic_current_count;
     lapic_count_difference = lapic_count_after - lapic_count_before;
     outb(0x21, 0xff);//mask pic
     outb(0x20, 0x20);//clear pic eoi
+
     kprint("apic timer initial count with divider applied: ");
     kprint_uint64(lapic_count_difference/16);
     kprint(" divider: ");
     kprintln_uint64(16);
+
     //*lapic_initial_count = difference;
     *lapic_initial_count = lapic_count_difference/16;
     *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up
@@ -67,7 +71,7 @@ void apic_tick_handler(struct interrupt_frame* frame) {
     kprintln("apic tick set up");
 }
 
-void sleep_handler(struct interrupt_frame* frame) {
+void sleep_handler(struct interrupt_frame* frame) {//66
     // kprintln("hi");
     volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
