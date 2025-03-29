@@ -172,7 +172,7 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
     //*lapic_lvt_timer = (uint32_t) 0b00100000000001000001;//reg;
-    *lapic_divider = 0b1011;//remember that there's a 0 in the middle ish and that it's 0bx0xx
+    *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up. remember that there's a 0 in the middle ish and that it's 0bx0xx
     *lapic_initial_count = 1000000000;
 
     //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
