@@ -51,27 +51,31 @@ void apic_tick_handler(struct interrupt_frame* frame) {
     volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     uint32_t lapic_count_after = *lapic_current_count;
-    uint32_t difference = lapic_count_after - lapic_count_before;
+    lapic_count_difference = lapic_count_after - lapic_count_before;
     outb(0x21, 0xff);//mask pic
     outb(0x20, 0x20);//clear pic eoi
     kprint("apic timer initial count with divider applied: ");
-    kprint_uint64(difference/16);
+    kprint_uint64(lapic_count_difference/16);
     kprint(" divider: ");
     kprintln_uint64(16);
     //*lapic_initial_count = difference;
-    *lapic_initial_count = difference/16;
+    *lapic_initial_count = lapic_count_difference/16;
     *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up
-    *lapic_lvt_timer = (uint32_t)0b00100000000001000010;
+    // *lapic_lvt_timer = (uint32_t)0b00100000000001000010;
 
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
     kprintln("apic tick set up");
 }
 
-void general_handler(struct interrupt_frame* frame) {
-    kprintln("hi");
+void sleep_handler(struct interrupt_frame* frame) {
+    // kprintln("hi");
+    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    sleep_locks[(*lapic_id)>>24] = 0;
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
+
+
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
 }

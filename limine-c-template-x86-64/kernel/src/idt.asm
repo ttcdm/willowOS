@@ -53,7 +53,7 @@ extern interrupt_handler_custom;remember to extern the functions
 extern page_fault_handler
 extern gpf_handler
 extern apic_tick_handler
-extern general_handler
+extern sleep_handler;maybe this should be a lower priority idk
 
 
 isr_no_err_stub 0
@@ -175,10 +175,11 @@ isr_stub_66:
     push_reg
     mov rdi, rsp
     sub rsp, 8
-    call general_handler
+    call sleep_handler
     add rsp, 8
     pop_reg
     iretq
+
 
 global isr_stub_table
 isr_stub_table:

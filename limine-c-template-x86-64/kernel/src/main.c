@@ -377,9 +377,9 @@ void kmain(void) {
 
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
-    init_lapic();
+    init_bsp_lapic();
 
-    //init_mp(&mp_request);
+    init_mp(&mp_request);
 
     //asm volatile ("int $64");
 
@@ -398,13 +398,17 @@ __attribute__((noreturn))
 void start_ap() {//remember to not call any non processor specific init functions here like init_memmaps()
     kprintln("\ninitializing ap");
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
-    init_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
+    init_ap_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
     volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
     // *lapic_svr &= ~0x100;//disable lapic
     // *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     test_memory();//make sure this gets called right after init_heap()
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
+    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    kprint("lapic id: ");
+    kprintln_uint64((*lapic_id)>>24);
     kprintln("ap initialized!\n");
+
     while (1) {asm volatile ("hlt");}
 }
