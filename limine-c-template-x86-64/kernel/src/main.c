@@ -384,6 +384,40 @@ void kmain(void) {
 
     init_mp(&mp_request);
 
+    for (int i = 0;; i++) {
+        //for (int j = 0; j < 10000000; j++) {
+        //    asm volatile ("nop");
+        //}
+        kpass(100);
+        kprintln_uint64(i);
+        continue;
+        volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
+        volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
+        volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+        volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+        volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
+        volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+
+        //just refer to the sdm for the layout and stuff in vol 3 ch 2
+
+        //*lapic_lvt_timer = (uint32_t) 0b00100000000001000001;//reg;
+        *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up. remember that there's a 0 in the middle ish and that it's 0bx0xx
+        *lapic_initial_count = UINT32_MAX;
+
+        //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
+        volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+        *lapic_eoi = 0;
+
+
+        outb(0x43, 0x36);//select pit mode
+        outb(0x40, 11931 & 0xff);//write divider low
+        outb(0x40, (11931 >> 8) & 0xff);//write divider high
+        //*lapic_current_count = 0;
+        outb(0x21, inb(0x21) & ~0x01);//it'll send out an irq when i unmask it at first
+        lapic_count_before = *lapic_current_count;
+        outb(0x20, 0x20);//clear eoi
+    }
+
     //asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
