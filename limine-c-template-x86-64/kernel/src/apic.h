@@ -19,6 +19,8 @@
 
 #define PIT_FREQ 1193182//in hz
 
+#define NUM_CORES 4//HERE remember to set this as the # of cores we use
+
 // https://wiki.osdev.org/8259_PIC#Disabling
 
 
@@ -27,7 +29,8 @@ void outb(uint16_t port, uint8_t val);
 uint8_t inb(uint16_t port);
 
 void pic_disable(void);
-void init_lapic(void);
+void init_bsp_lapic(void);
+void init_ap_lapic(void);
 
 void acpi_parse_rsdp(const void *pRSDP);
 
@@ -38,6 +41,9 @@ extern const struct MADT* ACPI_MADT;//HERE
 void start_ap(void);
 
 extern uint32_t lapic_count_before;
+extern uint32_t lapic_count_difference;
+extern uint32_t sleep_locks[NUM_CORES];
+
 
 struct SDTHeader {
     char signature[4];

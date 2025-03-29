@@ -18,6 +18,24 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
 }
 
 uint32_t lapic_count_before;
+uint32_t lapic_count_difference;
+uint32_t sleep_locks[NUM_CORES];
+
+void kpass(size_t ms) {
+    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
+    *lapic_divider - 0b0011;
+    *lapic_initial_count = ms * ((lapic_count_difference/16)/1000);
+    sleep_locks[(*lapic_id)>>24] = 1;
+    while (sleep_locks[(*lapic_id)>>24]) {//it's offsetted by 24 bits
+        asm volatile ("hlt");
+    }
+}
+
 
 //thanks to hildarthedorf for this code//
 
@@ -110,7 +128,7 @@ void acpi_parse_rsdp(const void* pRSDP) {
     }
 }
 
-void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
+void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
     uint64_t rsdp_phys_addr = get_rsdp_physical_address();
     kprint("rsdp physical address: ");
     kprintln_uint64(rsdp_phys_addr);
@@ -193,6 +211,7 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
 
 
 void init_mp(struct limine_mp_request* mp_request) {
+    kpass(200);
     void* ap_start_address = (void*) start_ap;
     kprint("cpus: ");
     kprintln_uint64(mp_request->response->cpu_count);
@@ -204,9 +223,47 @@ void init_mp(struct limine_mp_request* mp_request) {
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(200000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
+        kpass(1000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 
+}
+
+void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole timer thing calculation thing. we only set the already calculated values here
+    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    kprint("rsdp physical address: ");
+    kprintln_uint64(rsdp_phys_addr);
+    uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    acpi_parse_rsdp((void*)(rsdp_virt_addr));
+    
+    //may need to map msr but idk
+    uint32_t msr_high;
+    uint32_t msr_low;
+    uint64_t msr;
+    __asm__ volatile("rdmsr" : "=a"(msr_low), "=d"(msr_high) : "c"(0x1b));
+    msr = ((uint64_t)msr_high) << 32 | msr_low;//concatenate
+    //msr &= ~0x800;//disable lapic
+    msr |= 0x800;//enable lapic via the 11th msr bit (0 indexed)
+    kprintln("msr: ");
+    kprintln_uint64_to_binary(msr);
+    msr_low = (uint32_t)msr;
+    msr_high = (uint32_t)(msr >> 32);
+
+    __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
+
+    map_page((uint64_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
+    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    //*lapic_svr &= ~0x100;//disable lapic
+    *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
+    kprintln("lapic svr: ");
+    kprintln_uint64_to_binary(*lapic_svr);
+
+    volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    *lapic_divider = 0b0011;
+    *lapic_initial_count = lapic_count_difference/16;
+
+    kprintln("local apic enabled");
 }
 

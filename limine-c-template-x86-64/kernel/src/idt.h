@@ -57,7 +57,9 @@ void interrupt_handler_custom(struct interrupt_frame* frame);
 
 void apic_tick_handler(struct interrupt_frame* frame);
 
-void general_handler(struct interrupt_frame* frame);
+void sleep_handler(struct interrupt_frame* frame);
+
+void bsp_time_ms_handler(struct interrupt_frame* frame);
 
 void page_fault_handler(struct interrupt_frame* frame);
 
