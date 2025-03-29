@@ -166,32 +166,11 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     volatile uint32_t*  lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
     volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
 
-
-    uint32_t reg = 0;
-    reg = 0b01;
-    reg = reg << 1;
-    reg |= 0b0;
-    reg = reg << 1;
-    reg |= 0b1;
-    reg = reg << 1;
-    reg |= 0b0;
-    reg = reg << 1;
-    reg |= 0b0;
-    reg = reg << 1;
-    reg = reg << 1;
-    reg = reg << 3;
-    reg |= 0b000;
-    reg = reg << 8;
-    reg |= 0x40;
-
-    //kprint("reg: ");
-    //kprintln_uint64_to_binary((uint64_t) reg);
-
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
     //*lapic_lvt_timer = (uint32_t) 0b00100000000001000001;//reg;
     *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up. remember that there's a 0 in the middle ish and that it's 0bx0xx
-    *lapic_initial_count = 1000000000;
+    *lapic_initial_count = UINT32_MAX;
 
     //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
     volatile uint32_t* lapic_eoi = (uint32_t*) (ACPI_MADT->lapic_addr + 0xb0);

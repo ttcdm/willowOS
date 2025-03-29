@@ -9,6 +9,7 @@
 #include <paging.h>
 #include <vmm.h>
 #include <apic.h>
+#include <tsc.h>
 
 #include <limine.h>
 
@@ -378,6 +379,8 @@ void kmain(void) {
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
+
+    tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
     init_mp(&mp_request);
 
