@@ -231,16 +231,23 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
 
-
-
-void kprint(char* msg) {
-    int s = 0;
-    for (int i = 0;; i++) {//strlen
-        if (msg[i] == '\0') {
-            break;
-        }
+size_t kstrlen(char* msg) {
+    size_t s = 0;
+    if (!msg) return 0;
+    while (msg[s] != '\0') {
         s++;
     }
+    //for (size_t i = 0;; i++) {//strlen
+    //    if (msg[i] == '\0') {
+    //        break;
+    //    }
+    //    s++;
+    //}
+    return s;
+}
+
+void kprint(char* msg) {
+    uint64_t s = kstrlen(msg);
     flanterm_write(ft_ctx, msg, s);
 }
 
@@ -372,7 +379,7 @@ void kmain(void) {
 
     init_lapic();
 
-    init_mp(&mp_request);
+    //init_mp(&mp_request);
 
     //asm volatile ("int $64");
 

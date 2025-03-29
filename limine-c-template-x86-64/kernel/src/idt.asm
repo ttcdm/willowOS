@@ -53,6 +53,7 @@ extern interrupt_handler_custom;remember to extern the functions
 extern page_fault_handler
 extern gpf_handler
 extern apic_tick_handler
+extern general_handler
 
 
 isr_no_err_stub 0
@@ -63,7 +64,7 @@ isr_no_err_stub 4
 isr_no_err_stub 5
 isr_no_err_stub 6
 isr_no_err_stub 7
-isr_err_stub    8
+;isr_err_stub    8
 isr_no_err_stub 9
 isr_err_stub    10
 isr_err_stub    11
@@ -123,6 +124,7 @@ isr_no_err_stub 62
 isr_no_err_stub 63
 
 
+
 isr_stub_13:
     push_reg
     mov rdi, rsp
@@ -142,6 +144,15 @@ isr_stub_14:;page fault handler
     iretq
 
 
+isr_stub_8:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call apic_tick_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
 isr_stub_64:;pretty sure this works. it doesn't throw an error anymroe. we don't cli nor sti because we want to allow nested interrupts
     push_reg
     mov rdi, rsp
@@ -160,10 +171,19 @@ isr_stub_65:
     pop_reg
     iretq
 
+isr_stub_66:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call general_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
 global isr_stub_table
 isr_stub_table:
 %assign i 0 
-%rep    66;remember to adjust this for additional vectors
+%rep    67;remember to adjust this for additional vectors
     dq isr_stub_%+i ; use DQ instead if targeting 64-bit
 %assign i i+1 
 %endrep

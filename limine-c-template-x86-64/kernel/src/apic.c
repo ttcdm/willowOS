@@ -1,11 +1,11 @@
 #include <apic.h>
 #include <vmm.h>
 
-static inline void outb(uint16_t port, uint8_t val) {
+void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
 }
 
-static inline uint8_t inb(uint16_t port) {
+uint8_t inb(uint16_t port) {
     uint8_t ret;
     __asm__ volatile("inb %w1, %b0" : "=a"(ret) : "Nd"(port) : "memory");
     return ret;
@@ -16,6 +16,8 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     outb(PIC2_DATA, 0xff);
     kprintln("pic disabled");
 }
+
+uint32_t lapic_count_before;
 
 //thanks to hildarthedorf for this code//
 
@@ -169,13 +171,23 @@ void init_lapic(void) {//this can be rewritten to be a lot cleaner but it's expl
 
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
-    *lapic_lvt_timer = (uint32_t) 0b00100000000001000001;// reg
-    *lapic_divider = 0b111;
-    *lapic_initial_count = 10000000;
+    //*lapic_lvt_timer = (uint32_t) 0b00100000000001000001;//reg;
+    *lapic_divider = 0b1011;//remember that there's a 0 in the middle ish and that it's 0bx0xx
+    *lapic_initial_count = 1000000000;
 
     //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
     volatile uint32_t* lapic_eoi = (uint32_t*) (ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
+
+
+    outb(0x43, 0x36);//select pit mode
+    outb(0x40, 11931 & 0xff);//write divider low
+    outb(0x40, (11931 >> 8) & 0xff);//write divider high
+    //*lapic_current_count = 0;
+    outb(0x21, inb(0x21) & ~0x01);//it'll send out an irq when i unmask it at first
+    lapic_count_before = *lapic_current_count;
+    outb(0x20, 0x20);//clear eoi
+
 }
 
 
@@ -192,7 +204,7 @@ void init_mp(struct limine_mp_request* mp_request) {
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(100000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
+        kpass(200000000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 

@@ -46,10 +46,31 @@ void interrupt_handler_custom(struct interrupt_frame* frame) {
 
 void apic_tick_handler(struct interrupt_frame* frame) {
     kprintln("hi");
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
+    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    uint32_t lapic_count_after = *lapic_current_count;
+    uint32_t difference = lapic_count_after - lapic_count_before;
+    outb(0x21, 0xff);//mask pic
+    outb(0x20, 0x20);//clear pic eoi
+    kprintln_uint64(difference);
+    kprintln_uint64(PIT_FREQ);
+    kprintln_uint64(difference / 1193182);
+    //*lapic_initial_count = difference;
+    *lapic_initial_count = difference*130;
+    *lapic_divider = 0b1011;
+    *lapic_lvt_timer = (uint32_t)0b00100000000001000010;
+
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
 
+void general_handler(struct interrupt_frame* frame) {
+    kprintln("hi");
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
+}
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
 }
@@ -81,7 +102,7 @@ void idt_init() {
     idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];
     idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
-    for (uint8_t vector = 0; vector < 66; vector++) {
+    for (uint8_t vector = 0; vector < 67; vector++) {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
