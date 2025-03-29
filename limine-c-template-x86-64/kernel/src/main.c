@@ -384,6 +384,11 @@ void kmain(void) {
 
     init_mp(&mp_request);
 
+    for (int i = 0;; i++) {
+        kpass(100);
+        kprintln_uint64(i);
+    }
+
     //asm volatile ("int $64");
 
     for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
