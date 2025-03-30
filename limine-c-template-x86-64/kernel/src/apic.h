@@ -41,10 +41,10 @@ extern const struct HPET* ACPI_HPET;
 
 void start_ap(void);
 
-extern uint64_t hpet_count_before;
-extern uint64_t hpet_count_difference;
-extern uint64_t lapic_timer_converted;
-extern uint32_t sleep_locks[NUM_CORES];
+volatile extern uint64_t hpet_count_before;
+volatile extern uint64_t hpet_count_difference;
+volatile extern uint64_t lapic_timer_converted[NUM_CORES];
+volatile extern uint32_t sleep_locks[NUM_CORES];
 
 
 struct SDTHeader {
