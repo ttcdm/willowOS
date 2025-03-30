@@ -37,11 +37,13 @@ void acpi_parse_rsdp(const void *pRSDP);
 void init_mp(struct limine_mp_request* );
 
 extern const struct MADT* ACPI_MADT;//HERE
+extern const struct HPET* ACPI_HPET;
 
 void start_ap(void);
 
-extern uint32_t lapic_count_before;
-extern uint32_t lapic_count_difference;
+extern uint64_t hpet_count_before;
+extern uint64_t hpet_count_difference;
+extern uint64_t lapic_timer_converted;
 extern uint32_t sleep_locks[NUM_CORES];
 
 
@@ -132,4 +134,37 @@ struct MADTLocalAPICNMI {
     uint8_t processor_id;
     uint16_t flags;
     uint8_t lint;
+} __attribute__ ((packed));
+
+struct HPET_address_structure {
+    uint8_t address_space_id;    // 0 - system memory, 1 - system I/O
+    uint8_t register_bit_width;
+    uint8_t register_bit_offset;
+    uint8_t reserved;
+    uint64_t address;
+} __attribute__((packed));
+
+struct HPET {
+    struct SDTHeader h;
+    uint8_t hardware_rev_id;
+    uint8_t comparator_count:5;
+    uint8_t counter_size:1;
+    uint8_t reserved:1;
+    uint8_t legacy_replacement:1;
+    uint16_t pci_vendor_id;
+    struct HPET_address_structure address;
+    uint8_t hpet_number;
+    uint16_t minimum_tick;
+    uint8_t page_protection;
+} __attribute__((packed));
+
+struct HPET_registers {
+    uint64_t capabilities;
+    uint64_t reserved0;//spacers for offsets
+    uint64_t configuration;
+    uint64_t reserved1;
+    uint64_t interrupt_status;
+    uint64_t reserved2[25];
+    uint64_t main_counter;
+    //there's more but we don't implement them for now because we don't need them yet i don't think
 } __attribute__ ((packed));
