@@ -417,6 +417,16 @@ void kmain(void) {
 __attribute__((noreturn))
 void start_ap() {//remember to not call any non processor specific init functions here like init_memmaps()
     kprintln("\ninitializing ap");
+
+    uint64_t gdt_table[7];
+    setup_gdt(gdt_table);
+    struct GDTPtr gdtr;
+    load_gdt(&gdtr, gdt_table);
+    idt_init();//not chatgpt'ed version
+    struct TSS tss __attribute__((aligned(16)));
+    setup_tss(&tss, gdt_table);
+    load_tss();
+
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
     init_ap_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
     volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
@@ -430,14 +440,12 @@ void start_ap() {//remember to not call any non processor specific init function
     kprintln_uint64((*lapic_id)>>24);
     kprintln("ap initialized!\n");
 
+
     for (int i = 0; i < 3; i++) {
         uint64_t a = hpet_get_elapsed_ns();
         kpass(1000);
         uint64_t b = hpet_get_elapsed_ns();
         kprintln_uint64(b - a);
-
-        //kprintln("\n\nhi\n\n");
-        //kprintln_uint64(i);
     }
 
     while (1) {asm volatile ("hlt");}
