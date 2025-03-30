@@ -30,8 +30,8 @@ void kpass(size_t ms) {
     volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_divider = 0b0011;
-    *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
+    *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
     sleep_locks[(*lapic_id)>>24] = 1;
     while (sleep_locks[(*lapic_id)>>24]) {//it's offsetted by 24 bits
         asm volatile ("nop");
@@ -242,7 +242,7 @@ void init_mp(struct limine_mp_request* mp_request) {
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(3000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
+        kpass(4000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 
@@ -320,7 +320,6 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     kprint(" divider: ");
     kprintln_uint64(16);
     *lapic_initial_count = UINT32_MAX;
-
     kprintln("local apic enabled");
 }
 
