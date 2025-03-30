@@ -43,37 +43,18 @@ void interrupt_handler_custom(struct interrupt_frame* frame) {//64
     kprintln_uint64(frame->cs);*/
 
     //asm volatile ("int $64");
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;
 
 }
 
 void apic_tick_handler(struct interrupt_frame* frame) {//65
-    uint64_t hpet_count_after = hpet_get_elapsed_ns();
-
     volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
     volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
     volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
     volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 
-    hpet_count_difference = hpet_count_after-hpet_count_before;
-
-    uint64_t lapic_timer_multiplier = 10000000000/hpet_count_difference;//10ms
-
-    lapic_timer_converted = (10000/16) * lapic_timer_multiplier;
-
-    kprintln_uint64(hpet_count_before);
-    kprintln_uint64(hpet_count_after);
-    kprintln_uint64(lapic_timer_multiplier);
-
-    kprint("apic timer initial count with divider applied: ");
-    kprint_uint64(lapic_timer_converted/16);
-    kprint(" divider: ");
-    kprintln_uint64(16);
-
-    //*lapic_initial_count = difference;
-    // *lapic_initial_count = lapic_count_difference/16;
-    // *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up
-    // *lapic_lvt_timer = (uint32_t)0b00100000000001000010;
 
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
     kprintln("apic tick set up");
@@ -81,9 +62,14 @@ void apic_tick_handler(struct interrupt_frame* frame) {//65
 
 void sleep_handler(struct interrupt_frame* frame) {//66
     // kprintln("hi");
+    //kprintln("\n\nhi\n\n");
     volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     sleep_locks[(*lapic_id)>>24] = 0;
+    kprintln("\n\n");
+    kprintln_uint64((*lapic_id)>>24);
+    kprintln("\n\n");
+
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
 

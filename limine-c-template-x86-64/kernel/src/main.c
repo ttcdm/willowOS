@@ -383,18 +383,22 @@ void kmain(void) {
 
     init_bsp_lapic();
 
-    // tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
+    tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    // init_mp(&mp_request);
+    init_mp(&mp_request);
 
     //hpet is initialized inside init_bsp_lapic();
 
-    for (int i = 0; i < 10000000; i++) {
-        asm volatile ("nop");
+    for (int i = 0; i < 4; i++) {
+        kprintln_uint64(lapic_timer_converted[i]);
     }
-    for (int i = 0;; i++) {
+
+    for (int i = 0; i < 3; i++) {
+        uint64_t a = hpet_get_elapsed_ns();
         kpass(1000);
-        kprintln_uint64(i);
+        uint64_t b = hpet_get_elapsed_ns();
+        kprintln_uint64(b-a);
+        //kprintln_uint64(i);
     }
 
     //asm volatile ("int $64");
@@ -425,6 +429,16 @@ void start_ap() {//remember to not call any non processor specific init function
     kprint("lapic id: ");
     kprintln_uint64((*lapic_id)>>24);
     kprintln("ap initialized!\n");
+
+    for (int i = 0; i < 3; i++) {
+        uint64_t a = hpet_get_elapsed_ns();
+        kpass(1000);
+        uint64_t b = hpet_get_elapsed_ns();
+        kprintln_uint64(b - a);
+
+        //kprintln("\n\nhi\n\n");
+        //kprintln_uint64(i);
+    }
 
     while (1) {asm volatile ("hlt");}
 }

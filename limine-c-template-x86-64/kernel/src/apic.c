@@ -18,10 +18,10 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     kprintln("pic disabled");
 }
 
-uint64_t hpet_count_before;
-uint64_t hpet_count_difference;
-uint64_t lapic_timer_converted;
-uint32_t sleep_locks[NUM_CORES];
+volatile uint64_t hpet_count_before;
+volatile uint64_t hpet_count_difference;
+volatile uint64_t lapic_timer_converted[NUM_CORES];
+volatile uint32_t sleep_locks[NUM_CORES];
 
 void kpass(size_t ms) {
     volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
@@ -29,12 +29,12 @@ void kpass(size_t ms) {
     volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
     volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_divider = 0b0011;
+    *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
-    *lapic_divider - 0b0011;
-    *lapic_initial_count = ms * ((lapic_timer_converted*16)/1000);
     sleep_locks[(*lapic_id)>>24] = 1;
     while (sleep_locks[(*lapic_id)>>24]) {//it's offsetted by 24 bits
-        asm volatile ("hlt");
+        asm volatile ("nop");
     }
 }
 
@@ -174,22 +174,57 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     kprintln_uint64_to_binary(*lapic_svr);
     kprintln("local apic enabled");
 
+    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
     volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
     volatile uint32_t*  lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
     volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
     volatile uint32_t*  lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
     volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
-    *lapic_lvt_timer = (uint32_t) 0b00000000000001000001;//reg;
+    
     *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up. remember that there's a 0 in the middle ish and that it's 0bx0xx
-    *lapic_initial_count = 100000;
+    //*lapic_initial_count = 10000;
 
+    
     hpet_init();//we initialize here because of init stuff
     hpet_reset();
-    hpet_count_before = hpet_get_elapsed_ns();
+    *lapic_eoi = 0;
+    *lapic_divider = 0b0011;
+    *lapic_lvt_timer = (uint32_t)0b00000000000001000000;//reg;
+    *lapic_initial_count = UINT32_MAX;
+
+    hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    volatile uint64_t lapic_count_before = *lapic_current_count;
+    for (int i = 1; i < 1000000; i++) {//random stuff to pass time
+        volatile int a = i * i;
+        if (a = i) {
+            a = i / ((i * a)+1);
+        }
+    }
+    volatile uint64_t lapic_count_after = *lapic_current_count;
+    volatile uint64_t hpet_count_after = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    //i'm not sure why, but running the function yields better results than getting the ticks directly and doing the calculations after
+    //hpet_count_before *= ((hpet_regs->capabilities >> 32) / 1000000);
+    //hpet_count_after *= ((hpet_regs->capabilities >> 32) / 1000000);
+
+    *lapic_initial_count = 0;
+    *lapic_eoi = 0;
+
+    volatile uint64_t lapic_count_difference = lapic_count_before - lapic_count_after;
+    hpet_count_difference = hpet_count_after - hpet_count_before;
+    volatile uint64_t lapic_timer_multiplier = (1000000000000000 / (hpet_count_difference));
+    lapic_timer_converted[(*lapic_id) >> 24] = (lapic_timer_multiplier * lapic_count_difference) / 1000000;
+    kprint("apic timer ticks in 1 second: ");
+    kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
+    kprint(" divider: ");
+    kprintln_uint64(16);
+    *lapic_initial_count = UINT32_MAX;
+
+
 }
 
 
@@ -207,7 +242,7 @@ void init_mp(struct limine_mp_request* mp_request) {
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(1000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
+        kpass(3000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 
@@ -243,10 +278,48 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
 
-    volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
+    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
+    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    
+    //hpet_init();
+    hpet_reset();
+    *lapic_eoi = 0;
     *lapic_divider = 0b0011;
-    *lapic_initial_count = lapic_timer_converted/16;
+    *lapic_lvt_timer = (uint32_t)0b00000000000001000000;//reg;
+    *lapic_initial_count = UINT32_MAX;
+
+    hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    volatile uint64_t lapic_count_before = *lapic_current_count;
+    for (int i = 1; i < 1000000; i++) {//random stuff to pass time
+        volatile int a = i * i;
+        if (a = i) {
+            a = i / ((i * a) + 1);
+        }
+    }
+    volatile uint64_t lapic_count_after = *lapic_current_count;
+    volatile uint64_t hpet_count_after = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    //i'm not sure why, but running the function yields better results than getting the ticks directly and doing the calculations after
+    //hpet_count_before *= ((hpet_regs->capabilities >> 32) / 1000000);
+    //hpet_count_after *= ((hpet_regs->capabilities >> 32) / 1000000);
+
+    *lapic_initial_count = 0;
+    *lapic_eoi = 0;
+
+    volatile uint64_t lapic_count_difference = lapic_count_before - lapic_count_after;
+    hpet_count_difference = hpet_count_after - hpet_count_before;
+    volatile uint64_t lapic_timer_multiplier = (1000000000000000 / (hpet_count_difference));
+    lapic_timer_converted[(*lapic_id) >> 24] = (lapic_timer_multiplier * lapic_count_difference) / 1000000;
+    kprint("apic timer ticks in 1 second: ");
+    kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
+    kprint(" divider: ");
+    kprintln_uint64(16);
+    *lapic_initial_count = UINT32_MAX;
 
     kprintln("local apic enabled");
 }
