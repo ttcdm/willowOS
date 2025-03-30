@@ -30,4 +30,4 @@ int memcmp(const void* s1, const void* s2, size_t n);
 
 uint64_t get_rsdp_physical_address(void);
 
-void kpass(uint64_t ms);
+void kpass(size_t ms);

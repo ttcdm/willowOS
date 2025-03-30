@@ -1,5 +1,6 @@
 #include <apic.h>
 #include <vmm.h>
+#include <hpet.h>
 
 void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
@@ -17,8 +18,9 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     kprintln("pic disabled");
 }
 
-uint32_t lapic_count_before;
-uint32_t lapic_count_difference;
+uint64_t hpet_count_before;
+uint64_t hpet_count_difference;
+uint64_t lapic_timer_converted;
 uint32_t sleep_locks[NUM_CORES];
 
 void kpass(size_t ms) {
@@ -29,7 +31,7 @@ void kpass(size_t ms) {
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
     *lapic_divider - 0b0011;
-    *lapic_initial_count = ms * ((lapic_count_difference/16)/1000);
+    *lapic_initial_count = ms * ((lapic_timer_converted*16)/1000);
     sleep_locks[(*lapic_id)>>24] = 1;
     while (sleep_locks[(*lapic_id)>>24]) {//it's offsetted by 24 bits
         asm volatile ("hlt");
@@ -40,6 +42,7 @@ void kpass(size_t ms) {
 //thanks to hildarthedorf for this code//
 
 const struct MADT *ACPI_MADT;//HERE
+const struct HPET* ACPI_HPET;
 
 static void validate_sdt(const struct SDTHeader *pSDT) {
     //uint64_t ppa = alloc_frame();
@@ -78,17 +81,29 @@ static void parse_sdt(const struct SDTHeader *pSDT) {
     kprint_char(pSDT->signature[2]);
     kprint_char(pSDT->signature[3]);
     kprintln("");
-    char* s = "APIC";
+    char* apic_s = "APIC";
     bool match = 1;//match starts off as true. i should probably implement strcmp or strncmp
     for (int i = 0; i < 4; i++) {
-        if (pSDT->signature[i] != s[i]) {
+        if (pSDT->signature[i] != apic_s[i]) {
             match = 0;
         }
     }
     if (match == 1) {
         ACPI_MADT = (const void*)pSDT;
-        kprint("madt found. lapic address: ");
+        kprint("apic found. lapic address: ");
         kprintln_uint64((uint64_t)(ACPI_MADT->lapic_addr));
+    }
+    match = 1;
+    char* hpet_s = "HPET";
+    for (int i = 0; i < 4; i++) {
+        if (pSDT->signature[i] != hpet_s[i]) {
+            match = 0;
+        }
+    }
+    if (match == 1) {
+        ACPI_HPET = (const void*) pSDT;
+        kprint("hpet found. register block address: ");
+        kprintln_uint64((uint64_t) (ACPI_HPET->address.address));
     }
 }
 
@@ -168,23 +183,13 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
 
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
-    //*lapic_lvt_timer = (uint32_t) 0b00100000000001000001;//reg;
+    *lapic_lvt_timer = (uint32_t) 0b00000000000001000001;//reg;
     *lapic_divider = 0b0011;//do not use 1. i don't know why but setting the divider value as 1 (1011) messes things up. remember that there's a 0 in the middle ish and that it's 0bx0xx
-    *lapic_initial_count = UINT32_MAX;
+    *lapic_initial_count = 100000;
 
-    //HERE remember to clear the eoi after handling the interrupt to allow for future interrupts
-    volatile uint32_t* lapic_eoi = (uint32_t*) (ACPI_MADT->lapic_addr + 0xb0);
-    *lapic_eoi = 0;
-
-
-    outb(0x43, 0x36);//select pit mode
-    outb(0x40, 11931 & 0xff);//write divider low
-    outb(0x40, (11931 >> 8) & 0xff);//write divider high
-    //*lapic_current_count = 0;
-    outb(0x21, inb(0x21) & ~0x01);//it'll send out an irq when i unmask it at first
-    lapic_count_before = *lapic_current_count;
-    outb(0x20, 0x20);//clear eoi
-
+    hpet_init();//we initialize here because of init stuff
+    hpet_reset();
+    hpet_count_before = hpet_get_elapsed_ns();
 }
 
 
@@ -241,7 +246,7 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
     volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
     *lapic_divider = 0b0011;
-    *lapic_initial_count = lapic_count_difference/16;
+    *lapic_initial_count = lapic_timer_converted/16;
 
     kprintln("local apic enabled");
 }

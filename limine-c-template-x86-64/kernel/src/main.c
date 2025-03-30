@@ -10,6 +10,7 @@
 #include <vmm.h>
 #include <apic.h>
 #include <tsc.h>
+#include <hpet.h>
 
 #include <limine.h>
 
@@ -376,16 +377,23 @@ void kmain(void) {
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
 
+
+
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
 
-    tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
+    // tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    init_mp(&mp_request);
+    // init_mp(&mp_request);
 
+    //hpet is initialized inside init_bsp_lapic();
+
+    for (int i = 0; i < 10000000; i++) {
+        asm volatile ("nop");
+    }
     for (int i = 0;; i++) {
-        kpass(100);
+        kpass(1000);
         kprintln_uint64(i);
     }
 
