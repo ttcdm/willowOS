@@ -61,8 +61,6 @@ void apic_tick_handler(struct interrupt_frame* frame) {//65
 }
 
 void sleep_handler(struct interrupt_frame* frame) {//66
-    // kprintln("hi");
-    //kprintln("\n\nhi\n\n");
     volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     sleep_locks[(*lapic_id)>>24] = 0;
