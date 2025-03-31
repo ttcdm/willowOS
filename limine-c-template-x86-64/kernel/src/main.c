@@ -382,6 +382,13 @@ void kmain(void) {
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
+    kprintln("1 second intervals in ns: ");
+    for (int i = 0; i < 3; i++) {
+        uint64_t a = hpet_get_elapsed_ns();
+        kpass(1000);
+        uint64_t b = hpet_get_elapsed_ns();
+        kprintln_uint64(b - a);
+    }
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
@@ -389,17 +396,13 @@ void kmain(void) {
 
     //hpet is initialized inside init_bsp_lapic();
 
+    kprintln("lapic timers ticks in in 1 second:");
     for (int i = 0; i < 4; i++) {
         kprintln_uint64(lapic_timer_converted[i]);
     }
 
-    for (int i = 0; i < 3; i++) {
-        uint64_t a = hpet_get_elapsed_ns();
-        kpass(1000);
-        uint64_t b = hpet_get_elapsed_ns();
-        kprintln_uint64(b-a);
-        //kprintln_uint64(i);
-    }
+
+
 
     //asm volatile ("int $64");
 
@@ -422,7 +425,7 @@ void start_ap() {//remember to not call any non processor specific init function
     setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
-    idt_init();//not chatgpt'ed version
+    idt_init();//HERE must set up idt. not chatgpt'ed version
     struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
@@ -438,15 +441,18 @@ void start_ap() {//remember to not call any non processor specific init function
     volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
     kprint("lapic id: ");
     kprintln_uint64((*lapic_id)>>24);
-    kprintln("ap initialized!\n");
+    //kprintln("ap initialized!\n");
 
-
+    kprintln("1 second intervals in ns: ");
     for (int i = 0; i < 3; i++) {
         uint64_t a = hpet_get_elapsed_ns();
         kpass(1000);
         uint64_t b = hpet_get_elapsed_ns();
         kprintln_uint64(b - a);
     }
+
+    kprintln("ap initialized!\n");
+
 
     while (1) {asm volatile ("hlt");}
 }

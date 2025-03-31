@@ -230,7 +230,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
 
 
 void init_mp(struct limine_mp_request* mp_request) {
-    kpass(200);
+    //kpass(200);
     void* ap_start_address = (void*) start_ap;
     kprint("cpus: ");
     kprintln_uint64(mp_request->response->cpu_count);
@@ -242,7 +242,7 @@ void init_mp(struct limine_mp_request* mp_request) {
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(4000);//wait for ~10ms which is 1x10^7 cycles at 1ghz. gonna implement a spinlock and a sync thing later and a better wait system
+        kpass(4000);//HERE need to wait for the ap to initialize because of shared global variables. gonna implement a spinlock and a sync thing later and a better wait system
     }
 
 
