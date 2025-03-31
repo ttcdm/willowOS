@@ -40,9 +40,6 @@ extern const struct MADT* ACPI_MADT;//HERE
 extern const struct HPET* ACPI_HPET;
 
 void start_ap(void);
-
-volatile extern uint64_t hpet_count_before;
-volatile extern uint64_t hpet_count_difference;
 volatile extern uint64_t lapic_timer_converted[NUM_CORES];
 volatile extern uint32_t sleep_locks[NUM_CORES];
 

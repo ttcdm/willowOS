@@ -450,9 +450,7 @@ void start_ap() {//remember to not call any non processor specific init function
         uint64_t b = hpet_get_elapsed_ns();
         kprintln_uint64(b - a);
     }
-
     kprintln("ap initialized!\n");
-
 
     while (1) {asm volatile ("hlt");}
 }

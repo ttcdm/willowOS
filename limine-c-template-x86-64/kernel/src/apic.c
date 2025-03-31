@@ -18,8 +18,6 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     kprintln("pic disabled");
 }
 
-volatile uint64_t hpet_count_before;
-volatile uint64_t hpet_count_difference;
 volatile uint64_t lapic_timer_converted[NUM_CORES];
 volatile uint32_t sleep_locks[NUM_CORES];
 
@@ -197,12 +195,12 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     *lapic_lvt_timer = (uint32_t)0b00000000000001000000;//reg;
     *lapic_initial_count = UINT32_MAX;
 
-    hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    volatile uint64_t hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
         if (a = i) {
-            a = i / ((i * a)+1);
+            a = i / ((i * a) + 1);
         }
     }
     volatile uint64_t lapic_count_after = *lapic_current_count;
@@ -215,7 +213,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     *lapic_eoi = 0;
 
     volatile uint64_t lapic_count_difference = lapic_count_before - lapic_count_after;
-    hpet_count_difference = hpet_count_after - hpet_count_before;
+    volatile uint64_t hpet_count_difference = hpet_count_after - hpet_count_before;
     volatile uint64_t lapic_timer_multiplier = (1000000000000000 / (hpet_count_difference));
     lapic_timer_converted[(*lapic_id) >> 24] = (lapic_timer_multiplier * lapic_count_difference) / 1000000;
     kprint("apic timer ticks in 1 second: ");
@@ -294,7 +292,7 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     *lapic_lvt_timer = (uint32_t)0b00000000000001000000;//reg;
     *lapic_initial_count = UINT32_MAX;
 
-    hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
+    volatile uint64_t hpet_count_before = hpet_get_elapsed_ns();//hpet_regs->main_counter;
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
@@ -312,7 +310,7 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     *lapic_eoi = 0;
 
     volatile uint64_t lapic_count_difference = lapic_count_before - lapic_count_after;
-    hpet_count_difference = hpet_count_after - hpet_count_before;
+    volatile uint64_t hpet_count_difference = hpet_count_after - hpet_count_before;
     volatile uint64_t lapic_timer_multiplier = (1000000000000000 / (hpet_count_difference));
     lapic_timer_converted[(*lapic_id) >> 24] = (lapic_timer_multiplier * lapic_count_difference) / 1000000;
     kprint("apic timer ticks in 1 second: ");
