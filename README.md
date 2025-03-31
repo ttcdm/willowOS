@@ -6,11 +6,12 @@ All suggestions are welcome, as I am pretty inexperienced compared to the norm i
 The kernel source files are inside `limine-c-template-x86-64/kernel/src`<br>
 
 ## Current progress:
-**GDT** - DONE<br>
-**IDT** - Interrupts are set up and callable. Refer to the ACPI entry for more info.<br>
-**Memory Management** - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap.<br>
-**ACPI** - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working. Need to implement timers and a proper system for all the interrupts. Also need an IOAPIC for keyboard interrupts so I don't have to poll for inputs.<br>
+**GDT** - Works I'm pretty sure<br>
+**IDT** - I can expand on the entries as I see fit, but it works fine.<br>
+**Memory Management** - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap. Missing virtual memory unmapping.<br>
+**ACPI** - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working. Timers are working ish as well. Also need an IOAPIC for keyboard interrupts so I don't have to poll for inputs.<br>
 **Multiprocessing** - Currently using 4 physical cores. AP's are properly initialized and are executing C code. Their local APIC's are enabled as well. Need to implement spinlocks like sephamores or something, processor synchronization, something to do with caching idk.<br>
+**Scheduling** - Current step. Still trying to figure out how to go about this...<br>
 
 ### To run,<br>
 ```
