@@ -11,6 +11,7 @@
 #include <apic.h>
 #include <tsc.h>
 #include <hpet.h>
+#include <scheduler.h>
 
 #include <limine.h>
 
@@ -382,17 +383,17 @@ void kmain(void) {
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
-    kprintln("1 second intervals in ns: ");
-    for (int i = 0; i < 3; i++) {
-        uint64_t a = hpet_get_elapsed_ns();
-        kpass(1000);
-        uint64_t b = hpet_get_elapsed_ns();
-        kprintln_uint64(b - a);
-    }
+    //kprintln("1 second intervals in ns: ");
+    //for (int i = 0; i < 3; i++) {
+    //    uint64_t a = hpet_get_elapsed_ns();
+    //    kpass(1000);
+    //    uint64_t b = hpet_get_elapsed_ns();
+    //    kprintln_uint64(b - a);
+    //}
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    init_mp(&mp_request);
+    //init_mp(&mp_request);
 
     //hpet is initialized inside init_bsp_lapic();
 
@@ -400,6 +401,12 @@ void kmain(void) {
     for (int i = 0; i < 4; i++) {
         kprintln_uint64(lapic_timer_converted[i]);
     }
+    kprintln("\n");
+
+
+
+    init_scheduler();
+
 
 
 
@@ -443,13 +450,13 @@ void start_ap() {//remember to not call any non processor specific init function
     kprintln_uint64((*lapic_id)>>24);
     //kprintln("ap initialized!\n");
 
-    kprintln("1 second intervals in ns: ");
-    for (int i = 0; i < 3; i++) {
-        uint64_t a = hpet_get_elapsed_ns();
-        kpass(1000);
-        uint64_t b = hpet_get_elapsed_ns();
-        kprintln_uint64(b - a);
-    }
+    //kprintln("1 second intervals in ns: ");
+    //for (int i = 0; i < 3; i++) {
+    //    uint64_t a = hpet_get_elapsed_ns();
+    //    kpass(1000);
+    //    uint64_t b = hpet_get_elapsed_ns();
+    //    kprintln_uint64(b - a);
+    //}
     kprintln("ap initialized!\n");
 
     while (1) {asm volatile ("hlt");}

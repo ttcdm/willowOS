@@ -1,4 +1,4 @@
-// #pragma once
+#pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -19,6 +19,8 @@ uint64_t* kmalloc(uint64_t size);
 void kfree(uint64_t*);
 
 void print_heap(uint64_t length);
+
+uint64_t* kmalloc_byte(uint64_t size);
 
 typedef struct heap_page_virt {
     uint8_t status;//0 for free and 1 for used

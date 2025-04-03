@@ -4,6 +4,7 @@
 #include <apic.h>
 #include <tsc.h>
 #include <hpet.h>
+#include <scheduler.h>
 
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
@@ -68,6 +69,18 @@ void sleep_handler(struct interrupt_frame* frame) {//66
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
 
+void thread_handler(struct interrupt_frame* frame) {//67
+    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+
+    //asm volatile 
+    //kpass(500);//it seems to stall when i kpass() here. it's probably because the sleep handler's the same priority and this one hasn't cleared out yet, but even if i clear the eoi and do it it somehow doesn't work idk
+
+    kprintln("hi");
+    //read tsc; if tsc > last start time + quantum, stop thread and return
+    *lapic_eoi = 0;
+}
+
 
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
@@ -100,7 +113,7 @@ void idt_init() {
     idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];
     idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
-    for (uint8_t vector = 0; vector < 67; vector++) {
+    for (uint8_t vector = 0; vector < 68; vector++) {
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }

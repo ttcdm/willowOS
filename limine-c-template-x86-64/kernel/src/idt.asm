@@ -54,6 +54,7 @@ extern page_fault_handler
 extern gpf_handler
 extern apic_tick_handler
 extern sleep_handler;maybe this should be a lower priority idk
+extern thread_handler
 
 
 isr_no_err_stub 0
@@ -64,7 +65,7 @@ isr_no_err_stub 4
 isr_no_err_stub 5
 isr_no_err_stub 6
 isr_no_err_stub 7
-;isr_err_stub    8
+isr_err_stub    8
 isr_no_err_stub 9
 isr_err_stub    10
 isr_err_stub    11
@@ -143,16 +144,6 @@ isr_stub_14:;page fault handler
     pop_reg
     iretq
 
-
-isr_stub_8:
-    push_reg
-    mov rdi, rsp
-    sub rsp, 8
-    call apic_tick_handler
-    add rsp, 8
-    pop_reg
-    iretq
-
 isr_stub_64:;pretty sure this works. it doesn't throw an error anymroe. we don't cli nor sti because we want to allow nested interrupts
     push_reg
     mov rdi, rsp
@@ -180,11 +171,20 @@ isr_stub_66:
     pop_reg
     iretq
 
+isr_stub_67:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call thread_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
 
 global isr_stub_table
 isr_stub_table:
 %assign i 0 
-%rep    67;remember to adjust this for additional vectors
+%rep    68;remember to adjust this for additional vectors
     dq isr_stub_%+i ; use DQ instead if targeting 64-bit
 %assign i i+1 
 %endrep
