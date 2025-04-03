@@ -26,6 +26,10 @@ uint64_t init_heap() {
 }
 
 uint64_t* kmalloc(uint64_t size) {
+    if (size == 0) {
+        kprintln("allocated 0 bytes. returning 0");
+        return 0;//might page fault if you try to dereference this
+    }
     heap_page* current = heap_page_head;
     uint64_t index = 0;
     // while (current->next != NULL) {
@@ -97,4 +101,22 @@ void print_heap(uint64_t length) {
         kprintln_uint64(current->alloc_length);
         current = current->next;
     }
+}
+
+uint64_t* kmalloc_byte(uint64_t size) {//kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
+    if (size == 0) {
+        return kmalloc(0);
+    }
+    if (size <= 64) {
+        return kmalloc(1);
+    }
+    else {
+        if (size % 64 == 0) {
+            return kmalloc(size / 64);
+        }
+        else {
+            return kmalloc((size / 64) + 1);
+        }
+    }
+
 }
