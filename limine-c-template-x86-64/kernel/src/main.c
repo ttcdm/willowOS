@@ -397,11 +397,11 @@ void kmain(void) {
 
     //hpet is initialized inside init_bsp_lapic();
 
-    kprintln("lapic timers ticks in in 1 second:");
-    for (int i = 0; i < 4; i++) {
-        kprintln_uint64(lapic_timer_converted[i]);
-    }
-    kprintln("\n");
+    // kprintln("lapic timers ticks in in 1 second:");
+    // for (int i = 0; i < 4; i++) {
+    //     kprintln_uint64(lapic_timer_converted[i]);
+    // }
+    // kprintln("\n");
 
 
 
