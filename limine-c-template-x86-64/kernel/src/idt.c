@@ -69,14 +69,116 @@ void sleep_handler(struct interrupt_frame* frame) {//66
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
 
-void thread_handler(struct interrupt_frame* frame) {//67
+void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna use interrupt frame yet because the pushing/popping order might be messed up
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    
+    asm volatile (
+		"push %rax\n"
+		"push %rbx\n"
+		"push %rcx\n"
+		"push %rdx\n"
+		"push %rsi\n"
+		"push %rdi\n"
+		"push %rbp\n"
+		"push %r8\n"
+		"push %r9\n"
+		"push %r10\n"
+		"push %r11\n"
+		"push %r12\n"
+		"push %r13\n"
+		"push %r14\n"
+		"push %r15\n"
+		);
 
-    //asm volatile 
+    uint64_t return_rsp;
+	asm volatile ("mov %%rsp, %0 " : "=r"(return_rsp) :);
+
+    uint64_t misaligned_by = 16 - (return_rsp % 16);
+
+    // kprintln_uint64(return_rsp);
+
+
+    current_thread->return_rsp = (uint64_t*) return_rsp;
+    current_thread->misaligned_by = misaligned_by;
+
+    
+
+    uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;
+
+    asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp-(15*sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
+
+	asm volatile (
+		"pop %r15\n"
+		"pop %r14\n"
+		"pop %r13\n"
+		"pop %r12\n"
+		"pop %r11\n"
+		"pop %r10\n"
+		"pop %r9\n"
+		"pop %r8\n"
+		"pop %rbp\n"
+		"pop %rdi\n"
+		"pop %rsi\n"
+		"pop %rdx\n"
+		"pop %rcx\n"
+		"pop %rbx\n"
+		"pop %rax\n"
+	);
+    current_thread->thread_entry();
+
+    asm volatile (
+		"push %rax\n"
+		"push %rbx\n"
+		"push %rcx\n"
+		"push %rdx\n"
+		"push %rsi\n"
+		"push %rdi\n"
+		"push %rbp\n"
+		"push %r8\n"
+		"push %r9\n"
+		"push %r10\n"
+		"push %r11\n"
+		"push %r12\n"
+		"push %r13\n"
+		"push %r14\n"
+		"push %r15\n"
+		);
+    // kprintln("aa");
+    // kprintln_uint64(return_rsp);
+
+    
+
+    asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp-current_thread->misaligned_by));
+    // asm volatile ("mov %0, %%rsp" : : "r"(return_rsp-misaligned_by));
+    // kprintln("HIHI");
+    asm volatile ("add %0, %%rsp" : : "r"(current_thread->misaligned_by));
+    // kprintln_uint64((uint64_t)current_thread->return_rsp);
+
+    asm volatile (
+		"pop %r15\n"
+		"pop %r14\n"
+		"pop %r13\n"
+		"pop %r12\n"
+		"pop %r11\n"
+		"pop %r10\n"
+		"pop %r9\n"
+		"pop %r8\n"
+		"pop %rbp\n"
+		"pop %rdi\n"
+		"pop %rsi\n"
+		"pop %rdx\n"
+		"pop %rcx\n"
+		"pop %rbx\n"
+		"pop %rax\n"
+	);
+    // kprintln("bye");
+
+    
+    
     //kpass(500);//it seems to stall when i kpass() here. it's probably because the sleep handler's the same priority and this one hasn't cleared out yet, but even if i clear the eoi and do it it somehow doesn't work idk
 
-    kprintln("hi");
+    // kprintln("hi");
     //read tsc; if tsc > last start time + quantum, stop thread and return
     *lapic_eoi = 0;
 }
