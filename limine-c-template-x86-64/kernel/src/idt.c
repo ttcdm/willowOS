@@ -92,23 +92,16 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
 		);
 
     uint64_t return_rsp;
-	asm volatile ("mov %%rsp, %0 " : "=r"(return_rsp) :);
+	asm volatile ("mov %%rsp, %0 " : "=r"(return_rsp) :);//save current rsp
+    uint64_t misaligned_by = 16 - (return_rsp % 16);//calculate misalignment
+    current_thread->return_rsp = (uint64_t*) return_rsp;//save current rsp. i'm not actually sure if i need to do this because i can just store it as a normal variable since this is also a variable but just global (which shouldn't make a difference)
+    current_thread->misaligned_by = misaligned_by;//save misalignment
 
-    uint64_t misaligned_by = 16 - (return_rsp % 16);
-
-    // kprintln_uint64(return_rsp);
-
-
-    current_thread->return_rsp = (uint64_t*) return_rsp;
-    current_thread->misaligned_by = misaligned_by;
-
-    
-
-    uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;
+    uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
 
     asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp-(15*sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
-	asm volatile (
+	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
 		"pop %r15\n"
 		"pop %r14\n"
 		"pop %r13\n"
@@ -125,6 +118,7 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
 		"pop %rbx\n"
 		"pop %rax\n"
 	);
+
     current_thread->thread_entry();
 
     asm volatile (
@@ -143,17 +137,10 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
 		"push %r13\n"
 		"push %r14\n"
 		"push %r15\n"
-		);
-    // kprintln("aa");
-    // kprintln_uint64(return_rsp);
+	);
 
-    
-
-    asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp-current_thread->misaligned_by));
-    // asm volatile ("mov %0, %%rsp" : : "r"(return_rsp-misaligned_by));
-    // kprintln("HIHI");
-    asm volatile ("add %0, %%rsp" : : "r"(current_thread->misaligned_by));
-    // kprintln_uint64((uint64_t)current_thread->return_rsp);
+    asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp-current_thread->misaligned_by));//load back in aligned rsp
+    asm volatile ("add %0, %%rsp" : : "r"(current_thread->misaligned_by));//move rsp back to its original position
 
     asm volatile (
 		"pop %r15\n"

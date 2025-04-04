@@ -28,24 +28,14 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 
-	for (int i = 1; i < 4; i++) {
-		//if (i == 0) {//i don't think that this if block is actually necessary since i think the rest of the stuff just does the same thing
-		//	new_thread->next_thread = create_thread(i);
-		//	current_thread = new_thread->next_thread
-		//	continue;
-		//}
+	for (int i = 1; i < 15; i++) {
 		current_thread->next_thread = create_thread(i, gen);
 		current_thread = current_thread->next_thread;
 	}
 	current_thread->next_thread = new_thread;
-	
-	// kprintln("hi");
+	current_thread = current_thread->next_thread;//so we start on the 1st (1 indexed thread)
 	while (1) {
-		// continue;
 		asm volatile ("int $67");
-		// kprintln("current thread: "); kprintln_uint64(current_thread->pid);
-
-		// kprintln("hihihi");
 		current_thread = current_thread->next_thread;
 		kpass(300);
 	}
@@ -53,11 +43,7 @@ void init_scheduler() {
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
-	//thread_context* thread = (thread_context*)thread_base;
-
 	thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
-	// kprintln("hihihi");
-	// kprintln_uint64((uint64_t) thread_base);
 
 	new_thread->start_time = tsc_read_ns();
 	new_thread->last_start_time = 0;
@@ -73,17 +59,10 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
     uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	uint64_t current_rsp;
 
-	asm volatile ("mov %%rsp, %0 " : "=r"(current_rsp) :);
-	// kprintln_uint64(current_rsp);
-	// asm volatile ("mov %%rsp, %0" : : "r"(thread_rsp));
-	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp));
-	// asm volatile ("mov %%rsp, %0 " : "=r"(current_rsp) :);
-	// kprintln_uint64(current_rsp);
+	asm volatile ("mov %%rsp, %0 " : "=r"(current_rsp) :);//save current rsp
+	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp));//load in new rsp
 
-	// push_all_regs();
-	// pop_all_regs();
-	// asm volatile ("push %rax");
-	asm volatile (
+	asm volatile (//load cpu state
 		"push %rax\n"
 		"push %rbx\n"
 		"push %rcx\n"
@@ -100,24 +79,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 		"push %r14\n"
 		"push %r15\n"
 		);
-	asm volatile ("mov %%rsp, %0" : "=r"(current_rsp));
-	// asm volatile (
-	// 	"pop %r15\n"
-	// 	"pop %r14\n"
-	// 	"pop %r13\n"
-	// 	"pop %r12\n"
-	// 	"pop %r11\n"
-	// 	"pop %r10\n"
-	// 	"pop %r9\n"
-	// 	"pop %r8\n"
-	// 	"pop %rbp\n"
-	// 	"pop %rdi\n"
-	// 	"pop %rsi\n"
-	// 	"pop %rdx\n"
-	// 	"pop %rcx\n"
-	// 	"pop %rbx\n"
-	// 	"pop %rax\n"
-	// );
+	asm volatile ("mov %%rsp, %0" : "=r"(current_rsp));//restore rsp
 	
 
 	return new_thread;
