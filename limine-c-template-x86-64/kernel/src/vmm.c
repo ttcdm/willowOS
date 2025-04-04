@@ -1,19 +1,71 @@
 #include <vmm.h>
 
+
+/*
+
+    uint64_t heap_page_phys;
+    heap_page* new_heap_page;
+    for (int i = 0; i < HEAP_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED; i++) {
+        if (i % (PAGE_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED) == 0) {//i think this works
+            heap_page_phys = alloc_frame();
+            map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*HEAP_CHUNK_SIZE_DEFINED), 0b11);
+            new_heap_page = (heap_page*) (alloc_frame()+hhdm_offset);
+            kprintln_uint64(i);
+        }
+        else {
+            heap_page_phys = heap_page_phys + HEAP_CHUNK_SIZE_DEFINED;
+            map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*HEAP_CHUNK_SIZE_DEFINED), 0b11);
+            // kprintln_uint64(i);
+            new_heap_page = new_heap_page + HEAP_CHUNK_SIZE_DEFINED;
+        }
+
+        new_heap_page->size = HEAP_CHUNK_SIZE_DEFINED;
+        new_heap_page->status = 0;
+        new_heap_page->alloc_length = 0;
+        new_heap_page->next = NULL;
+        current->next = new_heap_page;
+        current = current->next;
+    }*/
+
 heap_page* heap_page_head;
 uint64_t init_heap() {
     uint64_t heap_start = HEAP_START_VIRT_DEFINED;
-    heap_page_head = (heap_page*) (alloc_frame()+hhdm_offset);
+    heap_page_head = (heap_page*) (alloc_frame()+hhdm_offset);//make sure we don't call alloc_frame() more than we need to 
+    map_page((uint64_t*) (pml4_address_virt_glob), ((uint64_t)heap_page_head) - hhdm_offset, heap_start, 0b11);
     heap_page_head->size = HEAP_CHUNK_SIZE_DEFINED;
     heap_page_head->status = 0;
     heap_page_head->alloc_length = 0;
     heap_page_head->next = NULL;
     heap_page* current = heap_page_head;
-    for (int i = 0; i < HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED; i++) {
-        uint64_t heap_page_phys = alloc_frame();
-        map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*PAGE_SIZE_DEFINED), 0b11);
 
-        heap_page* new_heap_page = (heap_page*) (alloc_frame()+hhdm_offset);
+    // for (int i = 0; i < HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED; i++) {//old initialization that uses 4096 bytes per 64 byte heap page
+    //     uint64_t heap_page_phys = alloc_frame();
+    //     map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*PAGE_SIZE_DEFINED), 0b11);
+
+    //     heap_page* new_heap_page = (heap_page*) (alloc_frame()+hhdm_offset);
+    //     new_heap_page->size = HEAP_CHUNK_SIZE_DEFINED;
+    //     new_heap_page->status = 0;
+    //     new_heap_page->alloc_length = 0;
+    //     new_heap_page->next = NULL;
+    //     current->next = new_heap_page;
+    //     current = current->next;
+    // }
+
+    uint64_t heap_page_phys = alloc_frame();//this seems to work. the starting logic is a bit messy but i think it should work
+    map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start, 0b11);
+    heap_page* new_heap_page = heap_page_head;
+    for (int i = 1; i < HEAP_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED; i++) {
+        if (i % (PAGE_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED) == 0) {//i think this works
+            heap_page_phys = alloc_frame();
+            map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*HEAP_CHUNK_SIZE_DEFINED), 0b11);
+            new_heap_page = (heap_page*) (alloc_frame()+hhdm_offset);//(alloc_frame()+hhdm_offset);
+        }
+        else {
+            heap_page_phys = heap_page_phys + HEAP_CHUNK_SIZE_DEFINED;
+            // map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*HEAP_CHUNK_SIZE_DEFINED), 0b11);//not sure if i need to map this as well since it's in the middle of a mapped page
+            new_heap_page = (heap_page*) ((uint64_t)new_heap_page + HEAP_CHUNK_SIZE_DEFINED);
+        }
+
         new_heap_page->size = HEAP_CHUNK_SIZE_DEFINED;
         new_heap_page->status = 0;
         new_heap_page->alloc_length = 0;
@@ -31,6 +83,8 @@ uint64_t* kmalloc(uint64_t size) {
         return 0;//might page fault if you try to dereference this
     }
     heap_page* current = heap_page_head;
+    // current = current->next;
+
     uint64_t index = 0;
     // while (current->next != NULL) {
     while (current != NULL) {//fixes the same off by one error in alloc_frame()
@@ -60,6 +114,9 @@ uint64_t* kmalloc(uint64_t size) {
                 current->alloc_length = size;//size of allocated memory
 				kprint("allocated heap at index: ");
                 kprintln_uint64(index);
+                
+                
+
                 return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
         }
@@ -71,13 +128,14 @@ uint64_t* kmalloc(uint64_t size) {
 }
 
 void kfree(uint64_t* virt_address) {
-    uint64_t index = ((uint64_t) virt_address - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
+    uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
     for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
         current = current->next;//we do the second last one because at the end of the loop it moves onto the last node
     }
     uint64_t alloc_length_node = current->alloc_length;
     current->alloc_length = 0;
+
     for (int i = 0; i < alloc_length_node; i++) {
         current->status = 0;
         current = current->next;
