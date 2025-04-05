@@ -27,9 +27,6 @@ typedef struct idtr_t_actual {
 
 
 struct interrupt_frame {
-	uint64_t cs;
-	uint64_t rip;
-	uint64_t rflags;
 	uint64_t rax;
 	uint64_t rbx;
 	uint64_t rcx;
@@ -45,6 +42,9 @@ struct interrupt_frame {
 	uint64_t r13;
 	uint64_t r14;
 	uint64_t r15;
+	uint64_t rflags;
+	uint64_t cs;
+	uint64_t rip;
 };
 
 
@@ -61,6 +61,8 @@ void apic_tick_handler(struct interrupt_frame* frame);
 void sleep_handler(struct interrupt_frame* frame);
 
 void thread_handler(struct interrupt_frame* frame);
+
+void thread_interrupter_handler(struct interrupt_frame* frame);
 
 void page_fault_handler(struct interrupt_frame* frame);
 

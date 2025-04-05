@@ -406,12 +406,9 @@ void kmain(void) {
 
 
     init_scheduler();
-    kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
-    kmalloc(10000);
-    // for (int i = 0; i < 500000; i++) {
-    //     alloc_frame();
-    // }
+    // kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
 
+    // lapic_periodic(500, 64, 0b0011, 0);
 
 
 
