@@ -36,6 +36,36 @@ void kpass(size_t ms) {
     }
 }
 
+void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
+    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    *lapic_divider = (uint32_t) divider;
+    *lapic_lvt_timer = ((uint32_t) 0b00000000000000000000) | ((uint32_t) (vector));
+    if (ms_or_ticks == 0) {
+        *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
+    }
+    else if (ms_or_ticks == 1) {
+        *lapic_initial_count = (uint32_t) ms;
+    }
+}
+
+void lapic_periodic(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
+    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
+    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    *lapic_divider = (uint32_t) divider;
+    *lapic_lvt_timer = ((uint32_t) 0b00100000000000000000) | ((uint32_t) (vector));
+    if (ms_or_ticks == 0) {
+        *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
+    }
+    else if (ms_or_ticks == 1) {
+        *lapic_initial_count = (uint32_t) ms;
+    }
+}
+
 
 //thanks to hildarthedorf for this code//
 

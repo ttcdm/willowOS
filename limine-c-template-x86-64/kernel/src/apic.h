@@ -43,6 +43,10 @@ void start_ap(void);
 volatile extern uint64_t lapic_timer_converted[NUM_CORES];
 volatile extern uint32_t sleep_locks[NUM_CORES];
 
+void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks);//0 for ms, 1 for ticks
+void lapic_periodic(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks);//0 for ms, 1 for ticks
+
+
 
 struct SDTHeader {
     char signature[4];

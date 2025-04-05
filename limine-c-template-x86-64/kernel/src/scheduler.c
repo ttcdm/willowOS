@@ -7,8 +7,22 @@ thread_context* current_thread;
 void gen() {
 	// kprint("runtime ");
     // kprintln_uint64(current_thread->total_run_time);
-	kprint("hi from thread ");
-	kprintln_uint64(current_thread->pid);
+	// asm volatile ("sti");//enable interrupts and allows control to be passed back to scheduler. this seems kinda wrong to do but it works
+	kprint("gen0: hi from thread ");
+	// kpass(1000);
+	while (1){
+		kprintln_uint64(current_thread->pid);
+		
+	}
+}
+
+void gen1() {
+	// asm volatile ("sti");
+	kprint("gen1: hi from thread ");
+	while (1) {
+		kprintln_uint64(current_thread->pid);
+
+	}
 }
 
 void init_scheduler() {
@@ -25,11 +39,17 @@ void init_scheduler() {
 	new_thread->stack_base = thread_base;
 	new_thread->return_rsp = NULL;
 	new_thread->misaligned_by = 0;
+	new_thread->current_rsp = 0;
+	new_thread->current_misaligned_by = 0;
+	// new_thread->rip = NULL;
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 
-	for (int i = 1; i < 15; i++) {
-		current_thread->next_thread = create_thread(i, gen);
+	for (int i = 1; i < 3; i++) {
+
+		if (i%2==0) current_thread->next_thread = create_thread(i, gen);
+		if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
+
 		current_thread = current_thread->next_thread;
 	}
 	current_thread->next_thread = new_thread;
@@ -37,7 +57,7 @@ void init_scheduler() {
 	while (1) {
 		asm volatile ("int $67");
 		current_thread = current_thread->next_thread;
-		kpass(300);
+		kpass(700);
 	}
 }
 
@@ -53,6 +73,9 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->thread_entry = thread_entry;
 	new_thread->return_rsp = NULL;
 	new_thread->misaligned_by = 0;
+	new_thread->current_rsp = 0;
+	new_thread->current_misaligned_by = 0;
+	// new_thread->rip = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 
