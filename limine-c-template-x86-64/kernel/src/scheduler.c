@@ -70,7 +70,8 @@ void init_scheduler() {
 	//}
 	//asm volatile("int $67");
 	//current_thread = current_thread->next_thread;
-	scheduler_loop();
+	//scheduler_loop();
+	start_thread(current_thread);
 
 }
 
@@ -86,20 +87,20 @@ void scheduler_loop() {
 		//switch_thread((uint64_t)current_thread->next_thread->current_rsp);
 		if (current_thread->total_run_time == 0) {
 			kprintln("HIHIHIHI");
-			//switch_thread((uint64_t)current_thread->return_rsp);
 			start_thread(current_thread);
+			//switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
+
 			//asm volatile ("int $67");
 		}
 		else {
-			//current_thread = current_thread->next_thread;
-			kprintln_uint64(current_thread->current_rsp);
+			kprintln("BYEBYEBYE");
+			switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
 
-			//switch_thread((uint64_t)current_thread->current_rsp);
-			kprintln("BYEBYEBYEBYEBYE");
+			*lapic_eoi = 0;
 
 		}
 
-		current_thread = current_thread->next_thread;
+		//current_thread = current_thread->next_thread;
 		kpass(500);
 	}
 }
@@ -108,7 +109,7 @@ void scheduler_return() {
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	//*lapic_eoi = 0;
-	kprintln("hi");
+	//kprintln("hi");
 	current_thread = current_thread->next_thread;
 	scheduler_loop();
 
@@ -155,6 +156,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 		"push %r14\n"
 		"push %r15\n"
 		);
+
 	asm volatile ("mov %%rsp, %0" : "=r"(current_rsp));//restore rsp
 	
 
@@ -271,99 +273,4 @@ void start_thread(thread_context* thread) {
 	// kprintln("hi");
 	//read tsc; if tsc > last start time + quantum, stop thread and return
 	//*lapic_eoi = 0;
-}
-
-void init_thread() {
-	asm volatile (
-		"push %rax\n"
-		"push %rbx\n"
-		"push %rcx\n"
-		"push %rdx\n"
-		"push %rsi\n"
-		"push %rdi\n"
-		"push %rbp\n"
-		"push %r8\n"
-		"push %r9\n"
-		"push %r10\n"
-		"push %r11\n"
-		"push %r12\n"
-		"push %r13\n"
-		"push %r14\n"
-		"push %r15\n"
-		);
-
-	uint64_t return_rsp;
-	asm volatile ("mov %%rsp, %0 " : "=r"(return_rsp) : );//save current rsp
-	uint64_t misaligned_by = 16 - (return_rsp % 16);//calculate misalignment
-	current_thread->return_rsp = (uint64_t*)return_rsp;//save current rsp. i'm not actually sure if i need to do this because i can just store it as a normal variable since this is also a variable but just global (which shouldn't make a difference)
-	current_thread->misaligned_by = misaligned_by;//save misalignment
-
-
-	current_thread->total_run_time;
-	current_thread->start_time = tsc_read_ns();
-	current_thread->last_start_time;
-	uint64_t thread_rsp = ((uint64_t)current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
-
-	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
-
-	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
-		"pop %r15\n"
-		"pop %r14\n"
-		"pop %r13\n"
-		"pop %r12\n"
-		"pop %r11\n"
-		"pop %r10\n"
-		"pop %r9\n"
-		"pop %r8\n"
-		"pop %rbp\n"
-		"pop %rdi\n"
-		"pop %rsi\n"
-		"pop %rdx\n"
-		"pop %rcx\n"
-		"pop %rbx\n"
-		"pop %rax\n"
-		);
-
-	//current_thread->thread_entry();
-	// asm volatile ("mov %%rsp, %0 " : "=r"((uint64_t)current_thread->current_rsp) :);
-
-
-	asm volatile (
-		"push %rax\n"
-		"push %rbx\n"
-		"push %rcx\n"
-		"push %rdx\n"
-		"push %rsi\n"
-		"push %rdi\n"
-		"push %rbp\n"
-		"push %r8\n"
-		"push %r9\n"
-		"push %r10\n"
-		"push %r11\n"
-		"push %r12\n"
-		"push %r13\n"
-		"push %r14\n"
-		"push %r15\n"
-		);
-
-	asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp - current_thread->misaligned_by));//load back in aligned rsp
-	asm volatile ("add %0, %%rsp" : : "r"((uint64_t)current_thread->misaligned_by));//move rsp back to its original position
-
-	asm volatile (
-		"pop %r15\n"
-		"pop %r14\n"
-		"pop %r13\n"
-		"pop %r12\n"
-		"pop %r11\n"
-		"pop %r10\n"
-		"pop %r9\n"
-		"pop %r8\n"
-		"pop %rbp\n"
-		"pop %rdi\n"
-		"pop %rsi\n"
-		"pop %rdx\n"
-		"pop %rcx\n"
-		"pop %rbx\n"
-		"pop %rax\n"
-		);
 }
