@@ -28,7 +28,7 @@ typedef struct thread_context_declared {
 	uint64_t misaligned_by;
 	uint64_t current_rsp;
 	uint64_t current_misaligned_by;
-	uint64_t frame[3];
+	uint64_t frame[5];
 	struct thread_context_declared* next_thread;
 
 } thread_context;

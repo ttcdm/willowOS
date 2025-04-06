@@ -8,7 +8,7 @@ void gen() {
 	// kprint("runtime ");
     // kprintln_uint64(current_thread->total_run_time);
 	// asm volatile ("sti");//enable interrupts and allows control to be passed back to scheduler. this seems kinda wrong to do but it works
-	kprint("gen0: hi from thread ");
+	kprintln("gen0: hi from thread ");
 	// kpass(1000);
 	while (1){
 		int a = current_thread->pid;
