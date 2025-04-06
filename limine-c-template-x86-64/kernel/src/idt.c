@@ -206,15 +206,24 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    //kprintln("hi");
+    current_thread = current_thread->next_thread;
+    //*lapic_eoi = 0;
+    switch_thread((uint64_t)current_thread->current_rsp);
+    kprint("\n");
+    kprintln_uint64(current_thread->current_rsp);
+    //push_all_regs();
+    //scheduler_return();
+    *lapic_eoi = 0;
 
     // asm volatile ("ret");
-    kprint("rsp: ");
-    kprintln_uint64((uint64_t)current_thread->current_rsp);
-    // current_thread->rip = (uint64_t*) frame->rip;
-    // kprintln_uint64((uint64_t)current_thread->current_rsp);
-    current_thread->frame[0] = frame->rflags;
-    current_thread->frame[1] = frame->cs;
-    current_thread->frame[2] = frame->rip;
+    //kprint("rsp: ");
+    //kprintln_uint64((uint64_t)current_thread->current_rsp);
+    //// current_thread->rip = (uint64_t*) frame->rip;
+    //// kprintln_uint64((uint64_t)current_thread->current_rsp);
+    //current_thread->frame[0] = frame->rflags;
+    //current_thread->frame[1] = frame->cs;
+    //current_thread->frame[2] = frame->rip;
     // kprintln_uint64(frame->rflags);
     // kprintln_uint64(frame->cs);
     // kprintln_uint64(frame->rip);
@@ -244,27 +253,27 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     
 
 
-    asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp-current_thread->misaligned_by));//load back in aligned rsp
-    asm volatile ("add %0, %%rsp" : : "r"(current_thread->misaligned_by));//move rsp back to its original position
+ //   asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->return_rsp-current_thread->misaligned_by));//load back in aligned rsp
+ //   asm volatile ("add %0, %%rsp" : : "r"(current_thread->misaligned_by));//move rsp back to its original position
 
-    asm volatile (
-		"pop %r15\n"
-		"pop %r14\n"
-		"pop %r13\n"
-		"pop %r12\n"
-		"pop %r11\n"
-		"pop %r10\n"
-		"pop %r9\n"
-		"pop %r8\n"
-		"pop %rbp\n"
-		"pop %rdi\n"
-		"pop %rsi\n"
-		"pop %rdx\n"
-		"pop %rcx\n"
-		"pop %rbx\n"
-		"pop %rax\n"
-	);
-    *lapic_eoi = 0;
+ //   asm volatile (
+	//	"pop %r15\n"
+	//	"pop %r14\n"
+	//	"pop %r13\n"
+	//	"pop %r12\n"
+	//	"pop %r11\n"
+	//	"pop %r10\n"
+	//	"pop %r9\n"
+	//	"pop %r8\n"
+	//	"pop %rbp\n"
+	//	"pop %rdi\n"
+	//	"pop %rsi\n"
+	//	"pop %rdx\n"
+	//	"pop %rcx\n"
+	//	"pop %rbx\n"
+	//	"pop %rax\n"
+	//);
+    //*lapic_eoi = 0;
 }
 
 
