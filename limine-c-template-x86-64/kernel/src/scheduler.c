@@ -11,7 +11,10 @@ void gen() {
 	kprint("gen0: hi from thread ");
 	// kpass(1000);
 	while (1){
-		// kprintln_uint64(current_thread->pid);
+		int a = current_thread->pid;
+		kprint("");
+		//kprint("hi");
+		//kprint_uint64(current_thread->pid);
 		// kprintln_uint64(current_thread->frame[2]);
 		
 	}
@@ -46,7 +49,7 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 
-	for (int i = 1; i < 3; i++) {
+	for (int i = 1; i < 1; i++) {
 
 		if (i%2==0 || i%2==1) current_thread->next_thread = create_thread(i, gen);
 		// if (i%2==1) current_thread->next_thread = create_thread(i, gen1);

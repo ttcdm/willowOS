@@ -141,8 +141,11 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
         // kprintln_uint64((uint64_t)current_thread->current_rsp);
         // kprintln_uint64(current_thread->pid);
         // kprintln_uint64(current_thread->frame[0]);
-        current_thread->current_misaligned_by = 16-((uint64_t)current_thread->current_rsp % 16);
-        asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp-current_thread->current_misaligned_by));//load back in aligned rsp
+        //current_thread->current_rsp += (uint64_t)3 * (sizeof(uint64_t));
+        kprint("rsp: ");
+        kprintln_uint64(current_thread->current_rsp);
+        current_thread->current_misaligned_by = 16-(((uint64_t)current_thread->current_rsp) % 16);
+        asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp - current_thread->current_misaligned_by));//load back in aligned rsp
         asm volatile ("add %0, %%rsp" : : "r"((uint64_t)current_thread->current_misaligned_by));//move rsp back to its original position
         // asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp));
         // asm volatile (
@@ -159,7 +162,7 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
         // while (1) {}
         
         asm volatile (
-            "iretq"
+            "ret"
         );
         // asm volatile (
         //     "pop %0\n"     // Push RFLAGS
@@ -173,7 +176,7 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
             // "popq %cs\n"
             // "popq %rip\n"
         // );
-        kprintln_uint64(current_thread->frame[0]);
+        //kprintln_uint64(current_thread->frame[0]);
         // kprintln_uint64(current_thread->frame[1]);
         // kprintln_uint64(current_thread->frame[2]);
         asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
@@ -281,17 +284,19 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
 		"push %r14\n"
 		"push %r15\n"
 	);
-    // asm volatile (
-    //     "push %0\n"     // Push RFLAGS
-    //     "push %1\n"     // Push CS (dynamically loaded)
-    //     "push %2\n"     // Push target RIP
-    //     :
-    //     // : "r"(frame->rflags), "r"(frame->cs), "r"(frame->rip)
-    //     : "r"(frame->rip), "r"(frame->cs), "r"(frame->rflags)
-    // );
+     //asm volatile (
+     //    "push %0\n"     // Push RFLAGS
+     //    "push %1\n"     // Push CS (dynamically loaded)
+     //    "push %2\n"     // Push target RIP
+     //    :
+     //    // : "r"(frame->rflags), "r"(frame->cs), "r"(frame->rip)
+     //    : "r"(frame->rip), "r"(frame->cs), "r"(frame->rflags)
+     //);
     // kprintln_uint64((uint64_t)current_thread->current_rsp);
     // uint64_t current_rsp = (uint64_t) current_thread->current_rsp;
     asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
+    kprint("rsp: ");
+    kprintln_uint64((uint64_t)current_thread->current_rsp);
     // current_thread->rip = (uint64_t*) frame->rip;
     // kprintln_uint64((uint64_t)current_thread->current_rsp);
     current_thread->frame[0] = frame->rflags;
@@ -301,28 +306,28 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     // kprintln_uint64(frame->cs);
     // kprintln_uint64(frame->rip);
 
-    kprintln("\n");
-    kprintln_uint64(frame->rip);
-    kprintln_uint64(frame->cs);
-    kprintln_uint64(frame->rflags);
-    kprintln_uint64(frame->r15);
-    kprintln_uint64(frame->r14);
-    kprintln_uint64(frame->r13);
-    kprintln_uint64(frame->r12);
-    kprintln_uint64(frame->r11);
-    kprintln_uint64(frame->r10);
-    kprintln_uint64(frame->r9);
-    kprintln_uint64(frame->r8);
-    kprintln_uint64(frame->rbp);
-    kprintln_uint64(frame->rdi);
-    kprintln_uint64(frame->rsi);
-    kprintln_uint64(frame->rdx);
-    kprintln_uint64(frame->rcx);
-    kprintln_uint64(frame->rbx);
-    kprintln_uint64(frame->rax);
-    if (current_thread->pid == 2) {
-        // while (1) {}
-    }
+    //kprintln("\n");
+    //kprintln_uint64(frame->rip);
+    //kprintln_uint64(frame->cs);
+    //kprintln_uint64(frame->rflags);
+    //kprintln_uint64(frame->r15);
+    //kprintln_uint64(frame->r14);
+    //kprintln_uint64(frame->r13);
+    //kprintln_uint64(frame->r12);
+    //kprintln_uint64(frame->r11);
+    //kprintln_uint64(frame->r10);
+    //kprintln_uint64(frame->r9);
+    //kprintln_uint64(frame->r8);
+    //kprintln_uint64(frame->rbp);
+    //kprintln_uint64(frame->rdi);
+    //kprintln_uint64(frame->rsi);
+    //kprintln_uint64(frame->rdx);
+    //kprintln_uint64(frame->rcx);
+    //kprintln_uint64(frame->rbx);
+    //kprintln_uint64(frame->rax);
+    //if (current_thread->pid == 2) {
+    //    // while (1) {}
+    //}
     
 
 
