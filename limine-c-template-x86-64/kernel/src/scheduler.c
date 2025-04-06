@@ -12,9 +12,9 @@ void gen() {
 	// kpass(1000);
 	while (1){
 		int a = current_thread->pid;
-		kprint("");
+		// kprint("");
 		//kprint("hi");
-		//kprint_uint64(current_thread->pid);
+		kprint_uint64(current_thread->pid);
 		// kprintln_uint64(current_thread->frame[2]);
 		
 	}
@@ -49,7 +49,7 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 
-	for (int i = 1; i < 1; i++) {
+	for (int i = 1; i < 2; i++) {
 
 		if (i%2==0 || i%2==1) current_thread->next_thread = create_thread(i, gen);
 		// if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
@@ -58,8 +58,17 @@ void init_scheduler() {
 	}
 	current_thread->next_thread = new_thread;
 	current_thread = current_thread->next_thread;//so we start on the 1st (1 indexed thread)
+	
+	asm volatile ("int $67");
+	current_thread = current_thread->next_thread;
+
+	asm volatile ("int $67");
+	current_thread = current_thread->next_thread;
+
+	asm volatile ("int $67");
+	current_thread = current_thread->next_thread;
 	while (1) {
-		asm volatile ("int $67");
+		switch_thread((uint64_t)current_thread->return_rsp, (uint64_t)current_thread->current_rsp);
 		current_thread = current_thread->next_thread;
 		kpass(300);
 	}
