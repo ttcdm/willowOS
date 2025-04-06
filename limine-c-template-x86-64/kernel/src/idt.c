@@ -143,26 +143,20 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
         // kprintln_uint64(current_thread->frame[0]);
         //current_thread->current_rsp += (uint64_t)3 * (sizeof(uint64_t));
         kprint("rsp: ");
-        kprintln_uint64(current_thread->current_rsp);
+        kprintln_uint64(current_thread->frame[2]);
         current_thread->current_misaligned_by = 16-(((uint64_t)current_thread->current_rsp) % 16);
         asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp - current_thread->current_misaligned_by));//load back in aligned rsp
         asm volatile ("add %0, %%rsp" : : "r"((uint64_t)current_thread->current_misaligned_by));//move rsp back to its original position
-        // asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp));
+         //asm volatile ("mov %0, %%rsp" : : "r"((uint64_t)current_thread->current_rsp));
         // asm volatile (
         //     "iretq"
         // );
-        asm volatile (
-            "pushq %0\n"     // Push RFLAGS
-            "pushq %1\n"     // Push CS (dynamically loaded)
-            "pushq %2\n"     // Push target RIP
-            :
-            : "r"(current_thread->frame[2]), "r"(current_thread->frame[1]), "r"(current_thread->frame[0])
-        );
+
 
         // while (1) {}
         
         asm volatile (
-            "ret"
+            "iretq"
         );
         // asm volatile (
         //     "pop %0\n"     // Push RFLAGS
@@ -294,14 +288,42 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
      //);
     // kprintln_uint64((uint64_t)current_thread->current_rsp);
     // uint64_t current_rsp = (uint64_t) current_thread->current_rsp;
-    asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
-    kprint("rsp: ");
-    kprintln_uint64((uint64_t)current_thread->current_rsp);
-    // current_thread->rip = (uint64_t*) frame->rip;
-    // kprintln_uint64((uint64_t)current_thread->current_rsp);
+    asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
+
+
+    asm volatile (
+        "push %0\n"     // Push RFLAGS
+        "push %1\n"     // Push CS (dynamically loaded)
+        "push %2\n"     // Push target RIP
+        "push %3\n"     // Push RSP
+        //"pushq %4\n"     // Push SS
+        :
+        :
+        "r"(frame->rflags),
+        "r"(frame->cs),
+		"r"(frame->rip),
+        //"r"(current_thread->frame[2]-(2*sizeof(uint64_t))),
+        "r"(current_thread->current_rsp)
+        );
+
+    asm volatile ("push $0x10");
     current_thread->frame[0] = frame->rflags;
     current_thread->frame[1] = frame->cs;
     current_thread->frame[2] = frame->rip;
+
+
+    asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
+    // current_thread->rip = (uint64_t*) frame->rip;
+    // kprintln_uint64((uint64_t)current_thread->current_rsp);
+    //asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->frame[3]) : );
+    //asm volatile (
+    //    "mov %%ss, %%rax\n"   // Move SS into a general-purpose register like rax
+    //    "mov %0, %%rax\n"     // Store SS in frame[0] (or wherever you want to store it)
+    //    : "=r"(current_thread->frame[4])  // Output to frame[0]
+    //    );
+
+    kprint("rsp aa: ");
+    kprintln_uint64((uint64_t)current_thread->frame[2]);
     // kprintln_uint64(frame->rflags);
     // kprintln_uint64(frame->cs);
     // kprintln_uint64(frame->rip);
