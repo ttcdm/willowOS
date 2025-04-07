@@ -53,7 +53,7 @@ switch_thread:
     push r14
     push r15
 
-    ;mov rsp, rdi
+    mov rsp, (rdi)
     mov rdi, rsp
 
     pop r15
