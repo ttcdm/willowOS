@@ -70,9 +70,17 @@ void init_scheduler() {
 	//}
 	//asm volatile("int $67");
 	//current_thread = current_thread->next_thread;
-	//scheduler_loop();
-	start_thread(current_thread);
+	scheduler_loop();
+	//start_thread(current_thread);
 
+}
+
+void switch_thread_wrapper(uint64_t old_rsp, uint64_t new_rsp) {
+	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	//current_thread = current_thread->next_thread;
+	*lapic_eoi = 0;
+	switch_thread(old_rsp, new_rsp);
+	kprintln("hi");
 }
 
 void scheduler_loop() {
@@ -81,12 +89,13 @@ void scheduler_loop() {
 
 		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-		*lapic_eoi = 0;
 		//lapic_periodic(300, 72, 0b0011, 0);
 
 		//switch_thread((uint64_t)current_thread->next_thread->current_rsp);
 		if (current_thread->total_run_time == 0) {
 			kprintln("HIHIHIHI");
+			//current_thread = current_thread->next_thread;
+
 			start_thread(current_thread);
 			//switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
 
@@ -94,9 +103,9 @@ void scheduler_loop() {
 		}
 		else {
 			kprintln("BYEBYEBYE");
-			switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
+			//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
 
-			*lapic_eoi = 0;
+			switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
 
 		}
 
@@ -105,9 +114,9 @@ void scheduler_loop() {
 	}
 }
 
-void scheduler_return() {
+void scheduler_return() {/*
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);*/
 	//*lapic_eoi = 0;
 	//kprintln("hi");
 	current_thread = current_thread->next_thread;

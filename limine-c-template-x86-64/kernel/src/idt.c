@@ -80,19 +80,21 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
 }
 
 void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack overflow said bits 3 to 7 which is for every 8
-    
 
-    //asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
+
+    asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) :);
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;
+
     //kprintln("hi");
-    current_thread = current_thread->next_thread;
+    //current_thread = current_thread->next_thread;
     //*lapic_eoi = 0;
     //switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
-    kprint("\n");
+    kprint("nonono\n");
     //kprintln_uint64(current_thread->current_rsp);
-    *lapic_eoi = 0;
-    //scheduler_return();
+    
+    scheduler_return();
 
 }
 
