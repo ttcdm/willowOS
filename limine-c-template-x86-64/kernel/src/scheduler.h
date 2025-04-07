@@ -42,3 +42,10 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
 
 extern void push_all_regs();
 extern void pop_all_regs();
+
+//void switch_thread(uint64_t old_rsp, uint64_t new_rsp);
+void switch_thread(uint64_t old_rsp, uint64_t new_rsp);
+void scheduler_loop();
+void scheduler_return();
+void init_thread();
+void start_thread(thread_context* thread);
