@@ -6,18 +6,14 @@
 
 #include <limine.h>
 
-//void map_page(uint64_t address);
 
 uint64_t alloc_frame(void);
 
-//void free_frame(void);
-void free_frame(uint64_t address);
+void free_frame(uint64_t phys_address);
 
 typedef struct page_frame {
 	uint8_t index;
 } page_frame_t;
-
-//extern uint8_t frame_bitmap[10000];
 
 extern uint64_t starting_address;
 extern uint8_t last_alloced_frame;
@@ -27,7 +23,6 @@ void init_physical_memory();//init_physical_memory() is put in main.c because hh
 
 void init_paging();
 
-
 uint64_t virt_lookup(uint64_t virt_address);
 
 void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions);
@@ -35,12 +30,14 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
 struct usable_memmaps_region {
 	uint64_t base;
 	uint64_t length;
-	uint8_t frame_bitmap[600000];//i'm so sorry
+	uint8_t type;
+	uint8_t frame_bitmap[600000];//i'm so sorry. may have issues with array being so large but idk
 	struct usable_memmaps_region* next;
-};
+};//HERE not sure if i need to align or use packed for general structures
 
-extern struct usable_memmaps_region memmap_arr[16];
+extern struct usable_memmaps_region memmap_arr[32];
 
-//extern typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
-//	uint64_t entries[512];
-//} page_struct;
+void* get_cr3(void);
+extern uint64_t cr3_global;
+
+extern uint64_t pml4_address_virt_glob;//i'm sorry

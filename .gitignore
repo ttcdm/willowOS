@@ -55,3 +55,4 @@ dkms.conf
 
 *.opendb
 *.vsidx
+/limine-c-template-x86-64/qemu-log

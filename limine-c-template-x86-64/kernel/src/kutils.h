@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -6,11 +7,14 @@
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
 
+size_t kstrlen(char* msg);
 
 void kprint(char* str);
 void kprintln(char* str);
 void kprint_uint64(uint64_t num);
 void kprintln_uint64(uint64_t num);
+void kprintln_uint64_to_binary(uint64_t value);
+void kprint_char(char c);
 
 void bp(void);
 
@@ -24,3 +28,7 @@ void* memcpy(void* dest, const void* src, size_t n);
 void* memset(void* s, int c, size_t n);
 void* memmove(void* dest, const void* src, size_t n);
 int memcmp(const void* s1, const void* s2, size_t n);
+
+uint64_t get_rsdp_physical_address(void);
+
+void kpass(size_t ms);

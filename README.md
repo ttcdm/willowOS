@@ -1,23 +1,31 @@
 # willowOS
 A simple x86-64 operating system<br>
 
-Research period started during October 2024 and first lines of code was actually written during January 2025<br>
-
+Research started in October 2024 and the first lines of code were written during January 2025.<br>
 All suggestions are welcome, as I am pretty inexperienced compared to the norm in this subject.<br>
+The kernel source files are inside `limine-c-template-x86-64/kernel/src`<br>
 
-The kernel is inside main.c which is inside limine-c-template-x86-64<br>
+## Current progress:
+**GDT** - Works I'm pretty sure<br>
+**IDT** - I can expand on the entries as I see fit, but it works fine.<br>
+**Memory Management** - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap. Missing virtual memory unmapping.<br>
+**ACPI** - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working. Timers are working ish as well. Also need an IOAPIC for keyboard interrupts so I don't have to poll for inputs.<br>
+**Multiprocessing** - Currently using 4 physical cores. AP's are properly initialized and are executing C code. Their local APIC's are enabled as well. Need to implement spinlocks like sephamores or something, processor synchronization, something to do with caching idk.<br>
+**Scheduling** - Current step. Still trying to figure out how to go about this...<br>
 
+### To run,<br>
+```
+git clone --recursive https://github.com/ttcdm/willowOS.git
+cd limine-c-template-x86-64
+make run
+```
+<br>
+<del>./g-debug.sh to start up gdb debug after running make run-debug</del><br>
+
+### Credits:<br>
 https://github.com/limine-bootloader/limine-c-template-x86-64<br>
 https://github.com/mintsuki/flanterm<br>
 
-To run, git clone --recursive the repository and cd to limine-c-template-x86-64 and type in "make run".<br>
-./g-debug.sh to start up gdb debug after running make run-debug<br>
+### Bootloader development is paused for now as Limine is now used as the bootloader
 
-## Current progress:
-GDT - DONE<br>
-IDT - Interrupts are set up and callable, but no APIC has been implemented yet.<br>
-Memory management - Memory mapping, physical page frame allocator, physical and virtual addressing, and a semi-functional heap.<br>
-
-# Bootloader development is paused for now as Limine is now used as the bootloader
-
-./qb.sh to assemble bootloader and run it in QEMU<br>
+<del>./qb.sh to assemble bootloader and run it in QEMU</del><br>
