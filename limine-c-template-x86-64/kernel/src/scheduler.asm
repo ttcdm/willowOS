@@ -54,7 +54,7 @@ switch_thread:
     push r15
 
     mov rsp, (rdi)
-    mov rdi, rsp
+    mov rsi, rsp
 
     pop r15
     pop r14
