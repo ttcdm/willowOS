@@ -98,7 +98,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
 
     }
     else {
-        //switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
+        switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
         kprintln("BYEBYEBYE");
 
     }
