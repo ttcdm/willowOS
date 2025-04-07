@@ -13,8 +13,8 @@ void gen() {
 	while (1){
 		int a = current_thread->pid;
 		// kprint("");
-		//kprint("hi");
-		kprint_uint64(current_thread->pid);
+		kprint("hi");
+		//kprint_uint64(current_thread->pid);
 		for (int i = 0; i < 10000000; i++) {
 			asm volatile ("nop");
 		}
@@ -27,7 +27,12 @@ void gen() {
 void gen1() {
 	// asm volatile ("sti");
 	kprint("gen1: hi from thread ");
-
+	for (int i = 0; i<100; i++) {
+		for (int i = 0; i < 10000000; i++) {
+			asm volatile ("nop");
+		}
+		kprint("m");
+	}
 }
 
 void init_scheduler() {
@@ -48,14 +53,22 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 	size_t num_threads = 5;
-	for (int i = 1; i < num_threads; i++) {
+	current_thread->next_thread = create_thread(1, gen);
+	current_thread = current_thread->next_thread;
+	current_thread->next_thread = create_thread(2, gen1);
+	current_thread = current_thread->next_thread;
+	current_thread->next_thread = create_thread(3, gen1);
+	current_thread = current_thread->next_thread;
+	current_thread->next_thread = create_thread(4, gen);
+	current_thread = current_thread->next_thread;
+	//for (int i = 1; i < num_threads; i++) {
 
-		if (i%2==0) current_thread->next_thread = create_thread(i, gen);
-		if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
-		//init_thread();
+	//	if (i%2==0) current_thread->next_thread = create_thread(i, gen);
+	//	if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
+	//	//init_thread();
 
-		current_thread = current_thread->next_thread;
-	}
+	//	current_thread = current_thread->next_thread;
+	//}
 	current_thread->next_thread = new_thread;
 	//while (1) {
 	//	current_thread = current_thread->next_thread;
@@ -141,9 +154,10 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
     uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	uint64_t current_rsp;
 
+
+
 	asm volatile ("mov %%rsp, %0 " : "=r"(current_rsp) :);//save current rsp
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp));//load in new rsp
-
 	asm volatile (//load cpu state
 		"push %rax\n"
 		"push %rbx\n"
@@ -174,7 +188,7 @@ void start_thread(thread_context* thread) {
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
-	lapic_oneshot(200, 72, 0b0011, 0);
+	lapic_oneshot(400, 72, 0b0011, 0);
 
 
 	asm volatile (
@@ -209,6 +223,7 @@ void start_thread(thread_context* thread) {
 	//current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
+	//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
 	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
 		"pop %r15\n"
 		"pop %r14\n"
