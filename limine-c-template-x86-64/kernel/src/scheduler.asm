@@ -39,13 +39,6 @@ pop_all_regs:
 [global switch_thread]
 ;.type switch_thread, @function
 switch_thread:
-    ;push rbx
-    ;push rbp
-    ;push r12
-    ;push r13
-    ;push r14
-    ;push r15
-
     push rbx
     push rbp
     push r12
@@ -53,16 +46,31 @@ switch_thread:
     push r14
     push r15
 
+    ;call push_all_regs
+
     mov rsp, (rdi)
     mov rsi, rsp
+
+    ;call pop_all_regs
 
     pop r15
     pop r14
     pop r13
     pop r12
-
     pop rbp
-
     pop rbx
 
     ret
+
+
+extern start_thread
+[global switch_start_thread]
+switch_start_thread:
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+    mov rsp, (rdi)
+    call start_thread

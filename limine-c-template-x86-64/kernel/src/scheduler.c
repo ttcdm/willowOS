@@ -112,7 +112,7 @@ void scheduler_loop() {
 			kprintln("BYEBYEBYE");
 			//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
 			//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
-			switch_thread(current_thread->frame[0], current_thread->frame[1]);
+			// switch_thread(current_thread->frame[0], current_thread->frame[1]);
 			current_thread = current_thread->next_thread;
 
 			*lapic_eoi = 0;
@@ -182,9 +182,10 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	return new_thread;
 }
 
-void start_thread(thread_context* thread) {
+void start_thread() {
 	asm volatile ("sti");//this seems kinda wrong to do but it works
 
+	current_thread = current_thread->next_thread;
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
@@ -219,8 +220,11 @@ void start_thread(thread_context* thread) {
 	current_thread->total_run_time += 1;
 	current_thread->start_time = tsc_read_ns();
 	current_thread->last_start_time;
+
 	uint64_t thread_rsp = ((uint64_t)current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
-	//current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
+	
+	current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
+	
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
 	//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
