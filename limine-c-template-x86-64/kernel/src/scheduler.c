@@ -8,14 +8,14 @@ void gen() {
 	// kprint("runtime ");
     // kprintln_uint64(current_thread->total_run_time);
 	// asm volatile ("sti");//enable interrupts and allows control to be passed back to scheduler. this seems kinda wrong to do but it works
-	kprint("gen0: hi from thread ");
+	kprint("\ngen0: hi from thread ");
 	// kpass(1000);
 	while (1){
 		int a = current_thread->pid;
 		// kprint("");
 		//kprint("hi");
 		kprint_uint64(current_thread->pid);
-		for (int i = 0; i < 1000000; i++) {
+		for (int i = 0; i < 10000000; i++) {
 			asm volatile ("nop");
 		}
 		//kpass(200);
@@ -178,7 +178,7 @@ void start_thread(thread_context* thread) {
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
-	lapic_periodic(200, 72, 0b0011, 0);
+	lapic_oneshot(200, 72, 0b0011, 0);
 
 
 	asm volatile (
@@ -210,7 +210,7 @@ void start_thread(thread_context* thread) {
 	current_thread->start_time = tsc_read_ns();
 	current_thread->last_start_time;
 	uint64_t thread_rsp = ((uint64_t)current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
-
+	current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
 	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
