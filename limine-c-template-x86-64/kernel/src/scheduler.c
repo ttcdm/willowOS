@@ -27,11 +27,7 @@ void gen() {
 void gen1() {
 	// asm volatile ("sti");
 	kprint("gen1: hi from thread ");
-	while (1) {
-		kprint_uint64(current_thread->pid);
-		//kpass(200);
-		
-	}
+
 }
 
 void init_scheduler() {
@@ -55,7 +51,7 @@ void init_scheduler() {
 	for (int i = 1; i < num_threads; i++) {
 
 		if (i%2==0) current_thread->next_thread = create_thread(i, gen);
-		if (i%2==1) current_thread->next_thread = create_thread(i, gen);
+		if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
 		//init_thread();
 
 		current_thread = current_thread->next_thread;
@@ -210,7 +206,7 @@ void start_thread(thread_context* thread) {
 	current_thread->start_time = tsc_read_ns();
 	current_thread->last_start_time;
 	uint64_t thread_rsp = ((uint64_t)current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
-	current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
+	//current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
 	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
