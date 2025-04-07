@@ -11,7 +11,7 @@ The kernel source files are inside `limine-c-template-x86-64/kernel/src`<br>
 **Memory Management** - Memory mapping, physical and virtual addressing, physical page frame allocation and deallocation, and a functional heap. Missing virtual memory unmapping.<br>
 **ACPI** - Parsed APCI tables manually. Will switch to using uACPI in the future. Local APIC is enabled and working. Timers are working ish as well. Also need an IOAPIC for keyboard interrupts so I don't have to poll for inputs.<br>
 **Multiprocessing** - Currently using 4 physical cores. AP's are properly initialized and are executing C code. Their local APIC's are enabled as well. Need to implement spinlocks like sephamores or something, processor synchronization, something to do with caching idk.<br>
-**Scheduling** - Current step. Still trying to figure out how to go about this...<br>
+**Scheduling** - Context switching sort of works. I can create and run/schedule threads but pausing saving and resuming execution is kinda broken<br>
 
 ### To run,<br>
 ```
