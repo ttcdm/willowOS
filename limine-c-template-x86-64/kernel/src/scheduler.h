@@ -33,7 +33,7 @@ typedef struct thread_context_declared {
 
 } thread_context;
 
-extern thread_context* current_thread;
+//extern thread_context* current_thread;
 
 
 void init_scheduler(void);
@@ -50,3 +50,4 @@ void scheduler_return();
 void init_thread();
 void start_thread();
 extern void switch_start_thread(uint64_t*old_rsp);
+void start_thread_other(unsigned long** sp, void* entry);

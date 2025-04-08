@@ -81,42 +81,10 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
 
 void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack overflow said bits 3 to 7 which is for every 8
     
-    //uint64_t old_rsp = current_thread->current_rsp;
-    //uint64_t new_rsp = current_thread->next_thread->current_rsp;
-    //kprintln_uint64(old_rsp);
-    //kprintln_uint64(new_rsp);
     thread_context* temp = current_thread;
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
-    
-    asm volatile ("sti");
-    if (current_thread->next_thread->total_run_time == 0) {
-        kprint("\n");
-        // start_thread(current_thread);
-        // asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
-        // uint64_t* a = &current_thread->current_rsp;
-        // uint64_t* a = &frame->rsp;
-        // uint64_t* a = (uint64_t*) frame->rsp;
-        // uint64_t* a = &current_thread->current_rsp;
-        // uint64_t** b = &a;
-        
-        // current_thread = current_thread->next_thread;
-        switch_start_thread(&current_thread->current_rsp);
-    }
-    else {
-        lapic_oneshot(400, 72, 0b0011, 0);
-        kprint("\n");
-        // asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
-        
-        // uint64_t* a = (uint64_t*) frame->rsp;
-        // uint64_t* a = &frame->rsp;
-        uint64_t* a = &current_thread->current_rsp;
-        uint64_t** b = &a;
-        // current_thread = current_thread->next_thread;
-        switch_thread(&current_thread->current_rsp, current_thread->next_thread->current_rsp);
-        //switch_thread(old_rsp, new_rsp);
-    }
 }
 
 
