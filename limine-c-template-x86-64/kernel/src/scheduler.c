@@ -78,6 +78,7 @@ thread_context* ready_queue; // typically linked list for round robin scheduler
 thread_context* pop_front(thread_context*); // Removes the thread from the front and returns its pointer, or null if empty
 thread_context* push_back(thread_context*, thread_context*); // Pushes thread to the queue
 thread_context* get_current_thread(); // Returns the running thread
+void change_tss();
 
 void disable_preemption()
 {
@@ -91,14 +92,14 @@ void enable_preemption()
 void reschedule() {
 	disable_preemption();
 
-	thread_context* next_thread = pop_front(&ready_queue);
+	thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 	if (!next_thread)
 		goto end;
 
 	thread_context* current_thread = get_current_thread();
-	push_back(&ready_queue, current_thread);
+	push_back(ready_queue, current_thread);//&ready_queue
 
-	switch_thread(current_thread, next_thread);
+	switch_thread(current_thread->stack_base, (uint64_t)next_thread->stack_base);
 	change_tss();
 
 end:
