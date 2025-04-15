@@ -60,7 +60,7 @@ struct GDT {//chatgpt generated
 };
 
 
-struct TSS {
+struct TSS {//think this is correct. not sure about reserved4 and iomap_base tho
     uint32_t reserved;
     uint64_t rsp[3]; // Stack pointers for privilege levels 0, 1, 2
     uint64_t reserved2;
@@ -97,6 +97,10 @@ void encodeGdtEntry(uint8_t* target, struct GDT source);
 uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_t flag);
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index);
+
+void change_tss();
+
+extern struct TSS tss;
 
 
 

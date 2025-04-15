@@ -33,6 +33,9 @@ void start_thread_other(unsigned long** sp, void* entry) {
 	*sp -= 6;
 }
 
+thread_context* ready_queue_head;
+thread_context* ready_queue_end;
+
 void init_scheduler() {
 
 	thread_context* current_thread;
@@ -52,17 +55,23 @@ void init_scheduler() {
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = new_thread;
 
+	ready_queue_end = current_thread;
+
 	current_thread = current_thread->next_thread;
 
 	//current_thread is basically the head??
 	
 	while (1) {
+		kprint(__FILE__);
+		kprint(": ");
+		kprintln_uint64(__LINE__);
+		log_call(__FILE__, __LINE__)
 		current_thread = current_thread->next_thread;
 		kprintln_uint64(current_thread->pid);
 	}
 	
 	//insert head of ready queue right after current_thread
-	thread_context* ready_queue_head = current_thread;
+	ready_queue_head = current_thread;
 	thread_context* temp = current_thread->next_thread;
 	current_thread->next_thread = ready_queue_head;
 	ready_queue_head->next_thread = temp;
@@ -73,12 +82,24 @@ void init_scheduler() {
 }
 
 
-//thanks to mishakov for the code
 thread_context* ready_queue; // typically linked list for round robin scheduler
-thread_context* pop_front(thread_context*); // Removes the thread from the front and returns its pointer, or null if empty
-thread_context* push_back(thread_context*, thread_context*); // Pushes thread to the queue
-thread_context* get_current_thread(); // Returns the running thread
-void change_tss();
+
+// void change_tss();
+
+thread_context* pop_front(thread_context* thread) {
+	thread_context* head = ready_queue_head;
+	ready_queue_head = ready_queue_head->next_thread;
+	return head;//i think this works?? hopefully it just copies the memory over instead of having it get changed because ready_queue_head got changed the next line
+}
+
+void push_back(thread_context* ready_queue, thread_context* thread) {
+	ready_queue_end->next_thread = thread;
+	ready_queue_end = ready_queue_end->next_thread;
+}
+
+thread_context* get_current_thread() {
+	
+}
 
 void disable_preemption()
 {
@@ -89,6 +110,7 @@ void enable_preemption()
 	asm volatile ("sti");
 }
 
+//thanks to mishakov for the code outline
 void reschedule() {
 	disable_preemption();
 
@@ -100,7 +122,7 @@ void reschedule() {
 	push_back(ready_queue, current_thread);//&ready_queue
 
 	switch_thread(current_thread->stack_base, (uint64_t)next_thread->stack_base);
-	change_tss();
+	change_tss(&tss, current_thread->stack_base);
 
 end:
 	enable_preemption();

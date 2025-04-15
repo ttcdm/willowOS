@@ -214,3 +214,7 @@ void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
     create_tss_descriptor((uint64_t)tss, sizeof(*tss) - 1, gdt_table, 5);//for gdt_5
 
 }
+
+void change_tss(struct TSS* tss, uint64_t rsp) {//technically i don't need to pass it in since it's global
+    tss->rsp[0] = rsp;
+}

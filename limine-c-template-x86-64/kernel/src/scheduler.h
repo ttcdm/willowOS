@@ -11,6 +11,7 @@
 #include <idt.h>
 #include <apic.h>
 #include <vmm.h>
+#include <gdt.h>
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
@@ -51,3 +52,7 @@ void init_thread();
 void start_thread();
 extern void switch_start_thread(uint64_t*old_rsp);
 void start_thread_other(unsigned long** sp, void* entry);
+
+thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
+void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
+thread_context* get_current_thread(); // Returns the running thread
