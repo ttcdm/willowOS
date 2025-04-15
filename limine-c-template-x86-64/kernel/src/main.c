@@ -234,6 +234,9 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
 
+struct TSS tss __attribute__((aligned(16)));
+
+
 size_t kstrlen(char* msg) {
     size_t s = 0;
     if (!msg) return 0;
@@ -367,7 +370,7 @@ void kmain(void) {
     //load_idt();
 
     idt_init();//not chatgpt'ed version
-    struct TSS tss __attribute__((aligned(16)));
+    // struct TSS tss __attribute__((aligned(16)));
     setup_tss(&tss, gdt_table);
     load_tss();
 
@@ -393,7 +396,7 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    //init_mp(&mp_request);
+    // init_mp(&mp_request);
 
     //hpet is initialized inside init_bsp_lapic();
 
