@@ -1,7 +1,10 @@
+#pragma once
+
 /* nanoprintf v0.5.4: a tiny embeddable printf replacement written in C.
    https://github.com/charlesnicholson/nanoprintf
    charles.nicholson+nanoprintf@gmail.com
    dual-licensed under 0bsd and unlicense, take your pick. see eof for details. */
+
 
 #ifndef NANOPRINTF_H_INCLUDED
 #define NANOPRINTF_H_INCLUDED

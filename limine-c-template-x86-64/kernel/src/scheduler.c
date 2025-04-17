@@ -62,7 +62,8 @@ void init_scheduler() {
 	//current_thread is basically the head??
 	
 	char* s = "helloworld";
-	npf_pprintf(ft_ctx, s);
+	uint64_t i = 2;
+	kprintf("%s %lld ", s, i);
 	while(1){}
 	while (1) {
 		kprint(__FILE__);

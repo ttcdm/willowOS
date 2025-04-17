@@ -18,6 +18,18 @@
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
 
+#define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 0
+#define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
+// #define NANOPRINTF_VISIBILITY_STATIC
+
+#define NANOPRINTF_IMPLEMENTATION
+
+#include <nanoprintf-0.5.4/nanoprintf.h>
+
 
 //TODO: rewrite the chatgpt'd gdt tss and idt
 
@@ -273,9 +285,19 @@ void kprintln_uint64(uint64_t num) {
     kprint("\n");
 }
 
-void printf(char* fmt, ...) {
-    uint64_t s = kstrlen
-    npf_snprintf(ft_ctx)
+void kprintf(char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+    char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    kprintln(str);
+    flanterm_write(ft_ctx, str, size);
+    kfree((uint64_t*) str);
+    va_end(args);
+    va_end(args_copy);
 }
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
