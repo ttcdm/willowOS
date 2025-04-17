@@ -61,11 +61,13 @@ void init_scheduler() {
 
 	//current_thread is basically the head??
 	
+	char* s = "helloworld";
+	npf_pprintf(ft_ctx, s);
+	while(1){}
 	while (1) {
 		kprint(__FILE__);
 		kprint(": ");
 		kprintln_uint64(__LINE__);
-		log_call(__FILE__, __LINE__)
 		current_thread = current_thread->next_thread;
 		kprintln_uint64(current_thread->pid);
 	}
