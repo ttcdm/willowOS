@@ -63,7 +63,8 @@ void init_scheduler() {
 	
 	char* s = "helloworld";
 	uint64_t i = 2;
-	kprintf("%s %lld ", s, i);
+	kprintf("%s %lld\n", s, i);
+	kprintf("%lld %s %s %lld\n", i, s, s, i);
 	while(1){}
 	while (1) {
 		kprint(__FILE__);
