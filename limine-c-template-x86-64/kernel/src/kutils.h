@@ -1,4 +1,6 @@
 #pragma once
+#define NANOPRINTF_IMPLEMENTATION
+#include <./nanoprintf.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -9,6 +11,7 @@
 
 size_t kstrlen(char* msg);
 
+void printf(char* fmt, ...);
 void kprint(char* str);
 void kprintln(char* str);
 void kprint_uint64(uint64_t num);

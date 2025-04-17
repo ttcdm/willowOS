@@ -273,6 +273,11 @@ void kprintln_uint64(uint64_t num) {
     kprint("\n");
 }
 
+void printf(char* fmt, ...) {
+    uint64_t s = kstrlen
+    npf_snprintf(ft_ctx)
+}
+
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
     starting_address = memmap_arr[0].base;
     hhdm_offset = hhdm_request.response->offset;
