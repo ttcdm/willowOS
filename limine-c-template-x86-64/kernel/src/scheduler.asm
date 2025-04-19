@@ -48,8 +48,8 @@ switch_thread:
 
     ;call push_all_regs
 
-    mov rsp, (rdi)
-    mov rsi, rsp
+    mov (rdi), rsp
+    mov rsp, rsi
 
     ;call pop_all_regs
 
@@ -63,14 +63,14 @@ switch_thread:
     ret
 
 
-extern start_thread
-[global switch_start_thread]
-switch_start_thread:
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
-    push r15
-    mov rsp, (rdi)
-    call start_thread
+;extern start_thread
+;[global switch_start_thread]
+;switch_start_thread:
+;    push rbx
+;    push rbp
+;    push r12
+;    push r13
+;    push r14
+;    push r15
+;    mov rsp, (rdi)
+;    call start_thread

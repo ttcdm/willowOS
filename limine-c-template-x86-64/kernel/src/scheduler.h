@@ -27,7 +27,7 @@ typedef struct thread_context_declared {
 	uint64_t* stack_base;
 	uint64_t* return_rsp;
 	uint64_t misaligned_by;
-	uint64_t current_rsp;
+	uint64_t* current_rsp;
 	uint64_t current_misaligned_by;
 	uint64_t frame[5];
 	struct thread_context_declared* next_thread;
@@ -56,3 +56,4 @@ void start_thread_other(unsigned long** sp, void* entry);
 thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
 thread_context* get_current_thread(); // Returns the running thread
+void reschedule();
