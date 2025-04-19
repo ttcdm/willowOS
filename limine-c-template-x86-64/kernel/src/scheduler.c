@@ -5,9 +5,10 @@
 //thread_context* current_thread;
 
 void gen() {
-	kprint("\ngen0: hi from thread ");
+	kprint("\ngen0: hi from thread \n");
+	// kprintf("gen0: hi from thread %lld", current_thread->pid);
 	// kpass(1000);
-	while (1){
+	while (0){
 		int a = 0;
 		kprint("hi");
 		//kprint_uint64(current_thread->pid);
@@ -20,18 +21,18 @@ void gen() {
 void gen1() {
 	// asm volatile ("sti");
 	kprint("gen1: hi from thread ");
-	for (int i = 0; i<100; i++) {
+	for (int i = 100; i<100; i++) {
 		for (int i = 0; i < 10000000; i++) {
 			asm volatile ("nop");
 		}
 		kprint("m");
 	}
 }
-void start_thread_other(unsigned long** sp, void* entry) {
-	*sp -= 2; // 2 because of stack alignment
-	**sp = (unsigned long)entry;
-	*sp -= 6;
-}
+// void start_thread_other(unsigned long** new_thread->current_rsp, void* entry) {
+// 	*new_thread->current_rsp -= 2; // 2 because of stack alignment
+// 	**new_thread->current_rsp = (unsigned long)entry;
+// 	*new_thread->current_rsp -= 6;
+// }
 
 thread_context* ready_queue_head;
 thread_context* ready_queue_end;
@@ -53,34 +54,33 @@ void init_scheduler() {
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = create_thread(4, gen);
 	current_thread = current_thread->next_thread;
-	current_thread->next_thread = new_thread;
+	// current_thread->next_thread = new_thread;
 
 	ready_queue_end = current_thread;
 
-	current_thread = current_thread->next_thread;
+	// current_thread = current_thread->next_thread;
 
 	//current_thread is basically the head??
 	
 	char* s = "helloworld";
 	uint64_t i = 2;
-	kprintf("%s %lld\n", s, i);
-	kprintf("%lld %s %s %lld\n", i, s, s, i);
-	while(1){}
-	while (1) {
-		kprint(__FILE__);
-		kprint(": ");
-		kprintln_uint64(__LINE__);
-		current_thread = current_thread->next_thread;
-		kprintln_uint64(current_thread->pid);
-	}
+	// kprintf("%s %lld\n", s, i);
+	// kprintf("%lld %s %s %lld\n", i, s, s, i);
+	// while(1){}
+	// while (1) {
+	// 	kprint(__FILE__);
+	// 	kprint(": ");
+	// 	kprintln_uint64(__LINE__);
+	// 	current_thread = current_thread->next_thread;
+	// 	kprintln_uint64(current_thread->pid);
+	// }
 	
-	//insert head of ready queue right after current_thread
-	ready_queue_head = current_thread;
-	thread_context* temp = current_thread->next_thread;
-	current_thread->next_thread = ready_queue_head;
-	ready_queue_head->next_thread = temp;
 
+	current_thread = new_thread;
+	ready_queue_head = new_thread;
 
+	pop_front(ready_queue_head);
+	while (1) reschedule();
 
 
 }
@@ -102,7 +102,7 @@ void push_back(thread_context* ready_queue, thread_context* thread) {
 }
 
 thread_context* get_current_thread() {
-	
+	return ready_queue_head;
 }
 
 void disable_preemption()
@@ -115,20 +115,38 @@ void enable_preemption()
 }
 
 //thanks to mishakov for the code outline
+thread_context* current_thread_actual;
+uint8_t first = 0;
 void reschedule() {
 	disable_preemption();
+	thread_context* current_thread;
+	
+	if (first == 5) {
+		current_thread_actual = pop_front(ready_queue);
+		current_thread = current_thread_actual;
+		first = 1;
+	}
+	else {
+		// current_thread = pop_front(ready_queue);
+		current_thread = get_current_thread();
+	}
 
 	thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 	if (!next_thread)
 		goto end;
+	// current_thread_actual = get_current_thread();
 
-	thread_context* current_thread = get_current_thread();
 	push_back(ready_queue, current_thread);//&ready_queue
-
-	switch_thread(current_thread->stack_base, (uint64_t)next_thread->stack_base);
-	change_tss(&tss, current_thread->stack_base);
+	kprintf("%lld\n", current_thread->next_thread->next_thread->pid);
+	switch_thread(current_thread->current_rsp, (uint64_t) current_thread->next_thread->current_rsp);
+	current_thread = current_thread->next_thread;
+	switch_thread(current_thread->current_rsp, (uint64_t) current_thread->next_thread->current_rsp);
+	// switch_thread(next_thread->current_rsp, (uint64_t) next_thread->current_rsp);
+	// change_tss(&tss, current_thread->current_rsp);
+	// kprintf("hi");
 
 end:
+kprintf("hi");
 	enable_preemption();
 }
 
@@ -153,14 +171,17 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->thread_entry = thread_entry;
 	new_thread->return_rsp = NULL;
 	new_thread->misaligned_by = 0;
-	new_thread->current_rsp = 0;
+	new_thread->current_rsp = NULL;
 	new_thread->current_misaligned_by = 0;
 	// new_thread->rip = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 
-    //uint64_t thread_rsp = ((uint64_t) current_thread->stack_base) + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
-	//new_thread->current_rsp = thread_rsp;
+    uint64_t* thread_rsp = new_thread->stack_base + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
+	new_thread->current_rsp = thread_rsp;
+	new_thread->current_rsp -= 2; // 2 because of stack alignment
+	*new_thread->current_rsp = (uint64_t) thread_entry;
+	new_thread->current_rsp -= 6;
 	// new_thread->current_rsp;
 	// kprintln("hihi");
 	return new_thread;
