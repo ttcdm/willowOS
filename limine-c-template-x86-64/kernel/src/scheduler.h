@@ -45,13 +45,15 @@ extern void push_all_regs();
 extern void pop_all_regs();
 
 //void switch_thread(uint64_t old_rsp, uint64_t new_rsp);
-void switch_thread(uint64_t* old_rsp, uint64_t new_rsp);
+void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
+void start_thread(unsigned long **sp, void *entry);
+
 void scheduler_loop();
 void scheduler_return();
 void init_thread();
-void start_thread();
-extern void switch_start_thread(uint64_t*old_rsp);
-void start_thread_other(unsigned long** sp, void* entry);
+// void start_thread();
+// extern void switch_start_thread(uint64_t*old_rsp);
+// void start_thread_other(unsigned long** sp, void* entry);
 
 thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue

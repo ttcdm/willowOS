@@ -39,12 +39,12 @@ pop_all_regs:
 [global switch_thread]
 ;.type switch_thread, @function
 switch_thread:
-    push rbx
-    push rbp
-    push r12
-    push r13
-    push r14
-    push r15
+    ;push rbx
+    ;push rbp
+    ;push r12
+    ;push r13
+    ;push r14
+    ;push r15
 
     ;call push_all_regs
 
