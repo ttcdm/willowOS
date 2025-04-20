@@ -36,6 +36,7 @@ pop_all_regs:
     pop rax
     ret
 
+
 [global switch_thread]
 ;.type switch_thread, @function
 switch_thread:
