@@ -13,7 +13,7 @@ void gen() {
 		int a = 0;
 		kprint("hi");
 		//kprint_uint64(current_thread->pid);
-		for (int i = 0; i < 10000000; i++) {
+		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
 	}
@@ -24,7 +24,7 @@ void gen1() {
 	kprint("gen1: hi from thread\n");
 	// return;
 	for (int i = 0; i<100; i++) {
-		for (int i = 0; i < 10000000; i++) {
+		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
 		kprint("m");
@@ -47,17 +47,13 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	// kprintln("hi");
 	current_thread = new_thread;
-	size_t num_threads = 5;
+	size_t num_threads = 4;
 	current_thread->next_thread = create_thread(1, gen);
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = create_thread(2, gen1);
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = create_thread(3, gen1);
 	current_thread = current_thread->next_thread;
-	for (size_t i = 5; i < 10; i++) {
-		current_thread->next_thread = create_thread(i, gen);
-		current_thread = current_thread->next_thread;
-	}
 	// current_thread->next_thread = new_thread;
 
 	ready_queue_end = current_thread;
@@ -91,8 +87,13 @@ void init_scheduler() {
 	current_thread = new_thread;
 	ready_queue_head = new_thread;
 
-	pop_front(ready_queue_head);
-	reschedule();
+	// while (1) {
+	// 	kprintf("%lld\n", current_thread->pid);
+	// 	current_thread = current_thread->next_thread;
+	// }
+
+	// pop_front(ready_queue_head);
+	while (1) reschedule();
 
 
 }
@@ -142,7 +143,7 @@ void reschedule() {
 		if (!current_thread)
 			goto end;
 		push_back(ready_queue, current_thread);//&ready_queue
-		change_tss(&tss, current_thread->current_rsp);
+		// change_tss(&tss, current_thread->current_rsp);
 		enable_preemption();
 		lapic_oneshot(200, 72, 16, 0);
 		switch_thread(&a, current_thread->current_rsp);
@@ -159,12 +160,12 @@ void reschedule() {
 		goto end;
 	// current_thread_actual = get_current_thread();
 	kprintf("%lld\n", current_thread->pid);
-	// uint64_t* a = kmalloc_byte(8);
+	uint64_t* a = kmalloc_byte(8);
 	push_back(ready_queue, current_thread);//&ready_queue
-	change_tss(&tss, current_thread->current_rsp);
+	// change_tss(&tss, current_thread->current_rsp);
 	enable_preemption();
 	lapic_oneshot(200, 72, 16, 0);
-	switch_thread(&current_thread->current_rsp, next_thread->current_rsp);
+	switch_thread(&current_thread, next_thread->current_rsp);
 	disable_preemption();
 
 	end:
