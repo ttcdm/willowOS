@@ -48,7 +48,7 @@ switch_thread:
 
     ;call push_all_regs
 
-    ;mov (rdi), rsp
+    mov (rdi), rsp
     mov rsp, rsi
 
     ;call pop_all_regs
