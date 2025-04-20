@@ -8,7 +8,7 @@ void gen() {
 	kprint("gen0: hi from thread\n");
 	// kprintf("gen0: hi from thread %lld", current_thread->pid);
 	// kpass(1000);
-	return;
+	// return;
 	while (1){
 		int a = 0;
 		kprint("hi");
@@ -22,7 +22,7 @@ void gen() {
 void gen1() {
 	// asm volatile ("sti");
 	kprint("gen1: hi from thread\n");
-	return;
+	// return;
 	for (int i = 0; i<100; i++) {
 		for (int i = 0; i < 10000000; i++) {
 			asm volatile ("nop");
@@ -140,11 +140,13 @@ void reschedule() {
 		uint64_t* a;//placeholder
 		// thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 		if (!current_thread)
-		goto end;
+			goto end;
 		push_back(ready_queue, current_thread);//&ready_queue
 		change_tss(&tss, current_thread->current_rsp);
-		// lapic_oneshot(200, 72, 16, 0);
+		enable_preemption();
+		lapic_oneshot(200, 72, 16, 0);
 		switch_thread(&a, current_thread->current_rsp);
+		disable_preemption();
 		return;
 	}
 	else {
@@ -160,7 +162,10 @@ void reschedule() {
 	// uint64_t* a = kmalloc_byte(8);
 	push_back(ready_queue, current_thread);//&ready_queue
 	change_tss(&tss, current_thread->current_rsp);
+	enable_preemption();
+	lapic_oneshot(200, 72, 16, 0);
 	switch_thread(&current_thread->current_rsp, next_thread->current_rsp);
+	disable_preemption();
 
 	end:
 	enable_preemption();
