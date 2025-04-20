@@ -138,12 +138,12 @@ void reschedule() {
 		first = 1;
 		current_thread = pop_front(ready_queue);
 		kprintf("%lld\n", current_thread->pid);
-		uint64_t* a;//placeholder
+		uint64_t* a = kmalloc_byte(256);//placeholder
 		// thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 		if (!current_thread)
 			goto end;
 		push_back(ready_queue, current_thread);//&ready_queue
-		// change_tss(&tss, current_thread->current_rsp);
+		change_tss(&tss, current_thread->stack_base);
 		enable_preemption();
 		lapic_oneshot(200, 72, 16, 0);
 		switch_thread(&a, current_thread->current_rsp);
@@ -160,12 +160,14 @@ void reschedule() {
 		goto end;
 	// current_thread_actual = get_current_thread();
 	kprintf("%lld\n", current_thread->pid);
-	uint64_t* a = kmalloc_byte(8);
+	// uint64_t* a = kmalloc_byte(8);
 	push_back(ready_queue, current_thread);//&ready_queue
-	// change_tss(&tss, current_thread->current_rsp);
+	change_tss(&tss, current_thread->stack_base);
 	enable_preemption();
 	lapic_oneshot(200, 72, 16, 0);
-	switch_thread(&current_thread, next_thread->current_rsp);
+	switch_thread(&current_thread->current_rsp, next_thread->current_rsp);
+	
+
 	disable_preemption();
 
 	end:
