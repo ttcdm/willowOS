@@ -20,7 +20,8 @@
             "vector": "c",
             "nanoprintf.h": "c",
             "fb.h": "c",
-            "stdbool.h": "c"
+            "stdbool.h": "c",
+            "vmm.h": "c"
         }
     }
 }
