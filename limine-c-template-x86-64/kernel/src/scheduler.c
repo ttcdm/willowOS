@@ -5,7 +5,7 @@
 //thread_context* current_thread;
 
 void gen() {
-	kprint("gen0: hi from thread\n");
+	kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 	// kprintf("gen0: hi from thread %lld", current_thread->pid);
 	// kpass(1000);
 	// return;
@@ -21,9 +21,9 @@ void gen() {
 
 void gen1() {
 	// asm volatile ("sti");
-	kprint("gen1: hi from thread\n");
+	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	while (1) {
+	while (0) {
 		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
@@ -38,7 +38,7 @@ void gen1() {
 
 thread_context* ready_queue_head;
 thread_context* ready_queue_end;
-thread_context* ready_queue_2nd_last;
+thread_context* ready_queue_second_last;
 
 
 extern void move_two(int**);
@@ -66,7 +66,7 @@ void init_scheduler() {
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = create_thread(3, gen);
 
-	ready_queue_2nd_last = current_thread;
+	ready_queue_second_last = current_thread;
 	current_thread = current_thread->next_thread;
 
 	// current_thread->next_thread = new_thread;
@@ -110,7 +110,7 @@ void init_scheduler() {
 	// pop_front(ready_queue_head);
 
 	// test_move_two();
-	while(1) reschedule();
+	while (1) reschedule();
 
 	kprintf("hihihi");
 
@@ -129,7 +129,7 @@ thread_context* pop_front(thread_context* thread) {
 
 void push_back(thread_context* ready_queue, thread_context* thread) {
 	ready_queue_end->next_thread = thread;
-	ready_queue_2nd_last = ready_queue_end;
+	ready_queue_second_last = ready_queue_end;
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
@@ -161,13 +161,14 @@ void reschedule() {
 		// if (!current_thread)
 		// 	goto end;
 		// kprintf("%llu\n", ready_queue_head->current_rsp);
-		kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
-
+		// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+		kprintf("%d\n", current_thread->pid);
 
 		push_back(ready_queue, current_thread);//&ready_queue
+		// ready_queue_second_last = current_thread;
 		change_tss(&tss, current_thread->stack_base);
 		enable_preemption();
-		lapic_oneshot(200, 72, 16, 0);
+		lapic_oneshot(500, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
 		// kprintf("HIHIHI");
 		disable_preemption();
@@ -185,22 +186,14 @@ void reschedule() {
 	enable_preemption();
 	// kpass(500);
 	// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
-	push_back(ready_queue, current_thread);//&ready_queue
-	change_tss(&tss, current_thread->stack_base);
+	change_tss(&tss, next_thread->stack_base);
 	enable_preemption();
-	kprintf("%d %llx\n", ready_queue_end->pid, ready_queue_end->current_rsp);
-	kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+	// kprintf("%d %llx\n", ready_queue_end->pid, ready_queue_end->current_rsp);
+	// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+	kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 
-	lapic_oneshot(200, 72, 16, 0);
-	if (next_thread->total_run_time == 1) {
-			switch_thread(&ready_queue_end->current_rsp, next_thread->current_rsp);//stack_base+THREAD_STACK_SIZE-7);
-	}
-	else {
-		
-		// ready_queue_end->total_run_time = 1;
-		switch_thread(&ready_queue_2nd_last->current_rsp, next_thread->current_rsp);//stack_base+THREAD_STACK_SIZE-7);
-
-	}
+	lapic_oneshot(500, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
     // kprintf("HIHIHI");
 	
 
@@ -216,8 +209,15 @@ void reschedule() {
 void scheduler_return() {
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-	//*lapic_eoi = 0;
-	kprintln("exited thread!");
+	*lapic_eoi = 0;
+	thread_context* temp = ready_queue_second_last;
+	kfree(ready_queue_second_last->stack_base);
+	kfree(temp);
+
+
+
+	ready_queue_second_last = ready_queue_end;
+	kprintf("\nexited thread\n");
 	// scheduler_loop();
 	// current_thread_actual = current_thread_actual->next_thread;
 	reschedule();

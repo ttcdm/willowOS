@@ -413,13 +413,13 @@ void kmain(void) {
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
-    //kprintln("1 second intervals in ns: ");
-    //for (int i = 0; i < 3; i++) {
+    // kprintln("1 second intervals in ns: ");
+    // for (int i = 0; i < 3; i++) {
     //    uint64_t a = hpet_get_elapsed_ns();
     //    kpass(1000);
     //    uint64_t b = hpet_get_elapsed_ns();
     //    kprintln_uint64(b - a);
-    //}
+    // }
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
