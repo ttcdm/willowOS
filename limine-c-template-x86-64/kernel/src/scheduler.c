@@ -49,7 +49,7 @@ void test_move_two() {
 
 void init_scheduler() {
 
-	size_t num_threads = 200;
+	size_t num_threads = 20;
 
 	thread_context* current_thread;
 
@@ -57,8 +57,8 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 	for (int i = 1; i < num_threads; i++) {//remember to use 1 because we start from the 2nd thread
-		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen0);
-		else current_thread->next_thread = create_thread(i, gen1);
+		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen1);
+		else current_thread->next_thread = create_thread(i, gen0);
 		if (num_threads - i > 1) current_thread = current_thread->next_thread;
 	}
 
@@ -115,7 +115,7 @@ void reschedule() {
 			goto end;
 		kprintf("%d\n", current_thread->pid);
 
-		push_back(ready_queue, current_thread);//&ready_queue
+		// push_back(ready_queue, current_thread);//&ready_queue
 		change_tss(&tss, current_thread->stack_base);
 		enable_preemption();
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
