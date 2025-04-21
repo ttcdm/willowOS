@@ -39,3 +39,12 @@ int memcmp(const void* s1, const void* s2, size_t n);
 uint64_t get_rsdp_physical_address(void);
 
 void kpass(size_t ms);
+
+#define assert(expression)                                                     \
+  do {                                                                         \
+    if (!(expression)) {                                                       \
+      kprintf("Assertion failed in function %s. File: %s, line %d. %s\n",      \
+              __func__, __FILE__, __LINE__, #expression);                       \
+    while (1) {}                                                                \
+    }                                                                          \
+  } while (0)

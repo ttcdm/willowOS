@@ -23,11 +23,11 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	for (int j = 0; j < 300; j++) {
+	for (int j = 0; j < 30; j++) {
 		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
-		kprint("m");
+		kprint("bye");
 	}
 }
 
@@ -49,7 +49,7 @@ void test_move_two() {
 
 void init_scheduler() {
 
-	size_t num_threads = 15;
+	size_t num_threads = 200;
 
 	thread_context* current_thread;
 
@@ -109,6 +109,7 @@ void reschedule() {
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
 		current_thread = pop_front(ready_queue);
+		assert(current_thread);
 		uint64_t* a = kmalloc_byte(256);//placeholder
 		if (!current_thread)
 			goto end;
@@ -119,7 +120,8 @@ void reschedule() {
 		enable_preemption();
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
-		disable_preemption();
+		kfree(a);
+		enable_preemption();
 		return;
 	}
 	else {
@@ -127,9 +129,10 @@ void reschedule() {
 	}
 
 	thread_context* next_thread = pop_front(ready_queue);//&ready_queue
+	assert(next_thread);
 	if (!next_thread)
 		goto end;
-	enable_preemption();
+	// enable_preemption();
 	change_tss(&tss, next_thread->stack_base);
 	enable_preemption();
 	kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
@@ -146,17 +149,24 @@ void scheduler_return() {//basically pthread_exit
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
 	thread_context* temp = ready_queue_second_last;
+	//add lock thing here
+	disable_preemption();
 	kfree(ready_queue_second_last->stack_base);
 	kfree(temp);
+	enable_preemption();
 	ready_queue_second_last = ready_queue_end;
 	kprintf("\nexited thread\n");
 	reschedule();
+	kprintf("error\n");
 
 }
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
+	//add lock thing here
+	disable_preemption();
 	uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
 	thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
+	enable_preemption();
 
 	new_thread->start_time = tsc_read_ns();
 	new_thread->last_start_time = 0;
