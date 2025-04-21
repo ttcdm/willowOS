@@ -39,7 +39,9 @@ typedef struct thread_context_declared {
 extern thread_context* ready_queue;
 extern thread_context* ready_queue_head;
 extern thread_context* ready_queue_end;
+extern thread_context* ready_queue_second_last;
 void init_scheduler(void);
+void reschedule();
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
 
