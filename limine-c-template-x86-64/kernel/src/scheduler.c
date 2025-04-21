@@ -4,7 +4,7 @@
 
 //thread_context* current_thread;
 
-void gen() {
+void gen0() {
 	kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 	// kprintf("gen0: hi from thread %lld", current_thread->pid);
 	// kpass(1000);
@@ -23,19 +23,15 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	while (0) {
+	for (int j = 0; j < 300; j++) {
 		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
 		kprint("m");
 	}
 }
-// void start_thread_other(unsigned long** new_thread->current_rsp, void* entry) {
-// 	*new_thread->current_rsp -= 2; // 2 because of stack alignment
-// 	**new_thread->current_rsp = (unsigned long)entry;
-// 	*new_thread->current_rsp -= 6;
-// }
 
+thread_context* ready_queue; // typically linked list for round robin scheduler
 thread_context* ready_queue_head;
 thread_context* ready_queue_end;
 thread_context* ready_queue_second_last;
@@ -53,73 +49,31 @@ void test_move_two() {
 
 void init_scheduler() {
 
+	size_t num_threads = 15;
+
 	thread_context* current_thread;
 
-	thread_context* new_thread = create_thread(0, gen);
+	thread_context* new_thread = create_thread(0, gen0);
 	new_thread->next_thread = NULL;
-	// kprintln("hi");
 	current_thread = new_thread;
-	size_t num_threads = 4;
-	current_thread->next_thread = create_thread(1, gen1);
-	current_thread = current_thread->next_thread;
-	current_thread->next_thread = create_thread(2, gen1);
-	current_thread = current_thread->next_thread;
-	current_thread->next_thread = create_thread(3, gen);
+	for (int i = 1; i < num_threads; i++) {//remember to use 1 because we start from the 2nd thread
+		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen0);
+		else current_thread->next_thread = create_thread(i, gen1);
+		if (num_threads - i > 1) current_thread = current_thread->next_thread;
+	}
 
 	ready_queue_second_last = current_thread;
 	current_thread = current_thread->next_thread;
 
-	// current_thread->next_thread = new_thread;
-
 	ready_queue_end = current_thread;
-
-	// current_thread = current_thread->next_thread;
-
-	//current_thread is basically the head??
-	
-	char* s = "helloworld";
-	uint64_t i = 2;
-	// kprintf("%s %lld\n", s, i);
-	// kprintf("%lld %s %s %lld\n", i, s, s, i);
-	// while(1){}
-	// while (1) {
-	// 	kprint(__FILE__);
-	// 	kprint(": ");
-	// 	kprintln_uint64(__LINE__);
-	// 	current_thread = current_thread->next_thread;
-	// 	kprintln_uint64(current_thread->pid);
-	// }
-
-
-
-	// uint64_t* a = kmalloc_byte(20000*sizeof(uint64_t));
-	// for (int i = 0; i < 20000; i++) {
-	// 	a[i] = i;
-	// 	kprintf("%lld ", a[i]);
-	// }
-	
 
 	current_thread = new_thread;
 	ready_queue_head = new_thread;
 
-	// while (1) {
-	// 	kprintf("%lld\n", current_thread->pid);
-	// 	current_thread = current_thread->next_thread;
-	// }
-
-	// pop_front(ready_queue_head);
-
-	// test_move_two();
 	while (1) reschedule();
 
-	kprintf("hihihi");
 
 }
-
-
-thread_context* ready_queue; // typically linked list for round robin scheduler
-
-// void change_tss();
 
 thread_context* pop_front(thread_context* thread) {
 	thread_context* head = ready_queue_head;
@@ -147,7 +101,6 @@ void enable_preemption()
 }
 
 //thanks to mishakov for the code outline
-thread_context* current_thread_actual;
 uint8_t first = 0;
 void reschedule() {
 	disable_preemption();
@@ -157,69 +110,46 @@ void reschedule() {
 		first = 1;
 		current_thread = pop_front(ready_queue);
 		uint64_t* a = kmalloc_byte(256);//placeholder
-		// thread_context* next_thread = pop_front(ready_queue);//&ready_queue
-		// if (!current_thread)
-		// 	goto end;
-		// kprintf("%llu\n", ready_queue_head->current_rsp);
-		// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+		if (!current_thread)
+			goto end;
 		kprintf("%d\n", current_thread->pid);
 
 		push_back(ready_queue, current_thread);//&ready_queue
-		// ready_queue_second_last = current_thread;
 		change_tss(&tss, current_thread->stack_base);
 		enable_preemption();
-		lapic_oneshot(500, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
-		// kprintf("HIHIHI");
 		disable_preemption();
 		return;
 	}
 	else {
-		// current_thread = pop_front(ready_queue);
 		current_thread = get_current_thread();
 	}
 
 	thread_context* next_thread = pop_front(ready_queue);//&ready_queue
-	// if (!next_thread)
-	// 	goto end;
-	// current_thread_actual = get_current_thread();
+	if (!next_thread)
+		goto end;
 	enable_preemption();
-	// kpass(500);
-	// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
 	change_tss(&tss, next_thread->stack_base);
 	enable_preemption();
-	// kprintf("%d %llx\n", ready_queue_end->pid, ready_queue_end->current_rsp);
-	// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
 	kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 
-	lapic_oneshot(500, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
-    // kprintf("HIHIHI");
-	
 
-	// disable_preemption();
-	// return;
 	end:
-	// kprintf("\nerror\n");
 	enable_preemption();
-
-	// scheduler_return();
 }
 
-void scheduler_return() {
+void scheduler_return() {//basically pthread_exit
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
 	thread_context* temp = ready_queue_second_last;
 	kfree(ready_queue_second_last->stack_base);
 	kfree(temp);
-
-
-
 	ready_queue_second_last = ready_queue_end;
 	kprintf("\nexited thread\n");
-	// scheduler_loop();
-	// current_thread_actual = current_thread_actual->next_thread;
 	reschedule();
 
 }
@@ -246,8 +176,6 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);
-	// new_thread->current_rsp;
-	// kprintln("hihi");
 	return new_thread;
 }
 

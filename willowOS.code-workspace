@@ -19,7 +19,8 @@
             "unordered_map": "c",
             "vector": "c",
             "nanoprintf.h": "c",
-            "fb.h": "c"
+            "fb.h": "c",
+            "stdbool.h": "c"
         }
     }
 }
