@@ -64,21 +64,3 @@ switch_thread:
 
     ret
 
-[global move_two]
-move_two:
-    mov rax, 2
-    mov [rdi], rax
-    ret
-
-
-;extern start_thread
-;[global switch_start_thread]
-;switch_start_thread:
-;    push rbx
-;    push rbp
-;    push r12
-;    push r13
-;    push r14
-;    push r15
-;    mov rsp, (rdi)
-;    call start_thread

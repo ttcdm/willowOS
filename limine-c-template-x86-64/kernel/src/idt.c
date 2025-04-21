@@ -84,13 +84,10 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
-    // scheduler_return();
     kprintf("\nthread interrupted\n");
     thread_context* current_thread = get_current_thread();
     push_back(ready_queue, current_thread);//&ready_queue
-    // ready_queue_second_last = ready_queue_end;
     reschedule();
-    // kprintf("HIHIHI");
 }
 
 
