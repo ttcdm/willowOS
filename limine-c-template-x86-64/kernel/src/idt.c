@@ -79,7 +79,7 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
     *lapic_eoi = 0;
 }
 
-__attribute__ ((interrupt))
+
 void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack overflow said bits 3 to 7 which is for every 8
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);

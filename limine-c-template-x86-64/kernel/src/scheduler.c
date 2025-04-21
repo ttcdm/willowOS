@@ -38,6 +38,18 @@ void gen1() {
 
 thread_context* ready_queue_head;
 thread_context* ready_queue_end;
+thread_context* ready_queue_2nd_last;
+
+
+extern void move_two(int**);
+void test_move_two() {
+    int x = 0;
+    int* y = &x;
+    move_two(&y);
+    kprint("y is: ");
+	kprintf("%px", y);
+    kprint("\n");
+}
 
 void init_scheduler() {
 
@@ -53,6 +65,8 @@ void init_scheduler() {
 	current_thread->next_thread = create_thread(2, gen1);
 	current_thread = current_thread->next_thread;
 	current_thread->next_thread = create_thread(3, gen);
+
+	ready_queue_2nd_last = current_thread;
 	current_thread = current_thread->next_thread;
 
 	// current_thread->next_thread = new_thread;
@@ -94,6 +108,8 @@ void init_scheduler() {
 	// }
 
 	// pop_front(ready_queue_head);
+
+	// test_move_two();
 	while(1) reschedule();
 
 	kprintf("hihihi");
@@ -113,6 +129,7 @@ thread_context* pop_front(thread_context* thread) {
 
 void push_back(thread_context* ready_queue, thread_context* thread) {
 	ready_queue_end->next_thread = thread;
+	ready_queue_2nd_last = ready_queue_end;
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
@@ -139,19 +156,20 @@ void reschedule() {
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
 		current_thread = pop_front(ready_queue);
-		kprintf("%llu\n", current_thread->pid);
 		uint64_t* a = kmalloc_byte(256);//placeholder
 		// thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 		// if (!current_thread)
 		// 	goto end;
-		kprintf("%llu\n", ready_queue_head->current_rsp);
+		// kprintf("%llu\n", ready_queue_head->current_rsp);
+		kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+
 
 		push_back(ready_queue, current_thread);//&ready_queue
 		change_tss(&tss, current_thread->stack_base);
 		enable_preemption();
 		lapic_oneshot(200, 72, 16, 0);
 		switch_thread(&a, current_thread->current_rsp);
-		kprintf("HIHIHI");
+		// kprintf("HIHIHI");
 		disable_preemption();
 		return;
 	}
@@ -166,13 +184,24 @@ void reschedule() {
 	// current_thread_actual = get_current_thread();
 	enable_preemption();
 	// kpass(500);
-	kprintf("%d %llu\n", current_thread->pid, current_thread->current_rsp);
+	// kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
 	push_back(ready_queue, current_thread);//&ready_queue
 	change_tss(&tss, current_thread->stack_base);
 	enable_preemption();
+	kprintf("%d %llx\n", ready_queue_end->pid, ready_queue_end->current_rsp);
+	kprintf("%d %llx\n", current_thread->pid, current_thread->current_rsp);
+
 	lapic_oneshot(200, 72, 16, 0);
-	switch_thread(&current_thread->current_rsp, next_thread->current_rsp);//stack_base+THREAD_STACK_SIZE-7);
-    kprintf("HIHIHI");
+	if (next_thread->total_run_time == 1) {
+			switch_thread(&ready_queue_end->current_rsp, next_thread->current_rsp);//stack_base+THREAD_STACK_SIZE-7);
+	}
+	else {
+		
+		// ready_queue_end->total_run_time = 1;
+		switch_thread(&ready_queue_2nd_last->current_rsp, next_thread->current_rsp);//stack_base+THREAD_STACK_SIZE-7);
+
+	}
+    // kprintf("HIHIHI");
 	
 
 	// disable_preemption();
