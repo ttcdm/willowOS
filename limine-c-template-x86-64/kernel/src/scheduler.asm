@@ -49,7 +49,8 @@ switch_thread:
 
     ;call push_all_regs
 
-    mov (rdi), rsp
+    ; mov rax, rsp
+    mov [rdi], rsp
     mov rsp, rsi
 
     ;call pop_all_regs
@@ -61,6 +62,12 @@ switch_thread:
     pop rbp
     pop rbx
 
+    ret
+
+[global move_two]
+move_two:
+    mov rax, 2
+    mov [rdi], rax
     ret
 
 
