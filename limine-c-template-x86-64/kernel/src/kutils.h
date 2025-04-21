@@ -40,6 +40,8 @@ uint64_t get_rsdp_physical_address(void);
 
 void kpass(size_t ms);
 
+
+//assert is from linuxmaster2.0 (nyaux)
 #define assert(expression)                                                     \
   do {                                                                         \
     if (!(expression)) {                                                       \
