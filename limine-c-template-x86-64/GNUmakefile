@@ -46,7 +46,7 @@ run: $(IMAGE_NAME).iso
 		-d int,cpu_reset \
 		-M q35 \
 		-smp 4 \
-		-icount shift=7 \
+		-icount shift=10 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
 		$(QEMUFLAGS)
