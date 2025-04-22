@@ -57,3 +57,5 @@ thread_context* pop_front(thread_context* thread); // Removes the thread from th
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
+
+void disable_preemption();
