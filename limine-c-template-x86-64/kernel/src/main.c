@@ -265,27 +265,33 @@ size_t kstrlen(char* msg) {
 }
 
 void kprint(char* msg) {
+    asm volatile ("cli");
     uint64_t s = kstrlen(msg);
     flanterm_write(ft_ctx, msg, s);
+    asm volatile ("sti");
 }
 
 void kprintln(char* msg) {//i think the args are being pass through fine idk
+    asm volatile ("cli");
     kprint(msg);
     kprint("\n");
 }
 
 void kprint_uint64(uint64_t num) {
+    asm volatile ("cli");
     char strr[64];//might be a bit wasteful
     uint64_to_string(num, strr);
     kprint(strr);
 }
 
 void kprintln_uint64(uint64_t num) {
+    asm volatile ("cli");
     kprint_uint64(num);
     kprint("\n");
 }
 
 void kprintf(char* fmt, ...) {
+    asm volatile ("cli");
     va_list args;
     va_start(args, fmt);
     va_list args_copy;
@@ -298,6 +304,7 @@ void kprintf(char* fmt, ...) {
     // kfree((uint64_t*) str);
     va_end(args);
     va_end(args_copy);
+    asm volatile ("sti");
 }
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING

@@ -15,7 +15,7 @@
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
-#define THREAD_QUANTUM 70//not sure if quantum is the right word
+#define THREAD_QUANTUM 10//not sure if quantum is the right word
 
 typedef struct thread_context_declared {
 	uint64_t start_time;
@@ -37,10 +37,10 @@ typedef struct thread_context_declared {
 
 //extern thread_context* current_thread;
 
-extern thread_context* ready_queue;
-extern thread_context* ready_queue_head;
-extern thread_context* ready_queue_end;
-extern thread_context* ready_queue_second_last;
+volatile extern thread_context* ready_queue;
+volatile extern thread_context* ready_queue_head;
+volatile extern thread_context* ready_queue_end;
+volatile extern thread_context* ready_queue_second_last;
 void init_scheduler(void);
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
