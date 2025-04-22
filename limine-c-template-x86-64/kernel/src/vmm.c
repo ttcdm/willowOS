@@ -54,8 +54,9 @@ uint64_t init_heap() {
     uint64_t heap_page_phys = alloc_frame();//this seems to work. the starting logic is a bit messy but i think it should work
     map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start, 0b11);
     heap_page* new_heap_page = heap_page_head;
-    for (int i = 1; i < HEAP_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED; i++) {
+    for (uint64_t i = 1; i < HEAP_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED; i++) {
         if (i % (PAGE_SIZE_DEFINED/HEAP_CHUNK_SIZE_DEFINED) == 0) {//i think this works
+            // kprintf("%d\n", i);
             heap_page_phys = alloc_frame();
             map_page((uint64_t*) (pml4_address_virt_glob), heap_page_phys, heap_start + (i*HEAP_CHUNK_SIZE_DEFINED), 0b11);
             new_heap_page = (heap_page*) (alloc_frame()+hhdm_offset);//(alloc_frame()+hhdm_offset);
