@@ -20,7 +20,7 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	for (int j = 0; j < 30; j++) {
+	for (int j = 0; j < 500; j++) {
 		kprint("bye");
 	}
 }
@@ -43,7 +43,7 @@ void test_move_two() {
 
 void init_scheduler() {
 
-	size_t num_threads = 25;
+	size_t num_threads = 100;
 
 	thread_context* current_thread;
 
@@ -87,7 +87,7 @@ thread_context* get_current_thread() {
 
 void disable_preemption()
 {	
-	// kprintf("hi");
+	kprintf("hi");
 	volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
 *lapic_timer |= (1 << 16); // Set the mask bit
 	asm volatile ("cli");
@@ -170,11 +170,11 @@ void scheduler_return() {//basically pthread_exit
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//add lock thing here
 	disable_preemption();
-	kmalloc_byte(4096);
+	// kmalloc_byte(4096);
 	uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
-	kmalloc_byte(4096);
+	// kmalloc_byte(4096);
 	thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
-	kmalloc_byte(4096);
+	// kmalloc_byte(4096);
 	// enable_preemption();
 
 	new_thread->start_time = tsc_read_ns();
