@@ -11,7 +11,8 @@ void gen0() {
 	// return;
 	while (1){
 		int a = 0;
-		kprint("hi");
+		// kprint("hi");
+		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 		//kprint_uint64(current_thread->pid);
 	}
 }
@@ -20,7 +21,7 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	for (int j = 0; j < 500; j++) {
+	for (int j = 0; j < 5; j++) {
 		kprint("bye");
 	}
 }
@@ -29,6 +30,7 @@ volatile thread_context* ready_queue; // typically linked list for round robin s
 volatile thread_context* ready_queue_head;
 volatile thread_context* ready_queue_end;
 volatile thread_context* ready_queue_second_last;
+volatile thread_context** current_actual;
 
 
 extern void move_two(int**);
@@ -78,11 +80,13 @@ thread_context* pop_front(thread_context* thread) {
 void push_back(thread_context* ready_queue, thread_context* thread) {
 	ready_queue_end->next_thread = thread;
 	ready_queue_second_last = ready_queue_end;
+	current_actual = &ready_queue_end;
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
 thread_context* get_current_thread() {
-	return ready_queue_head;
+	// return ready_queue_head;
+	return *current_actual;
 }
 
 void disable_preemption()
@@ -117,18 +121,18 @@ void reschedule() {
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
 		current_thread = pop_front(ready_queue);
-		assert(current_thread);
-		uint64_t* a = kmalloc_byte(256);//placeholder
+		// assert(current_thread);
+		uint64_t* a;// = kmalloc_byte(256);//placeholder
 		if (!current_thread)
 			goto end;
-		kprintf("%d\n", current_thread->pid);
+		// kprintf("%d\n", current_thread->pid);
 
 		push_back(ready_queue, current_thread);//&ready_queue
 		change_tss(&tss, current_thread->stack_base);
 		// enable_preemption();
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
-		kfree(a);
+		// kfree(a);
 		// enable_preemption();
 		return;
 	}
@@ -137,15 +141,24 @@ void reschedule() {
 	}
 
 	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
-	assert(next_thread);
-	if (!next_thread)
+	// assert(next_thread);
+	if (!next_thread) {
+		kprintf("error no more threads");
+		while (1) {}
 		goto end;
+	}
 	// enable_preemption();
 	change_tss(&tss, next_thread->stack_base);
-	kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
+	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 
+	// while (next_thread->frame[0] == 0) {
+	// 	next_thread = pop_front(ready_queue);//not = next_thread->next_thread because we need to change ready_queue_head as well
+	// }
+	kprintf("switching from thread %d to thread %d at reschedule\n", (*current_actual)->pid, next_thread->pid);
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
-	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
+	// if (1) {
+		switch_thread(&(*current_actual)->current_rsp, next_thread->current_rsp);
+	// }
 
 	end:
 	// enable_preemption();
@@ -155,6 +168,7 @@ void scheduler_return() {//basically pthread_exit
 	// disable_preemption();
 	asm volatile ("cli");
 
+	// kprintf("\nexited thread\n");
 	// lapic_oneshot(0, 64, 0b0011, 1);
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
@@ -162,13 +176,18 @@ void scheduler_return() {//basically pthread_exit
 	volatile thread_context* temp = ready_queue_second_last;
 	//add lock thing here
 	// disable_preemption();
-	kfree(ready_queue_second_last->stack_base);
-	kfree(temp);
+	// kfree(temp->stack_base);
+	// kfree((uint64_t*) temp);
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
-	kprintf("\nexited thread\n");
-	reschedule();
-	kprintf("error\n");
+	thread_context* next_thread = pop_front(ready_queue);
+	uint64_t* a;
+	kprintf("switching from thread %d to thread %d at return\n", (*current_actual)->pid, next_thread->pid);
+	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+	switch_thread(&a, next_thread->current_rsp);
+	// reschedule();
+	// while(1);
+	// kprintf("error\n");
 
 }
 

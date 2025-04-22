@@ -86,8 +86,9 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
-    kprintf("\nthread interrupted\n");
+    // kprintf("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
+    current_thread->frame[0] = 1;//signaled for rescheduling
     push_back(ready_queue, current_thread);//&ready_queue
     reschedule();
 }
@@ -95,6 +96,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
 
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
+    while (1) {asm volatile ("cli; hlt");};
 }
 
 void gpf_handler(struct interrupt_frame* frame) {
