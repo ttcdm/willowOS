@@ -41,6 +41,7 @@ volatile extern thread_context* ready_queue;
 volatile extern thread_context* ready_queue_head;
 volatile extern thread_context* ready_queue_end;
 volatile extern thread_context* ready_queue_second_last;
+volatile extern thread_context** current_actual;
 void init_scheduler(void);
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
