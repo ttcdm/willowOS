@@ -36,7 +36,7 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 50;
+	size_t num_threads = 1000;
 
 	volatile thread_context* current_thread;
 
@@ -174,10 +174,8 @@ void scheduler_return() {//basically pthread_exit
 	volatile thread_context* temp = ready_queue_second_last;
 	//add lock thing here
 	// disable_preemption();
-	kfree(temp->stack_base);
-	kfree((uint64_t*) temp);
-	kfree(temp->stack_base);
-	kfree((uint64_t*) temp);
+	kfree_interruptable(temp->stack_base);
+	kfree_interruptable((uint64_t*) temp);
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
 	thread_context* next_thread = pop_front(ready_queue);
