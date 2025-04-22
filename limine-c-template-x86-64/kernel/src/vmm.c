@@ -150,6 +150,28 @@ void kfree(uint64_t* virt_address) {
     asm volatile ("sti");
 }
 
+void kfree_interruptable(uint64_t* virt_address) {
+    // asm volatile ("cli");
+    uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
+    heap_page* current = heap_page_head;
+    for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
+        current = current->next;//we do the second last one because at the end of the loop it moves onto the last node
+    }
+    uint64_t alloc_length_node = current->alloc_length;
+    current->alloc_length = 0;
+
+    for (int i = 0; i < alloc_length_node; i++) {
+        current->status = 0;
+        current = current->next;
+    }
+    kprint("freed node(s): ");
+    kprint_uint64(alloc_length_node);
+    kprint(" starting index: ");
+    kprintln_uint64(index);
+    // asm volatile ("sti");
+}
+
+
 void print_heap(uint64_t length) {
     heap_page* current = heap_page_head;
     for (int i = 0; i < length; i++) {
