@@ -36,7 +36,7 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 1000;
+	size_t num_threads = 50;
 
 	volatile thread_context* current_thread;
 
@@ -44,8 +44,8 @@ void init_scheduler() {
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 	for (int i = 1; i < num_threads; i++) {//remember to use 1 because we start from the 2nd thread
-		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen0);
-		else current_thread->next_thread = create_thread(i, gen1);
+		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen1);
+		else current_thread->next_thread = create_thread(i, gen0);
 		if (num_threads - i > 1) current_thread = current_thread->next_thread;
 	}
 
@@ -153,7 +153,7 @@ void reschedule() {
 	// while (next_thread->frame[0] == 0) {
 	// 	next_thread = pop_front(ready_queue);//not = next_thread->next_thread because we need to change ready_queue_head as well
 	// }
-	kprintf("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
+	// kprintf("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
 
@@ -182,7 +182,7 @@ void scheduler_return() {//basically pthread_exit
 	change_tss(&tss, next_thread->stack_base);
 
 	uint64_t* a;
-	kprintf("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+	// kprintf("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	switch_thread(&a, next_thread->current_rsp);
 	// reschedule();
