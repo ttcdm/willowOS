@@ -32,17 +32,6 @@ volatile thread_context* ready_queue_end;
 volatile thread_context* ready_queue_second_last;
 volatile thread_context** current_actual;
 
-
-extern void move_two(int**);
-void test_move_two() {
-    int x = 0;
-    int* y = &x;
-    move_two(&y);
-    kprint("y is: ");
-	kprintf("%px", y);
-    kprint("\n");
-}
-
 void init_scheduler() {
 
 	size_t num_threads = 50;
@@ -59,6 +48,7 @@ void init_scheduler() {
 	}
 
 	ready_queue_second_last = current_thread;
+	// current_actual = &current_thread;
 	current_thread = current_thread->next_thread;
 
 	ready_queue_end = current_thread;
@@ -85,8 +75,8 @@ void push_back(thread_context* ready_queue, thread_context* thread) {
 }
 
 thread_context* get_current_thread() {
-	// return ready_queue_head;
-	return *current_actual;
+	return ready_queue_head;
+	// return *current_actual;
 }
 
 void disable_preemption()
@@ -138,6 +128,7 @@ void reschedule() {
 	}
 	else {
 		current_thread = get_current_thread();
+		// *current_actual = (*current_actual)->next_thread;
 	}
 
 	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
@@ -154,10 +145,10 @@ void reschedule() {
 	// while (next_thread->frame[0] == 0) {
 	// 	next_thread = pop_front(ready_queue);//not = next_thread->next_thread because we need to change ready_queue_head as well
 	// }
-	kprintf("switching from thread %d to thread %d at reschedule\n", (*current_actual)->pid, next_thread->pid);
+	kprintf("switching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	// if (1) {
-		switch_thread(&(*current_actual)->current_rsp, next_thread->current_rsp);
+		switch_thread(&ready_queue_second_last, next_thread->current_rsp);
 	// }
 
 	end:
@@ -181,8 +172,10 @@ void scheduler_return() {//basically pthread_exit
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
 	thread_context* next_thread = pop_front(ready_queue);
+	change_tss(&tss, next_thread->stack_base);
+
 	uint64_t* a;
-	kprintf("switching from thread %d to thread %d at return\n", (*current_actual)->pid, next_thread->pid);
+	kprintf("switching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	switch_thread(&a, next_thread->current_rsp);
 	// reschedule();

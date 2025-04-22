@@ -265,27 +265,27 @@ size_t kstrlen(char* msg) {
 }
 
 void kprint(char* msg) {
-    asm volatile ("cli");
+    // asm volatile ("cli");
     uint64_t s = kstrlen(msg);
     flanterm_write(ft_ctx, msg, s);
-    asm volatile ("sti");
+    // asm volatile ("sti");
 }
 
 void kprintln(char* msg) {//i think the args are being pass through fine idk
-    asm volatile ("cli");
+    // asm volatile ("cli");
     kprint(msg);
     kprint("\n");
 }
 
 void kprint_uint64(uint64_t num) {
-    asm volatile ("cli");
+    // asm volatile ("cli");
     char strr[64];//might be a bit wasteful
     uint64_to_string(num, strr);
     kprint(strr);
 }
 
 void kprintln_uint64(uint64_t num) {
-    asm volatile ("cli");
+    // asm volatile ("cli");
     kprint_uint64(num);
     kprint("\n");
 }
