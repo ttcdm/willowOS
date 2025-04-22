@@ -40,6 +40,7 @@ pop_all_regs:
 [global switch_thread]
 ;.type switch_thread, @function
 switch_thread:
+cli
     push rbx
     push rbp
     push r12
@@ -62,5 +63,6 @@ switch_thread:
     pop rbp
     pop rbx
 
+sti
     ret
 

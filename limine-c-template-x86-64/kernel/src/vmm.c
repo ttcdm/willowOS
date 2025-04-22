@@ -79,6 +79,7 @@ uint64_t init_heap() {
 }
 
 uint64_t* kmalloc(uint64_t size) {
+    asm volatile ("cli");
     if (size == 0) {
         kprintln("allocated 0 bytes. returning 0");
         return 0;//might page fault if you try to dereference this
@@ -117,7 +118,7 @@ uint64_t* kmalloc(uint64_t size) {
                 kprintln_uint64(index);
                 
                 
-
+                asm volatile ("sti");
                 return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
         }
@@ -129,6 +130,7 @@ uint64_t* kmalloc(uint64_t size) {
 }
 
 void kfree(uint64_t* virt_address) {
+    asm volatile ("cli");
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
     for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
@@ -145,6 +147,7 @@ void kfree(uint64_t* virt_address) {
     kprint_uint64(alloc_length_node);
     kprint(" starting index: ");
     kprintln_uint64(index);
+    asm volatile ("sti");
 }
 
 void print_heap(uint64_t length) {
@@ -163,6 +166,7 @@ void print_heap(uint64_t length) {
 }
 
 uint64_t* kmalloc_byte(uint64_t size) {//kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
+    asm volatile ("cli");
     if (size == 0) {
         return kmalloc(0);
     }

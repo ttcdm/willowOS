@@ -9,6 +9,8 @@
 
 #define HEAP_START_VIRT_DEFINED 0xffffc00000000000
 #define HEAP_SIZE_DEFINED 0x400000//16mb of memory for heap
+// #define HEAP_SIZE_DEFINED 0x4000000//16mb of memory for heap
+
 #define PAGE_SIZE_DEFINED 0x1000
 #define HEAP_CHUNK_SIZE_DEFINED 64
 

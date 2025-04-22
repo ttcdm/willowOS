@@ -25,10 +25,10 @@ void gen1() {
 	}
 }
 
-thread_context* ready_queue; // typically linked list for round robin scheduler
-thread_context* ready_queue_head;
-thread_context* ready_queue_end;
-thread_context* ready_queue_second_last;
+volatile thread_context* ready_queue; // typically linked list for round robin scheduler
+volatile thread_context* ready_queue_head;
+volatile thread_context* ready_queue_end;
+volatile thread_context* ready_queue_second_last;
 
 
 extern void move_two(int**);
@@ -43,11 +43,11 @@ void test_move_two() {
 
 void init_scheduler() {
 
-	size_t num_threads = 100;
+	size_t num_threads = 50;
 
-	thread_context* current_thread;
+	volatile thread_context* current_thread;
 
-	thread_context* new_thread = create_thread(0, gen0);
+	volatile thread_context* new_thread = create_thread(0, gen0);
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
 	for (int i = 1; i < num_threads; i++) {//remember to use 1 because we start from the 2nd thread
@@ -70,7 +70,7 @@ void init_scheduler() {
 }
 
 thread_context* pop_front(thread_context* thread) {
-	thread_context* head = ready_queue_head;
+	volatile thread_context* head = ready_queue_head;
 	ready_queue_head = ready_queue_head->next_thread;
 	return head;//i think this works?? hopefully it just copies the memory over instead of having it get changed because ready_queue_head got changed the next line
 }
@@ -87,9 +87,12 @@ thread_context* get_current_thread() {
 
 void disable_preemption()
 {	
-	kprintf("hi");
-	volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-*lapic_timer |= (1 << 16); // Set the mask bit
+	// kprintf("\0");
+	// for (int i = 0; i < 100000; i++) {
+	// 	asm volatile ("nop");
+	// }
+// 	volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+// *lapic_timer |= (1 << 16); // Set the mask bit
 	asm volatile ("cli");
 	// volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	// volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
@@ -98,8 +101,8 @@ void disable_preemption()
 }
 void enable_preemption()
 {
-	volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-	*lapic_timer &= ~(1 << 16); // Clear the mask bit
+	// volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
+	// *lapic_timer &= ~(1 << 16); // Clear the mask bit
 	asm volatile ("sti");
 }
 
@@ -107,8 +110,9 @@ void enable_preemption()
 uint8_t first = 0;
 void reschedule() {
 	// lapic_oneshot(0, 72, 0b0011, 1);
-	disable_preemption();
-	thread_context* current_thread;
+	// disable_preemption();
+	asm volatile ("cli");
+	volatile thread_context* current_thread;
 	
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
@@ -132,14 +136,13 @@ void reschedule() {
 		current_thread = get_current_thread();
 	}
 
-	thread_context* next_thread = pop_front(ready_queue);//&ready_queue
+	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 	assert(next_thread);
 	if (!next_thread)
 		goto end;
 	// enable_preemption();
 	change_tss(&tss, next_thread->stack_base);
 	kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
-	// enable_preemption();
 
 	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
@@ -149,12 +152,14 @@ void reschedule() {
 }
 
 void scheduler_return() {//basically pthread_exit
-	disable_preemption();
+	// disable_preemption();
+	asm volatile ("cli");
+
 	// lapic_oneshot(0, 64, 0b0011, 1);
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
-	thread_context* temp = ready_queue_second_last;
+	volatile thread_context* temp = ready_queue_second_last;
 	//add lock thing here
 	// disable_preemption();
 	kfree(ready_queue_second_last->stack_base);
