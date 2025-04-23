@@ -79,7 +79,7 @@ uint64_t init_heap() {
 }
 
 uint64_t* kmalloc(uint64_t size) {
-    asm volatile ("cli");
+    // asm volatile ("cli");
     if (size == 0) {
         kprintln("allocated 0 bytes. returning 0");
         return 0;//might page fault if you try to dereference this
@@ -118,7 +118,7 @@ uint64_t* kmalloc(uint64_t size) {
                 kprintln_uint64(index);
                 
                 
-                asm volatile ("sti");
+                // asm volatile ("sti");
                 return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
         }
@@ -187,8 +187,29 @@ void print_heap(uint64_t length) {
     }
 }
 
-uint64_t* kmalloc_byte(uint64_t size) {//kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
+uint64_t* kmalloc_byte(uint64_t size) {//we do cli and sti here instead of inside kmalloc. kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
     asm volatile ("cli");
+    if (size == 0) {
+        asm volatile ("sti");
+        return kmalloc(0);
+    }
+    if (size <= 64) {
+        asm volatile ("sti");
+        return kmalloc(1);
+    }
+    else {
+        if (size % 64 == 0) {
+            asm volatile ("sti");
+            return kmalloc(size / 64);
+        }
+        else {
+            asm volatile ("sti");
+            return kmalloc((size / 64) + 1);
+        }
+    }
+}
+
+uint64_t* kmalloc_byte_interruptable(uint64_t size) {//kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
     if (size == 0) {
         return kmalloc(0);
     }
@@ -203,5 +224,4 @@ uint64_t* kmalloc_byte(uint64_t size) {//kmalloc alloc's 64 bytes per unit and t
             return kmalloc((size / 64) + 1);
         }
     }
-
 }

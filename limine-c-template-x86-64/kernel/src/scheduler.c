@@ -11,7 +11,8 @@ void gen0() {
 	// return;
 	while (1){
 		int a = 0;
-		kprint("hi");
+		// kprint("hi");
+		kprintf("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 		// kprint("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
@@ -23,8 +24,9 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
-	for (int j = 0; j < 5; j++) {
-		kprint("bye");
+	for (int j = 0; j < 500; j++) {
+		// kprint("bye");
+		kprintf("bye");
 	}
 }
 
@@ -36,7 +38,7 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 50;
+	size_t num_threads = 500;
 
 	volatile thread_context* current_thread;
 
@@ -141,7 +143,7 @@ void reschedule() {
 	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 	// assert(next_thread);
 	if (!next_thread) {
-		kprintf("error no more threads");
+		kprintf_interruptable("error no more threads");
 		while (1) {}
 	// assert(next_thread);
 	}
@@ -153,19 +155,19 @@ void reschedule() {
 	// while (next_thread->frame[0] == 0) {
 	// 	next_thread = pop_front(ready_queue);//not = next_thread->next_thread because we need to change ready_queue_head as well
 	// }
-	// kprintf("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
+	kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 
-	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
-	if (*(lapic_irr) & (1 << 8)) {
-		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-		*lapic_eoi = 0;
-		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
-	}
-	else {
+	// volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);//HERE technically this isn't needed because you can't queue irq 72 again if it's already been queued
+	// if (*(lapic_irr) >> 8 & 1) {
+	// 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+	// 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	// 	*lapic_eoi = 0;
+	// 	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
+	// }
+	// else {
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
-	}
+	// }
 	end:
 	// enable_preemption();
 }
@@ -180,29 +182,31 @@ void scheduler_return() {//basically pthread_exit
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
-	volatile thread_context* temp = ready_queue_second_last;
+	volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
 	//add lock thing here
 	// disable_preemption();
-	// kfree_interruptable(temp->stack_base);
-	// kfree_interruptable((uint64_t*) temp);
+	kfree_interruptable(temp->stack_base);
+	kfree_interruptable((uint64_t*) temp);
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
 	volatile thread_context* next_thread = pop_front(ready_queue);
 	change_tss(&tss, next_thread->stack_base);
 
-	volatile thread_context* a = (thread_context*) kmalloc_byte(64);
-	// kprintf("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
-	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
-	if (*(lapic_irr+0x2) & (1 << 8)) {
-		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-		*lapic_eoi = 0;
-		switch_thread(&a, next_thread->current_rsp);
-	}
-	else {
+	// volatile thread_context* a = (thread_context*) kmalloc_byte(64);
+	uint64_t* a;
+	kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+
+	// volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);//HERE technically this isn't needed because you can't queue irq 72 again if it's already been queued
+	// if (*(lapic_irr) >> 8 & 1) {
+	// 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+	// 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	// 	*lapic_eoi = 0;
+	// 	switch_thread(&a, next_thread->current_rsp);
+	// }
+	// else {
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, next_thread->current_rsp);
-	}
+	// }
 	// reschedule();
 	// while(1);
 	// kprintf("error\n");
