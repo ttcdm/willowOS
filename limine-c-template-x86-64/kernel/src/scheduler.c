@@ -115,7 +115,7 @@ void reschedule() {
 		first = 1;
 		current_thread = pop_front(ready_queue);
 		// assert(current_thread);
-		uint64_t* a;// = kmalloc_byte(256);//placeholder
+		volatile uint64_t* a;// = kmalloc_byte(256);//placeholder
 		// assert(current_thread);
 		// uint64_t* a;// = kmalloc_byte(256);//placeholder
 		if (!current_thread)
@@ -128,8 +128,8 @@ void reschedule() {
 		// enable_preemption();
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
-		// kfree(a);
-		// kfree(a);
+		// kfree_interruptable(thread_context* a));
+		// kfree_interruptable(a);
 		// enable_preemption();
 		return;
 	}
@@ -154,9 +154,18 @@ void reschedule() {
 	// 	next_thread = pop_front(ready_queue);//not = next_thread->next_thread because we need to change ready_queue_head as well
 	// }
 	// kprintf("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
-	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
-	switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
 
+	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
+	if (*(lapic_irr) & (1 << 8)) {
+		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+		*lapic_eoi = 0;
+		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
+	}
+	else {
+		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
+	}
 	end:
 	// enable_preemption();
 }
@@ -174,17 +183,26 @@ void scheduler_return() {//basically pthread_exit
 	volatile thread_context* temp = ready_queue_second_last;
 	//add lock thing here
 	// disable_preemption();
-	kfree_interruptable(temp->stack_base);
-	kfree_interruptable((uint64_t*) temp);
+	// kfree_interruptable(temp->stack_base);
+	// kfree_interruptable((uint64_t*) temp);
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
-	thread_context* next_thread = pop_front(ready_queue);
+	volatile thread_context* next_thread = pop_front(ready_queue);
 	change_tss(&tss, next_thread->stack_base);
 
-	uint64_t* a;
+	volatile thread_context* a = (thread_context*) kmalloc_byte(64);
 	// kprintf("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
-	lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
-	switch_thread(&a, next_thread->current_rsp);
+	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
+	if (*(lapic_irr+0x2) & (1 << 8)) {
+		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+		*lapic_eoi = 0;
+		switch_thread(&a, next_thread->current_rsp);
+	}
+	else {
+		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		switch_thread(&a, next_thread->current_rsp);
+	}
 	// reschedule();
 	// while(1);
 	// kprintf("error\n");
@@ -195,9 +213,9 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//add lock thing here
 	disable_preemption();
 	// kmalloc_byte(4096);
-	uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
+	volatile uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
 	// kmalloc_byte(4096);
-	thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
+	volatile thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
 	// kmalloc_byte(4096);
 	// enable_preemption();
 
@@ -215,7 +233,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 
-    uint64_t* thread_rsp = new_thread->stack_base + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
+    volatile uint64_t* thread_rsp = new_thread->stack_base + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);
