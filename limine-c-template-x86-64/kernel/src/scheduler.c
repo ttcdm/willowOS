@@ -11,7 +11,8 @@ void gen0() {
 	// return;
 	while (1){
 		int a = 0;
-		kprint("hi");
+		// kprint("hi");
+		kprintf("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 		// kprint("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
@@ -24,7 +25,8 @@ void gen1() {
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
 	for (int j = 0; j < 5; j++) {
-		kprint("bye");
+		// kprint("bye");
+		kprintf("bye");
 	}
 }
 
@@ -156,7 +158,7 @@ void reschedule() {
 	// kprintf("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 
 	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
-	if (*(lapic_irr) & (1 << 8)) {
+	if (*(lapic_irr) >> 8 & 1) {
 		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 		*lapic_eoi = 0;
@@ -192,8 +194,9 @@ void scheduler_return() {//basically pthread_exit
 
 	volatile thread_context* a = (thread_context*) kmalloc_byte(64);
 	// kprintf("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+
 	volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);
-	if (*(lapic_irr+0x2) & (1 << 8)) {
+	if (*(lapic_irr) >> 8 & 1) {
 		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 		*lapic_eoi = 0;
