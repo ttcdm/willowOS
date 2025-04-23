@@ -306,6 +306,22 @@ void kprintf(char* fmt, ...) {
     va_end(args_copy);
     asm volatile ("sti");
 }
+void kprintf_interruptable(char* fmt, ...) {
+    // asm volatile ("cli");
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    char str[size];//should be fine
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    flanterm_write(ft_ctx, str, size);
+    // kfree((uint64_t*) str);
+    va_end(args);
+    va_end(args_copy);
+    // asm volatile ("sti");
+}
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
     starting_address = memmap_arr[0].base;
