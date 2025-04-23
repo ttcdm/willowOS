@@ -101,7 +101,7 @@ void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catchi
 
 void gpf_handler(struct interrupt_frame* frame) {
 	kprintln("general protection fault occurred. halting...");
-	asm volatile("cli; hlt");
+	while (1) asm volatile("cli; hlt");
 }
 
 
