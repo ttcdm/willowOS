@@ -13,6 +13,8 @@ void gen0() {
 		int a = 0;
 		// kprint("hi");
 		kprintf("hi");
+		// kprint("hi");
+		kprintf("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 		// kprint("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
