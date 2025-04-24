@@ -41,35 +41,36 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 200;
+	size_t num_threads = 10;
 
-	volatile thread_context* current_thread;
+	// volatile thread_context* current_thread;
 
-	volatile thread_context* new_thread = create_thread(0, gen1);
-	new_thread->next_thread = NULL;
-	current_thread = new_thread;
-	current_thread->next_thread = create_thread(100, gen0);
-	current_thread = current_thread->next_thread;
-	for (int i = 1; i < num_threads; i++) {//i should probably recycle pid's. remember to use 1 because we start from the 2nd thread
-		if (i % 3 == 0) current_thread->next_thread = create_thread(i, gen0);
-		else current_thread->next_thread = create_thread(i, gen1);
-		if (num_threads - i > 1) current_thread = current_thread->next_thread;
-	}
+	// volatile thread_context* new_thread = create_thread(0, gen1);
+	// new_thread->next_thread = NULL;
+	// current_thread = new_thread;
+	// current_thread->next_thread = create_thread(100, gen0);
+	// current_thread = current_thread->next_thread;
+	// for (int i = 1; i < num_threads; i++) {//i should probably recycle pid's. remember to use 1 because we start from the 2nd thread
+	// 	if (i % 3 == 0) current_thread->next_thread = create_thread(i, gen0);
+	// 	else current_thread->next_thread = create_thread(i, gen1);
+	// 	if (num_threads - i > 1) current_thread = current_thread->next_thread;
+	// }
 
-	ready_queue_second_last = current_thread;
-	// current_actual = &current_thread;
-	current_thread = current_thread->next_thread;
+	// ready_queue_second_last = current_thread;
+	// // current_actual = &current_thread;
+	// current_thread = current_thread->next_thread;
 
-	ready_queue_end = current_thread;
+	// ready_queue_end = current_thread;
 
-	current_thread = new_thread;
-	ready_queue_head = new_thread;
+	// current_thread = new_thread;
+	// ready_queue_head = new_thread;
 
 
+	push_thread(create_thread(0, gen1));
+	push_thread(create_thread(1, gen1));
+	push_thread(create_thread(2, gen0));
+	push_thread(create_thread(3, gen0));
 
-	// ready_queue_end = (thread_context*) kmalloc_byte(64);
-	// ready_queue_head->next_thread = NULL;
-	// push_back(ready_queue, create_thread(0, gen0));
 
 	while (1) reschedule();
 
@@ -280,4 +281,19 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 	*sp -= 1;
 	**sp = (uint64_t) enable_preemption;
 	*sp -= 6;
+}
+
+
+bool first_thread = 1;
+void push_thread(thread_context* thread) {
+	if (first_thread) {
+		ready_queue_head = thread;
+		ready_queue_second_last = ready_queue_head;
+		ready_queue_end = ready_queue_head;
+		push_back(ready_queue, ready_queue_head);
+		first_thread = 0;
+	}
+	else {
+		push_back(ready_queue, thread);
+	}
 }
