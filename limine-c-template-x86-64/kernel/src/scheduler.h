@@ -50,6 +50,7 @@ thread_context* block_thread(uint64_t pid);//might run into issues if we recycle
 //thread_context* block_by_pid(uint64_t* pid);
 void unblock_thread(thread_context* thread);
 void yield_thread();//not sure if you're supposed to yield current thread or yield a thread of your choosing
+thread_context* get_thread_by_pid(uint64_t pid);
 void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
 void start_thread(unsigned long **sp, void *entry);
 

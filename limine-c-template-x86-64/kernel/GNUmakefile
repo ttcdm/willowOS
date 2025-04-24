@@ -18,7 +18,7 @@ AR := ar
 # User controllable C flags.
 # -mgeneral-regs-only // for compiling with interrupts or something
 # -O2 for the default compilation with optimization. O0 is for no optimization
-CFLAGS := -g -O0 -pipe
+CFLAGS := -g -Ofast -pipe
 
 # User controllable C preprocessor flags. We set none by default.
 CPPFLAGS :=
