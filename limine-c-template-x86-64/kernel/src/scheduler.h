@@ -30,7 +30,7 @@ typedef struct thread_context_declared {
 	uint64_t misaligned_by;
 	uint64_t* current_rsp;
 	uint64_t current_misaligned_by;
-	uint64_t frame[5];
+	uint64_t status[10];//RUNNING, READY, BLOCKED.//running flag isn't used for now. also this should probably be bool but oh well
 	struct thread_context_declared* next_thread;
 
 } thread_context;
@@ -46,12 +46,15 @@ void init_scheduler(void);
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
 void push_thread(thread_context* thread);
+thread_context* block_thread(uint64_t pid);//might run into issues if we recycle the pids later on. also not sure if i should search by thread context or pid
+//thread_context* block_by_pid(uint64_t* pid);
+void unblock_thread(thread_context* thread);
+void yield_thread();//not sure if you're supposed to yield current thread or yield a thread of your choosing
+void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
+void start_thread(unsigned long **sp, void *entry);
 
 extern void push_all_regs();
 extern void pop_all_regs();
-
-void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
-void start_thread(unsigned long **sp, void *entry);
 
 void scheduler_return();
 

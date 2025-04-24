@@ -88,8 +88,10 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     *lapic_eoi = 0;
     kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
-    current_thread->frame[0] = 1;//signaled for rescheduling
-    push_back(ready_queue, current_thread);//&ready_queue
+    // current_thread->frame[0] = 1;//signaled for rescheduling
+    if (current_thread->status[3] == 0) {
+        push_back(ready_queue, current_thread);//&ready_queue
+    }
     reschedule();
 }
 
