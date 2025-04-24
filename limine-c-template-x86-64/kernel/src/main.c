@@ -246,6 +246,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
 
+uint64_t gdt_table[7];
 struct TSS tss __attribute__((aligned(16)));
 
 
@@ -411,7 +412,7 @@ void kmain(void) {
 
     //bp();
 
-    uint64_t gdt_table[7];
+    // uint64_t gdt_table[7];//we use a global one so the ap's can use it as well
     setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
@@ -446,9 +447,9 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    // init_mp(&mp_request);
+    init_mp(&mp_request);
 
-    //hpet is initialized inside init_bsp_lapic();
+    // hpet is initialized inside init_bsp_lapic();
 
     // kprintln("lapic timers ticks in in 1 second:");
     // for (int i = 0; i < 4; i++) {
@@ -458,7 +459,7 @@ void kmain(void) {
 
 
 
-    init_scheduler();
+    // init_scheduler();
     // kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
 
     // lapic_periodic(500, 64, 0b0011, 0);
@@ -483,8 +484,8 @@ __attribute__((noreturn))
 void start_ap() {//remember to not call any non processor specific init functions here like init_memmaps()
     kprintln("\ninitializing ap");
 
-    uint64_t gdt_table[7];
-    setup_gdt(gdt_table);
+    // uint64_t gdt_table[7];//we have a global gdt
+    // setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
     idt_init();//HERE must set up idt. not chatgpt'ed version
@@ -505,14 +506,19 @@ void start_ap() {//remember to not call any non processor specific init function
     kprintln_uint64((*lapic_id)>>24);
     //kprintln("ap initialized!\n");
 
-    //kprintln("1 second intervals in ns: ");
-    //for (int i = 0; i < 3; i++) {
+    // kprintln("1 second intervals in ns: ");
+    // for (int i = 0; i < 3; i++) {
     //    uint64_t a = hpet_get_elapsed_ns();
     //    kpass(1000);
     //    uint64_t b = hpet_get_elapsed_ns();
     //    kprintln_uint64(b - a);
-    //}
+    // }
     kprintln("ap initialized!\n");
+
+    kpass(5000);
+    if ((*lapic_id)>>24==1) {
+        init_scheduler();
+    }
 
     while (1) {asm volatile ("hlt");}
 }
