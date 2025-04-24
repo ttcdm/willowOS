@@ -298,7 +298,7 @@ void kprintf(char* fmt, ...) {
     va_copy(args_copy, args);
     uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
     // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
-    char str[size];//should be fine
+    char str[size];//was told that using a variable length array was a bad idea...
     npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
     flanterm_write(ft_ctx, str, size);
     // kfree((uint64_t*) str);

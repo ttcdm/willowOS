@@ -56,3 +56,4 @@ void kprint_char(char c) {
     s[1] = '\0';
     kprint(s);
 }
+

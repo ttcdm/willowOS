@@ -25,12 +25,16 @@ void gen0() {
 void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
+	volatile thread_context* a = block_thread(0);
 	// return;
-	for (int j = 0; j < 500; j++) {
+	for (int j = 0; j < 5; j++) {
 		int a = 0;
 		// kprint("bye");
 		kprintf("bye");
+		yield();
 	}
+	unblock_thread(a);
+
 }
 
 volatile thread_context* ready_queue; // typically linked list for round robin scheduler
@@ -68,12 +72,13 @@ void init_scheduler() {
 
 	push_thread(create_thread(0, gen1));
 	push_thread(create_thread(1, gen1));
-	push_thread(create_thread(2, gen0));
-	push_thread(create_thread(3, gen0));
+	// push_thread(create_thread(2, gen0));
+	// push_thread(create_thread(3, gen0));
 
 
 	while (1) reschedule();
 
+	
 
 }
 
@@ -296,4 +301,33 @@ void push_thread(thread_context* thread) {
 	else {
 		push_back(ready_queue, thread);
 	}
+}
+
+thread_context* block_thread(uint64_t pid) {
+	volatile thread_context* current_thread = ready_queue_head;
+	while (!current_thread) {
+		asm volatile ("cli");
+		kprintf_interruptable("\nadfjaklsafjdklsadjsfkl;jdkls;\n");
+		if (current_thread->pid == pid) {
+			current_thread->status[3] == 1;
+			kprintf_interruptable("blocked thread %d", pid);
+			// while (1);
+			return current_thread;
+		}
+		current_thread = current_thread->next_thread;
+	}
+	kprintf_interruptable("thread %d not found", pid);
+	return NULL;//might run into issues with it being a null pointer
+}
+
+void unblock_thread(thread_context* thread) {
+	push_back(ready_queue, thread);//not sure if it's supposed to run immediately or just put it back onto the queue
+	kprintf_interruptable("unblocked thread %d", thread->pid);
+}
+
+void yield() {
+	volatile thread_context* current_thread = get_current_thread();
+	kprintf_interruptable("%d", current_thread->pid);
+	push_back(ready_queue, current_thread);//maybe add a check for if it's blocked
+	reschedule();
 }
