@@ -45,6 +45,7 @@ volatile extern thread_context** current_actual;
 void init_scheduler(void);
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
+void push_thread(thread_context* thread);
 
 extern void push_all_regs();
 extern void pop_all_regs();
@@ -59,4 +60,5 @@ void push_back(thread_context* ready_queue, thread_context* thread); // Pushes t
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 
+void enable_preemption();
 void disable_preemption();
