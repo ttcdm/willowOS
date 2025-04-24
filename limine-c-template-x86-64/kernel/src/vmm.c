@@ -190,8 +190,9 @@ void print_heap(uint64_t length) {
 uint64_t* kmalloc_byte(uint64_t size) {//we do cli and sti here instead of inside kmalloc. kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
     asm volatile ("cli");
     if (size == 0) {
-        asm volatile ("sti");
+        asm volatile ("sti");//HERE should be after return kmalloc(0); also add in irq_disable_save and irq_restore. should also add this to kprintf
         return kmalloc(0);
+        //asm volatile ("sti");//mishakov said that it was ok that sti and return wasn't atomic together
     }
     if (size <= 64) {
         asm volatile ("sti");

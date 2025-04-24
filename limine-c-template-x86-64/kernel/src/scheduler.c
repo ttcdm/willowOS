@@ -1,6 +1,6 @@
 #include <scheduler.h>
 
-
+//HERE ONLY USE "THREAD SAFE" FUNCTIONS. DO NOT USE FUNCTIONS THAT STI DURING SECTIONS THAT ARE CLI'D
 
 //thread_context* current_thread;
 
@@ -14,7 +14,7 @@ void gen0() {
 		// kprint("hi");
 		kprintf("hi");
 		// kprint("hi");
-		kprintf("hi");
+		// kprintf("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
 		// kprint("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
@@ -27,6 +27,7 @@ void gen1() {
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// return;
 	for (int j = 0; j < 500; j++) {
+		int a = 0;
 		// kprint("bye");
 		kprintf("bye");
 	}
@@ -40,16 +41,18 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 500;
+	size_t num_threads = 200;
 
 	volatile thread_context* current_thread;
 
-	volatile thread_context* new_thread = create_thread(0, gen0);
+	volatile thread_context* new_thread = create_thread(0, gen1);
 	new_thread->next_thread = NULL;
 	current_thread = new_thread;
-	for (int i = 1; i < num_threads; i++) {//remember to use 1 because we start from the 2nd thread
-		if (i % 2 == 0) current_thread->next_thread = create_thread(i, gen1);
-		else current_thread->next_thread = create_thread(i, gen0);
+	current_thread->next_thread = create_thread(100, gen0);
+	current_thread = current_thread->next_thread;
+	for (int i = 1; i < num_threads; i++) {//i should probably recycle pid's. remember to use 1 because we start from the 2nd thread
+		if (i % 3 == 0) current_thread->next_thread = create_thread(i, gen0);
+		else current_thread->next_thread = create_thread(i, gen1);
 		if (num_threads - i > 1) current_thread = current_thread->next_thread;
 	}
 
@@ -61,6 +64,12 @@ void init_scheduler() {
 
 	current_thread = new_thread;
 	ready_queue_head = new_thread;
+
+
+
+	// ready_queue_end = (thread_context*) kmalloc_byte(64);
+	// ready_queue_head->next_thread = NULL;
+	// push_back(ready_queue, create_thread(0, gen0));
 
 	while (1) reschedule();
 
@@ -76,7 +85,6 @@ thread_context* pop_front(thread_context* thread) {
 void push_back(thread_context* ready_queue, thread_context* thread) {
 	ready_queue_end->next_thread = thread;
 	ready_queue_second_last = ready_queue_end;
-	current_actual = &ready_queue_end;
 	current_actual = &ready_queue_end;
 	ready_queue_end = ready_queue_end->next_thread;
 }
@@ -122,8 +130,11 @@ void reschedule() {
 		volatile uint64_t* a;// = kmalloc_byte(256);//placeholder
 		// assert(current_thread);
 		// uint64_t* a;// = kmalloc_byte(256);//placeholder
-		if (!current_thread)
-			goto end;
+		if (!current_thread) {
+			kprintf("no more threads");
+			while (1) {asm volatile ("cli; hlt");}
+			// goto end;
+		}
 		// kprintf("%d\n", current_thread->pid);
 		// kprintf("%d\n", current_thread->pid);
 
@@ -146,8 +157,12 @@ void reschedule() {
 	// assert(next_thread);
 	if (!next_thread) {
 		kprintf_interruptable("error no more threads");
-		while (1) {}
+		while (1) {asm volatile ("cli; hlt");}
 	// assert(next_thread);
+	}
+	if (next_thread->pid == ready_queue_second_last->pid) {
+		// kprintf("1 thread left");
+		return;//don't switch just return
 	}
 	// enable_preemption();
 	change_tss(&tss, next_thread->stack_base);
@@ -192,6 +207,15 @@ void scheduler_return() {//basically pthread_exit
 	// enable_preemption();
 	ready_queue_second_last = ready_queue_end;
 	volatile thread_context* next_thread = pop_front(ready_queue);
+	if (!next_thread) {
+		kprintf("no more threads");
+		while (1) {asm volatile ("cli; hlt");}
+		// goto end;
+	}
+	if (next_thread->pid == ready_queue_second_last->pid) {
+		kprintf("no more threads to schedule");
+		while (1);
+	}
 	change_tss(&tss, next_thread->stack_base);
 
 	// volatile thread_context* a = (thread_context*) kmalloc_byte(64);
