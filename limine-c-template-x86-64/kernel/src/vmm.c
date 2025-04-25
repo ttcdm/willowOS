@@ -114,8 +114,8 @@ uint64_t* kmalloc(uint64_t size) {
                     probe = probe->next;
                 }
                 current->alloc_length = size;//size of allocated memory
-				kprint("allocated heap at index: ");
-                kprintln_uint64(index);
+				// kprint("allocated heap at index: ");
+                // kprintln_uint64(index);
                 
                 
                 // asm volatile ("sti");

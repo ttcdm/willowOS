@@ -10,8 +10,8 @@ override IMAGE_NAME := template
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
 # -mgeneral-regs-only // for compiling with interrupts or something
-# -O2 for the default compilation with optimization. O0 is for no optimization
-HOST_CFLAGS := -g -Ofast -pipe
+# -O2 for the default compilation with optimization. O0 is for no optimization. Ofast is fastest? optimization
+HOST_CFLAGS := -g -O0 -pipe
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=

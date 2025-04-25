@@ -12,8 +12,9 @@ void gen0() {
 	while (1){
 		int a = 0;
 		// kprint("hi");
-		for (int i = 0; i < 30; i++) kprintf("hi");
-		yield_thread();
+		// for (int i = 0; i < 30; i++) kprintf("hi");
+		kprintf("hi");
+		// yield_thread();
 		// kprint("hi");
 		// kprintf("hi");
 		// kprintf("gen0: hi from thread %d\n", get_current_thread()->pid);
@@ -28,7 +29,7 @@ void gen1() {
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	// volatile thread_context* a = block_thread(0);
 	// return;
-	for (int j = 0; j < 2000; j++) {
+	for (int j = 0; j < 1000; j++) {
 		int a = 0;
 		// kprint("bye");
 		kprintf("bye");
@@ -47,7 +48,7 @@ volatile thread_context** current_actual;
 
 void init_scheduler() {
 
-	size_t num_threads = 500;
+	size_t num_threads = 200;
 
 	// volatile thread_context* current_thread;
 
