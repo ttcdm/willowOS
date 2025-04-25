@@ -447,7 +447,7 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    init_mp(&mp_request);
+    // init_mp(&mp_request);
 
     // hpet is initialized inside init_bsp_lapic();
 
@@ -459,7 +459,7 @@ void kmain(void) {
 
 
 
-    // init_scheduler();
+    init_scheduler();
     // kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
 
     // lapic_periodic(500, 64, 0b0011, 0);
@@ -515,10 +515,10 @@ void start_ap() {//remember to not call any non processor specific init function
     // }
     kprintln("ap initialized!\n");
 
-    kpass(5000);
-    if ((*lapic_id)>>24==1) {
-        init_scheduler();
-    }
+    // kpass(5000);
+    // if ((*lapic_id)>>24==1) {
+    //     init_scheduler();
+    // }
 
     while (1) {asm volatile ("hlt");}
 }

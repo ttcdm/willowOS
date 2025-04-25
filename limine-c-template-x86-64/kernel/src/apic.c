@@ -151,7 +151,7 @@ void acpi_parse_rsdp(const void* pRSDP) {
         validate_xsdp(pXSDP);
         map_page((uint64_t*)pml4_address_virt_glob, pXSDP->xsdt_address, pXSDP->xsdt_address, 0b11);
         const struct XSDT* pXSDT = (struct XSDT*) (pXSDP->xsdt_address);
-        kprintln("hi");
+        // kprintln("hi");
         validate_sdt(&pXSDT->h);
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
         for (size_t i = 0; i < num_sdts; ++i) {
