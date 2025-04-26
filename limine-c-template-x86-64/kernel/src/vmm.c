@@ -143,10 +143,10 @@ void kfree(uint64_t* virt_address) {
         current->status = 0;
         current = current->next;
     }
-    kprint("freed node(s): ");
-    kprint_uint64(alloc_length_node);
-    kprint(" starting index: ");
-    kprintln_uint64(index);
+    // kprint("freed node(s): ");
+    // kprint_uint64(alloc_length_node);
+    // kprint(" starting index: ");
+    // kprintln_uint64(index);
     asm volatile ("sti");
 }
 
@@ -164,10 +164,10 @@ void kfree_interruptable(uint64_t* virt_address) {
         current->status = 0;
         current = current->next;
     }
-    kprint("freed node(s): ");
-    kprint_uint64(alloc_length_node);
-    kprint(" starting index: ");
-    kprintln_uint64(index);
+    // kprint("freed node(s): ");
+    // kprint_uint64(alloc_length_node);
+    // kprint(" starting index: ");
+    // kprintln_uint64(index);
     // asm volatile ("sti");
 }
 
