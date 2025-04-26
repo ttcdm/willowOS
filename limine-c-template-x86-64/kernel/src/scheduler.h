@@ -42,6 +42,7 @@ volatile extern thread_context* ready_queue_head;
 volatile extern thread_context* ready_queue_end;
 volatile extern thread_context* ready_queue_second_last;
 volatile extern thread_context** current_actual;
+volatile extern thread_context* running_thread;
 void init_scheduler(void);
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
@@ -49,6 +50,7 @@ void push_thread(thread_context* thread);
 thread_context* block_thread(uint64_t pid);//might run into issues if we recycle the pids later on. also not sure if i should search by thread context or pid
 //thread_context* block_by_pid(uint64_t* pid);
 void unblock_thread(thread_context* thread);
+void sleep_thread(uint64_t ms);
 void yield_thread();//not sure if you're supposed to yield current thread or yield a thread of your choosing
 thread_context* get_thread_by_pid(uint64_t pid);
 void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
