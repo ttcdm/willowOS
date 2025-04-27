@@ -56,6 +56,8 @@ thread_context* get_thread_by_pid(uint64_t pid);
 void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
 void start_thread(unsigned long **sp, void *entry);
 
+void print_queue();
+
 extern void push_all_regs();
 extern void pop_all_regs();
 
