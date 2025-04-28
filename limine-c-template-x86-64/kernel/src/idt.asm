@@ -56,6 +56,7 @@ extern apic_tick_handler
 extern sleep_handler;maybe this should be a lower priority idk
 extern thread_handler
 extern thread_interrupter_handler
+extern thread_sleep_handler
 
 
 isr_no_err_stub 0
@@ -141,7 +142,7 @@ isr_no_err_stub 76
 isr_no_err_stub 77
 isr_no_err_stub 78
 isr_no_err_stub 79
-isr_no_err_stub 80
+; isr_no_err_stub 80
 isr_no_err_stub 81
 isr_no_err_stub 82
 isr_no_err_stub 83
@@ -253,6 +254,15 @@ isr_stub_72:
     mov rdi, rsp
     sub rsp, 8
     call thread_interrupter_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
+isr_stub_80:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call thread_sleep_handler
     add rsp, 8
     pop_reg
     iretq

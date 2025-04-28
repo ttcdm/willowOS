@@ -21,6 +21,8 @@ typedef struct thread_context_declared {
 	uint64_t start_time;
 	uint64_t last_start_time;
 	uint64_t total_run_time;
+	uint64_t last_run_time;
+	uint64_t sleep_for_ms;//maybe change it to ns in the future
 	uint64_t quantum_ns;
 
 	uint64_t pid;
@@ -30,7 +32,7 @@ typedef struct thread_context_declared {
 	uint64_t misaligned_by;
 	uint64_t* current_rsp;
 	uint64_t current_misaligned_by;
-	uint64_t status[10];//RUNNING, READY, BLOCKED.//running flag isn't used for now. also this should probably be bool but oh well
+	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING.//running flag isn't used for now. also this should probably be bool but oh well
 	struct thread_context_declared* next_thread;
 
 } thread_context;
@@ -41,7 +43,7 @@ volatile extern thread_context* ready_queue;
 volatile extern thread_context* ready_queue_head;
 volatile extern thread_context* ready_queue_end;
 volatile extern thread_context* ready_queue_second_last;
-volatile extern thread_context** current_actual;
+// volatile extern thread_context** current_actual;
 volatile extern thread_context* running_thread;
 void init_scheduler(void);
 
@@ -50,7 +52,7 @@ void push_thread(thread_context* thread);
 thread_context* block_thread(uint64_t pid);//might run into issues if we recycle the pids later on. also not sure if i should search by thread context or pid
 //thread_context* block_by_pid(uint64_t* pid);
 void unblock_thread(thread_context* thread);
-void sleep_thread(uint64_t ms);
+thread_context* sleep_thread(uint64_t pid, uint64_t ms);
 void yield_thread();//not sure if you're supposed to yield current thread or yield a thread of your choosing
 thread_context* get_thread_by_pid(uint64_t pid);
 void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);

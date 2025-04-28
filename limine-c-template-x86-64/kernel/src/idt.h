@@ -66,6 +66,8 @@ void thread_handler(struct interrupt_frame* frame);
 
 void thread_interrupter_handler(struct interrupt_frame* frame);
 
+void thread_sleep_handler(struct interrupt_frame* frame);
+
 void page_fault_handler(struct interrupt_frame* frame);
 
 void gpf_handler(struct interrupt_frame* frame);

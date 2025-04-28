@@ -54,3 +54,7 @@ void kpass(size_t ms);
     while (1) {}                                                                \
     }                                                                          \
   } while (0)
+
+uint64_t read_flags();
+void irq_disable_save(bool *old_value);
+void irq_restore(bool *status);

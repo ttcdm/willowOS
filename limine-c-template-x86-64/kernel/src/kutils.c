@@ -57,3 +57,19 @@ void kprint_char(char c) {
     kprint(s);
 }
 
+
+//taken straight from mishakov
+uint64_t read_flags() {
+    uint64_t flags;
+    asm volatile ("pushf ; pop %0" : "=ro"(flags) :: "memory");
+    return flags;
+}
+  
+void irq_disable_save(bool *old_value) {
+    if (old_value) *old_value = read_flags() & (1 << 9); 
+    asm volatile ("cli");
+}
+
+void irq_restore(bool *status) {
+    if (!status || *status) asm volatile ("sti");
+}
