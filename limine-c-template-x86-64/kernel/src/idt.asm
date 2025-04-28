@@ -57,6 +57,7 @@ extern sleep_handler;maybe this should be a lower priority idk
 extern thread_handler
 extern thread_interrupter_handler
 extern thread_sleep_handler
+extern ps2_keyboard_handler
 
 
 isr_no_err_stub 0
@@ -191,8 +192,133 @@ isr_no_err_stub 125
 isr_no_err_stub 126
 isr_no_err_stub 127
 isr_no_err_stub 128
-
-
+isr_no_err_stub 129
+isr_no_err_stub 130
+isr_no_err_stub 131
+isr_no_err_stub 132
+isr_no_err_stub 133
+isr_no_err_stub 134
+isr_no_err_stub 135
+isr_no_err_stub 136
+isr_no_err_stub 137
+isr_no_err_stub 138
+isr_no_err_stub 139
+isr_no_err_stub 140
+isr_no_err_stub 141
+isr_no_err_stub 142
+isr_no_err_stub 143
+isr_no_err_stub 144
+isr_no_err_stub 145
+isr_no_err_stub 146
+isr_no_err_stub 147
+isr_no_err_stub 148
+isr_no_err_stub 149
+isr_no_err_stub 150
+isr_no_err_stub 151
+isr_no_err_stub 152
+isr_no_err_stub 153
+isr_no_err_stub 154
+isr_no_err_stub 155
+isr_no_err_stub 156
+isr_no_err_stub 157
+isr_no_err_stub 158
+isr_no_err_stub 159
+isr_no_err_stub 160
+isr_no_err_stub 161
+isr_no_err_stub 162
+isr_no_err_stub 163
+isr_no_err_stub 164
+isr_no_err_stub 165
+isr_no_err_stub 166
+isr_no_err_stub 167
+isr_no_err_stub 168
+isr_no_err_stub 169
+isr_no_err_stub 170
+isr_no_err_stub 171
+isr_no_err_stub 172
+isr_no_err_stub 173
+isr_no_err_stub 174
+isr_no_err_stub 175
+isr_no_err_stub 176
+isr_no_err_stub 177
+isr_no_err_stub 178
+isr_no_err_stub 179
+isr_no_err_stub 180
+isr_no_err_stub 181
+isr_no_err_stub 182
+isr_no_err_stub 183
+isr_no_err_stub 184
+isr_no_err_stub 185
+isr_no_err_stub 186
+isr_no_err_stub 187
+isr_no_err_stub 188
+isr_no_err_stub 189
+isr_no_err_stub 190
+isr_no_err_stub 191
+isr_no_err_stub 192
+isr_no_err_stub 193
+isr_no_err_stub 194
+isr_no_err_stub 195
+isr_no_err_stub 196
+isr_no_err_stub 197
+isr_no_err_stub 198
+isr_no_err_stub 199
+isr_no_err_stub 200
+isr_no_err_stub 201
+isr_no_err_stub 202
+isr_no_err_stub 203
+isr_no_err_stub 204
+isr_no_err_stub 205
+isr_no_err_stub 206
+isr_no_err_stub 207
+isr_no_err_stub 208
+isr_no_err_stub 209
+isr_no_err_stub 210
+isr_no_err_stub 211
+isr_no_err_stub 212
+isr_no_err_stub 213
+isr_no_err_stub 214
+isr_no_err_stub 215
+isr_no_err_stub 216
+isr_no_err_stub 217
+isr_no_err_stub 218
+isr_no_err_stub 219
+isr_no_err_stub 220
+isr_no_err_stub 221
+isr_no_err_stub 222
+isr_no_err_stub 223
+; isr_no_err_stub 224;used for ps/2 keyboard interrupt
+isr_no_err_stub 225
+isr_no_err_stub 226
+isr_no_err_stub 227
+isr_no_err_stub 228
+isr_no_err_stub 229
+isr_no_err_stub 230
+isr_no_err_stub 231
+isr_no_err_stub 232
+isr_no_err_stub 233
+isr_no_err_stub 234
+isr_no_err_stub 235
+isr_no_err_stub 236
+isr_no_err_stub 237
+isr_no_err_stub 238
+isr_no_err_stub 239
+isr_no_err_stub 240
+isr_no_err_stub 241
+isr_no_err_stub 242
+isr_no_err_stub 243
+isr_no_err_stub 244
+isr_no_err_stub 245
+isr_no_err_stub 246
+isr_no_err_stub 247
+isr_no_err_stub 248
+isr_no_err_stub 249
+isr_no_err_stub 250
+isr_no_err_stub 251
+isr_no_err_stub 252
+isr_no_err_stub 253
+isr_no_err_stub 254
+isr_no_err_stub 255
 
 
 isr_stub_13:
@@ -267,12 +393,21 @@ isr_stub_80:
     pop_reg
     iretq
 
+isr_stub_224:
+    push_reg
+    mov rdi, rsp
+    sub rsp, 8
+    call ps2_keyboard_handler
+    add rsp, 8
+    pop_reg
+    iretq
+
 
 
 global isr_stub_table
 isr_stub_table:
 %assign i 0 
-%rep    129;remember to adjust this for additional vectors
+%rep    256;remember to adjust this for additional vectors
     dq isr_stub_%+i ; use DQ instead if targeting 64-bit
 %assign i i+1 
 %endrep
