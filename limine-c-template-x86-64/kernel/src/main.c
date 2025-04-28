@@ -12,6 +12,7 @@
 #include <tsc.h>
 #include <hpet.h>
 #include <scheduler.h>
+#include <ioapic.h>
 
 #include <limine.h>
 
@@ -459,13 +460,15 @@ void kmain(void) {
 
 
 
-    init_scheduler();
+    // init_scheduler();
+
+    
     // kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
 
     // lapic_periodic(500, 64, 0b0011, 0);
 
 
-
+    init_ioapic();
 
     //asm volatile ("int $64");
 
