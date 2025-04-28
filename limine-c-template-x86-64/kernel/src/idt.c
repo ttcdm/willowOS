@@ -1,4 +1,4 @@
-#define IDT_MAX_DESCRIPTORS 200//make sure that you don't exeed 64 or something like that unless you raise this
+#define IDT_MAX_DESCRIPTORS 256//make sure that you don't exeed 64 or something like that unless you raise this
 #include <idt.h>
 #include <kutils.h>
 #include <apic.h>
@@ -121,6 +121,13 @@ void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a hi
 	// if (current_thread == NULL) return;
 }
 
+void ps2_keyboard_handler(struct interrupt_frame* frame) {
+    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;
+    kprintf_interruptable("keyboard interrupt\n");
+}
+
 
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
@@ -152,13 +159,13 @@ extern void* isr_stub_table[];
 
 void idt_init() {
     idtr.base = (uintptr_t)&idt[0];//codeium said to use (uint64_t)&idt[0];
-    idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
-
-    for (uint8_t vector = 0; vector < 129; vector++) {
+    idtr.limit = (uint32_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;//may cause an issue with it having -1 but idk
+    for (uint64_t vector = 0; vector < 256; vector++) {//HERE MUST USE A LARGER TYPE because it overflows and never actually hits 256
         idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
         vectors[vector] = true;
     }
-    //HERE not sure if i have to manuall set them for gpf and page faults as well since i did define them in idt.asm as separate things
+    
+    //HERE not sure if i have to manually set them for gpf and page faults as well since i did define them in idt.asm as separate things
 
     __asm__ volatile ("lidt %0" : : "m"(idtr)); // load the new IDT
     __asm__ volatile ("sti"); // set the interrupt flag

@@ -467,6 +467,8 @@ void kmain(void) {
 
     // lapic_periodic(500, 64, 0b0011, 0);
 
+    // asm volatile ("int $224");
+
 
     init_ioapic();
 
