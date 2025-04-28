@@ -96,6 +96,31 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     reschedule();
 }
 
+void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a higher priority
+    // asm volatile ("cli");
+    // kprintf_interruptable("HIHIHIHI");
+    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    *lapic_eoi = 0;
+    uint64_t tsc_time = tsc_read_ns();//could also be put inside the while loop but idk how to feel about calling the function so many times. i mean i guess there's a precision benefit but ehhh
+    volatile thread_context* current_thread = ready_queue_head;
+	while (current_thread) {
+        break;
+		if (tsc_time >= (current_thread->last_run_time + current_thread->sleep_for_ms) * 1000000) {
+            // current_thread->last_run_time = tsc_read_ns();
+            current_thread->sleep_for_ms = 0;
+            current_thread->status[4] = 0;
+            kprintf_interruptable("waking thread %d", current_thread->pid);
+            unblock_thread(current_thread);
+		}
+		current_thread = current_thread->next_thread;
+        if (current_thread == ready_queue_end) {//again, i'm not sure how the whole linked list works, so ready_queue_end might not even be the last node
+            break;
+        }
+	}
+	// if (current_thread == NULL) return;
+}
+
 
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
     kprintln("page fault occurred");
