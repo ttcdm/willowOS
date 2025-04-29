@@ -73,3 +73,15 @@ void irq_disable_save(bool *old_value) {
 void irq_restore(bool *status) {
     if (!status || *status) asm volatile ("sti");
 }
+
+char* scancode_to_string(uint8_t scancode) {
+    //since the uint8_t scancode can be represented in binary, we just shift it and mask part of it to grab the 4 bits we want
+    char h[] = "0123456789abcdef";
+    char str[4];
+    str[0] = '0';
+    str[1] = 'x';
+    str[2] = h[(scancode >> 4)];//high nibble
+    //str[3] = h[(scancode << 4) >> 4];//low nibble//still not exactly sure why this line causes the low nibble to get dropped
+    str[3] = h[(scancode & 0x0f)];//low nibble
+    str[4] = '\0';
+}

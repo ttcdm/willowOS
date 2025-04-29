@@ -8,7 +8,6 @@
 
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
-
 __attribute__((aligned(0x10)))
 static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for performance
 
@@ -124,10 +123,11 @@ void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a hi
 void ps2_keyboard_handler(struct interrupt_frame* frame) {
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    
+    // kprintf_interruptable("keyboard interrupt\n");
+    uint64_t scancode = inb(0x60);//MUST READ TO CLEAR OUTPUT BUFFER TO ALLOW NEXT OUTPUT (keystroke) for interrupt
+    kprintf_interruptable("%c", scancode_to_string(scancode));
     *lapic_eoi = 0;
-    volatile uint32_t* keyboard_clear = (uint32_t*) 0xfee000b0;
-    kprintf_interruptable("keyboard interrupt\n");
-    *keyboard_clear = (uint32_t) 0;
 }
 
 
