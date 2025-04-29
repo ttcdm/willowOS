@@ -471,6 +471,9 @@ void kmain(void) {
 
 
     init_ioapic();
+    while (1) {
+        asm volatile ("sti");
+    }
 
     //asm volatile ("int $64");
 

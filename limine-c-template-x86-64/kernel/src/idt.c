@@ -125,7 +125,9 @@ void ps2_keyboard_handler(struct interrupt_frame* frame) {
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
+    volatile uint32_t* keyboard_clear = (uint32_t*) 0xfee000b0;
     kprintf_interruptable("keyboard interrupt\n");
+    *keyboard_clear = (uint32_t) 0;
 }
 
 
