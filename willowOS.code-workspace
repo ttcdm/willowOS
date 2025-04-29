@@ -24,7 +24,8 @@
             "vmm.h": "c",
             "adtgen.h": "c",
             "stdatomic.h": "c",
-            "vcruntime_c11_stdatomic.h": "c"
+            "vcruntime_c11_stdatomic.h": "c",
+            "flanterm.h": "c"
         }
     }
 }

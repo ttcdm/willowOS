@@ -5,16 +5,16 @@ void init_ioapic(void) {
     //irq 1 is used for keyboard interrupts
     //chatgpt said that we just use 00 as xy for the ioapic registers' memory addresses
     
-    outb(0x20,0x11);
-    outb(0xA0,0x11);
-    outb(0x21,0x20);
-    outb(0xA1,0x28);
-    outb(0x21,0x2);
-    outb(0xA1,0x4);
-    outb(0x21,1);
-    outb(0xA1,1);
-    outb(0x21,0xFF);
-    outb(0xA1,0xFF);
+    // outb(0x20,0x11);
+    // outb(0xA0,0x11);
+    // outb(0x21,0x20);
+    // outb(0xA1,0x28);
+    // outb(0x21,0x2);
+    // outb(0xA1,0x4);
+    // outb(0x21,1);
+    // outb(0xA1,1);
+    // outb(0x21,0xFF);
+    // outb(0xA1,0xFF);
     volatile uint32_t* ioapic_base = (uint32_t*) 0xfec00000;
     map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ioapic_base, (uint64_t) ioapic_base, 0b11);//always remember to map devices and stuff since we're not kmalloc'ing
     volatile uint32_t* ioapic_ioregsel = (uint32_t*) (ioapic_base);
@@ -51,32 +51,4 @@ void init_ioapic(void) {
 
     *ioapic_ioregsel = 0x10 + (irq * 2);
     kprintf("%b\n", *keyboard_redtbl_low);
-
-    // outb(0x21, 0xFF); // Master PIC mask all
-    // outb(0xA1, 0xFF); // Slave PIC mask all
-
-    // while (inb(0x64) & 0x01) {
-    //     inb(0x60);
-    // }
-
-    outb(0x64, 0xAD); // Disable first PS/2 port (keyboard)
-outb(0x64, 0xA7); // Disable second PS/2 port (mouse, optional)
-
-// Tell controller: "Send me your config byte"
-outb(0x64, 0x20); // Command: Read Controller Configuration Byte
-uint8_t config = inb(0x60);
-
-// Now, modify it:
-// Enable IRQ1 (keyboard interrupt), disable translation
-config |= 0x01;  // Enable IRQ1 (bit 0)
-config &= ~0x40; // Clear translation bit (bit 6)
-
-// Write modified config byte back
-outb(0x64, 0x60); // Command: Write Controller Configuration Byte
-outb(0x60, config);
-
-outb(0x64, 0xAE); // Enable first PS/2 port (keyboard)
-
-    
-
 }

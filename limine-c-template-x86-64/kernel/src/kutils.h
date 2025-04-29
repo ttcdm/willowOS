@@ -58,3 +58,5 @@ void kpass(size_t ms);
 uint64_t read_flags();
 void irq_disable_save(bool *old_value);
 void irq_restore(bool *status);
+
+char* scancode_to_string(uint8_t scancode);

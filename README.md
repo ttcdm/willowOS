@@ -26,6 +26,7 @@ make run
 ### Credits:<br>
 https://github.com/limine-bootloader/limine-c-template-x86-64<br>
 https://github.com/mintsuki/flanterm<br>
+https://github.com/charlesnicholson/nanoprintf<br>
 
 ### Bootloader development is paused for now as Limine is now used as the bootloader
 

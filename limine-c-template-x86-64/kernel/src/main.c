@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include <keyboard.h>
+// #include <keyboard.h>//don't include keyboard.h as we have duplicate functions
 #include <gdt.h>
 #include <idt.h>
 #include <kutils.h>
