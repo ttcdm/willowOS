@@ -123,10 +123,9 @@ void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a hi
 void ps2_keyboard_handler(struct interrupt_frame* frame) {
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-    
-    // kprintf_interruptable("keyboard interrupt\n");
     uint64_t scancode = inb(0x60);//MUST READ TO CLEAR OUTPUT BUFFER TO ALLOW NEXT OUTPUT (keystroke) for interrupt
-    kprintf_interruptable("%c", scancode_to_string(scancode));
+    is_lshift(scancode);
+    print_kb(scancode);
     *lapic_eoi = 0;
 }
 

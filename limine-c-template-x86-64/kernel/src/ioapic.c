@@ -48,7 +48,6 @@ void init_ioapic(void) {
     *ioapic_ioregsel = 0x10 + (irq * 2) + 1;//we only incrememnt by 1 because it's an index and not the actual address
     volatile uint32_t* keyboard_redtbl_high = (uint32_t*) (ioapic_iowin);
     *keyboard_redtbl_high = (keyboard_redtbl.destination << 24);//we shift left because msb is on the left hand side
-
-    *ioapic_ioregsel = 0x10 + (irq * 2);
-    kprintf("%b\n", *keyboard_redtbl_low);
+    
+    uint8_t status = inb(0x64);
 }
