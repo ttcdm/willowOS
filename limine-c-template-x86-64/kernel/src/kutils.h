@@ -59,4 +59,18 @@ uint64_t read_flags();
 void irq_disable_save(bool *old_value);
 void irq_restore(bool *status);
 
+
+//these are all just taken from keyboard.h but slightly changed
+
+extern const char scanmap_set1[128];
+extern const char scanmap_set1_upper[128];
+
 char* scancode_to_string(uint8_t scancode);
+
+uint8_t get_key();//chatgpt generated. try to rewrite in the future if possible
+
+uint8_t get_kb_status();
+
+bool is_lshift(uint8_t scancode);
+
+void print_kb(uint8_t scancode);
