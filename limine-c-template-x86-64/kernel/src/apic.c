@@ -3,6 +3,8 @@
 #include <hpet.h>
 
 #include "uacpi/tables.h"
+#include "uacpi/kernel_api.h"
+#include "uacpi/uacpi.h"
 
 void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
@@ -135,24 +137,12 @@ static void parse_sdt(const struct SDTHeader *pSDT) {
     if (match == 1) {
         // ACPI_MADT = (const void*)pSDT;
         // uacpi_acpi_madt = kmalloc_byte(4096);//hopefully this name isn't taken by something else
-        uint64_t o = (uint64_t) uacpi_acpi_madt;
         // uacpi_acpi_madt += 56*16;//struct table {phys_addr; acpi_sdt_hdr; *ptr}
         // uacpi_acpi_madt += sizeof(struct SDTHeader);
         // uacpi_acpi_madt += sizeof()
         // uacpi_acpi_madt += 2 * 56;
         // uacpi_acpi_madt += sizeof(uint64_t);
-        for (size_t i = -3; i < 73; i++) {
-            uacpi_acpi_madt = (uint64_t*) (o + (sizeof(struct uacpi_installed_table) * i));
-            // map_page((uint64_t*) pml4_address_virt_glob, ((struct uacpi_installed_table*) uacpi_acpi_madt)->phys_addr, (uint64_t) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr), 0b11);
-            // ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
-            for (int j = 0; j < 4; j++) {
-                kprintf("%c", ((struct uacpi_installed_table*) uacpi_acpi_madt)->hdr.signature[i]);
-            }
-            kprintf(" ");
-            if (((struct uacpi_installed_table*) uacpi_acpi_madt)->hdr.signature == "APIC") {
-                ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
-            }
-        }
+
         // ACPI_MADT = (struct MADT*) ((struct uacpi_installed_table*) uacpi_acpi_madt)->hdr;
         // kprint("apic found. lapic address: ");
         // kprintln_uint64((uint64_t)(ACPI_MADT->lapic_addr));
@@ -208,13 +198,36 @@ void acpi_parse_rsdp(const void* pRSDP) {
 }
 
 void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
-    uacpi_acpi_madt = kmalloc_byte(4096);
-    uacpi_setup_early_table_access(uacpi_acpi_madt, 4096);
+
     uint64_t rsdp_phys_addr = get_rsdp_physical_address();
     kprint("rsdp physical address: ");
     kprintln_uint64(rsdp_phys_addr);
     uint64_t rsdp_virt_addr = rsdp_phys_addr;
     map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    
+    uacpi_acpi_madt = kmalloc_byte(4096);
+    uacpi_setup_early_table_access(uacpi_acpi_madt, 4096);
+    uint64_t o = (uint64_t) uacpi_acpi_madt;
+
+    for (size_t i = 0; i < 73; i++) {
+        o = ((uint64_t)uacpi_acpi_madt + (sizeof(struct uacpi_installed_table) * i));
+        // map_page((uint64_t*) pml4_address_virt_glob, ((struct uacpi_installed_table*) uacpi_acpi_madt)->phys_addr, (uint64_t) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr), 0b11);
+        // ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
+        for (int j = 0; j < 4; j++) {
+            kprintf("%d", ((struct uacpi_installed_table*) o)->hdr.signature[i]);
+        }
+        // kprintf(" ");
+        if (((struct uacpi_installed_table*) o)->hdr.signature == "APIC") {
+            // ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
+        }
+    }
+
+    struct uacpi_table* ut;
+    // uacpi_table_find_by_signature("APIC", ut);
+    uacpi_table_find((uacpi_table_identifiers*) ("BOCHS"), ut);
+    kprintf("%llu", ut->ptr);
+    ACPI_MADT = (struct MADT*) ut;
+
     acpi_parse_rsdp((void*)(rsdp_virt_addr));
     
     //may need to map msr but idk

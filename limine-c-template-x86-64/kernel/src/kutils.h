@@ -5,6 +5,8 @@
 
 #include <limine.h>
 
+#include <apic.h>
+
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
 

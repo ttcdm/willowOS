@@ -33,7 +33,7 @@
 // }
 
 uacpi_status uacpi_kernel_get_rsdp(uacpi_phys_addr *out_rsdp_address) {
-    *out_rsdp_address = get_rsdp_physical_address();
+    *out_rsdp_address = (uint64_t) get_rsdp_physical_address();
 }
 
 void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this works
@@ -47,8 +47,9 @@ void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this wor
     }
     uint64_t size = (up-down) / 4096;
     for (size_t i = 0; i < size; i++) {
-        map_page((uint64_t*) pml4_address_virt_glob, down + (i * 4096), down + (i * 4096) + hhdm_offset, 0b11);//identity map it i guess
+        map_page((uint64_t*) pml4_address_virt_glob, down + (i * 4096), down + (i * 4096), 0b11);//identity map it i guess
     }
+    return (void*) up+len;
 }
 
 void uacpi_kernel_unmap(void *addr, uacpi_size len) {
