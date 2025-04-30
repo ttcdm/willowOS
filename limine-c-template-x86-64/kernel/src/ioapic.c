@@ -1,5 +1,9 @@
 #include <ioapic.h>
 
+#include <uacpi/uacpi.h>
+#include <uacpi/event.h>
+#include <uacpi/tables.h>
+
 void init_ioapic(void) {
     //we only set up for ps/2 keyboard for now
     //irq 1 is used for keyboard interrupts
@@ -50,4 +54,9 @@ void init_ioapic(void) {
     *keyboard_redtbl_high = (keyboard_redtbl.destination << 24);//we shift left because msb is on the left hand side
     
     uint8_t status = inb(0x64);
+
+    // uacpi_kernel_init();//uacpi doesn't work and idk why. it keeps on saying undefined reference to function
+
 }
+
+

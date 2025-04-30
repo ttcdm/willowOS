@@ -9,6 +9,8 @@
 #include <apic.h>
 #include <paging.h>
 
+
+
 typedef struct ioapic_reg_declared {
     uint8_t vector;
     // unsigned short delivery_mode;

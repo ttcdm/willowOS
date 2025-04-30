@@ -27,7 +27,15 @@
             "vcruntime_c11_stdatomic.h": "c",
             "flanterm.h": "c",
             "iosfwd": "c",
-            "xlocbuf": "c"
+            "xlocbuf": "c",
+            "span": "c",
+            "xstring": "c",
+            "xutility": "c",
+            "xlocale": "c",
+            "uacpi.h": "c",
+            "tables.h": "c",
+            "stdint.h": "c",
+            "event.h": "c"
         }
     }
 }
