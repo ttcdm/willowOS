@@ -8,6 +8,7 @@
 #include <kutils.h>
 #include <apic.h>
 #include <paging.h>
+#include <vmm.h>
 
 
 
@@ -31,3 +32,5 @@ typedef struct ioapic_reg_declared {
 } ioapic_reg_t;
 
 void init_ioapic(void);
+
+void *find_ioapic(void);

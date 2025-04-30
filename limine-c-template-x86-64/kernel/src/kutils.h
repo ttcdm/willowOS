@@ -74,3 +74,5 @@ uint8_t get_kb_status();
 bool is_lshift(uint8_t scancode);
 
 void print_kb(uint8_t scancode);
+
+uint64_t get_rsdp_physical_address();

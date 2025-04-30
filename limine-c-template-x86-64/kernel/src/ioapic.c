@@ -1,8 +1,9 @@
 #include <ioapic.h>
 
-#include <uacpi/uacpi.h>
+#include <uacpi/uacpi.h>//only include inside the c files i think
 #include <uacpi/event.h>
 #include <uacpi/tables.h>
+#include <uacpi/acpi.h>
 
 void init_ioapic(void) {
     //we only set up for ps/2 keyboard for now
@@ -55,8 +56,29 @@ void init_ioapic(void) {
     
     uint8_t status = inb(0x64);
 
-    // uacpi_kernel_init();//uacpi doesn't work and idk why. it keeps on saying undefined reference to function
+    // uint64_t* a = find_ioapic();
+    // kprintf("%x", a);
 
 }
 
+void *find_ioapic(void) {
+    // uint64_t* aa = kmalloc_byte(4096);
+    // uacpi_setup_early_table_access(aa, 4096);
+    // struct MADT *madt = (struct MADT *)uacpi_get_table("APIC", 0);
+    // uint8_t *ptr = (uint8_t *)madt->records;
+    // uint8_t *end = (uint8_t *)madt + madt->h.length;
+
+    // while (ptr < end) {
+    //     struct MADTEntryHeader *hdr = (struct MADTEntryHeader *)ptr;
+
+    //     if (hdr->type == 1 && hdr->length >= sizeof(struct MADTIOAPIC)) {
+    //         struct MADTIOAPIC *io = (struct MADTIOAPIC *)ptr;
+    //         return uacpi_kernel_map(io->address, 0x20); // map 32 bytes
+    //     }
+
+    //     ptr += hdr->length;
+    // }
+
+    // return NULL; // not found
+}
 
