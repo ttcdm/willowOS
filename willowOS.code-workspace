@@ -35,7 +35,8 @@
             "uacpi.h": "c",
             "tables.h": "c",
             "stdint.h": "c",
-            "event.h": "c"
+            "event.h": "c",
+            "kernel_api.h": "c"
         }
     }
 }
