@@ -34,6 +34,8 @@ void init_ap_lapic(void);
 
 void acpi_parse_rsdp(const void *pRSDP);
 
+void uacpi_init(void);
+
 void init_mp(struct limine_mp_request* );
 
 extern const struct MADT* ACPI_MADT;//HERE

@@ -5,6 +5,7 @@
 #include "uacpi/tables.h"
 #include "uacpi/kernel_api.h"
 #include "uacpi/uacpi.h"
+#include "uacpi/acpi.h"
 
 void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
@@ -104,21 +105,7 @@ static void validate_xsdp(const struct XSDP *pXSDP) {
     //if (checksum) panic("Invalid XSDP. Expected 0, got %u\n", checksum);
     if (checksum) { kprint("Invalid XSDP. Expected 0, got "); kprintln_uint64(checksum); }
 }
-struct uacpi_installed_table {
-    uacpi_phys_addr phys_addr;
-    struct SDTHeader hdr;
-    void *ptr;
 
-    uacpi_u16 reference_count;
-
-#define UACPI_TABLE_LOADED (1 << 0)
-#define UACPI_TABLE_CSUM_VERIFIED (1 << 1)
-#define UACPI_TABLE_INVALID (1 << 2)
-    uacpi_u8 flags;
-    uacpi_u8 origin;
-};
-
-uint64_t* uacpi_acpi_madt;
 static void parse_sdt(const struct SDTHeader *pSDT) {
     validate_sdt(pSDT);
     kprint("sdt signature: ");
@@ -135,17 +122,9 @@ static void parse_sdt(const struct SDTHeader *pSDT) {
         }
     }
     if (match == 1) {
-        // ACPI_MADT = (const void*)pSDT;
-        // uacpi_acpi_madt = kmalloc_byte(4096);//hopefully this name isn't taken by something else
-        // uacpi_acpi_madt += 56*16;//struct table {phys_addr; acpi_sdt_hdr; *ptr}
-        // uacpi_acpi_madt += sizeof(struct SDTHeader);
-        // uacpi_acpi_madt += sizeof()
-        // uacpi_acpi_madt += 2 * 56;
-        // uacpi_acpi_madt += sizeof(uint64_t);
-
-        // ACPI_MADT = (struct MADT*) ((struct uacpi_installed_table*) uacpi_acpi_madt)->hdr;
-        // kprint("apic found. lapic address: ");
-        // kprintln_uint64((uint64_t)(ACPI_MADT->lapic_addr));
+        ACPI_MADT = (const void*)pSDT;
+        kprint("apic found. lapic address: ");
+        kprintln_uint64((uint64_t)(ACPI_MADT->lapic_addr));
     }
     match = 1;
     char* hpet_s = "HPET";
@@ -197,38 +176,33 @@ void acpi_parse_rsdp(const void* pRSDP) {
     }
 }
 
+void uacpi_init() {
+    // uint64_t* ts = kmalloc_byte(4096);//don't kmalloc here because test_memory() has hardcoded addresses or something idk
+    char ts[4096];
+    uacpi_setup_early_table_access(ts, 4096);
+    struct uacpi_table uacpi_madt;
+    uacpi_table_find_by_signature("APIC", &uacpi_madt);
+    ACPI_MADT = uacpi_madt.ptr;
+    kprintf("uacpi lapic addr: %llu\n", ACPI_MADT->lapic_addr);
+    struct uacpi_table uacpi_hpet;
+    uacpi_table_find_by_signature("HPET", &uacpi_hpet);
+    ACPI_HPET = uacpi_hpet.ptr;
+    kprintf("hpet register block address %llu\n", ACPI_HPET->address.address);
+}
+
 void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
 
-    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
-    kprint("rsdp physical address: ");
-    kprintln_uint64(rsdp_phys_addr);
-    uint64_t rsdp_virt_addr = rsdp_phys_addr;
-    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    // uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    // kprint("rsdp physical address: ");
+    // kprintln_uint64(rsdp_phys_addr);
+    // uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    // map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+
+    uacpi_init();
+
+
+    // acpi_parse_rsdp((void*)(rsdp_virt_addr));//HERE we use uacpi now instead
     
-    uacpi_acpi_madt = kmalloc_byte(4096);
-    uacpi_setup_early_table_access(uacpi_acpi_madt, 4096);
-    uint64_t o = (uint64_t) uacpi_acpi_madt;
-
-    for (size_t i = 0; i < 73; i++) {
-        o = ((uint64_t)uacpi_acpi_madt + (sizeof(struct uacpi_installed_table) * i));
-        // map_page((uint64_t*) pml4_address_virt_glob, ((struct uacpi_installed_table*) uacpi_acpi_madt)->phys_addr, (uint64_t) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr), 0b11);
-        // ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
-        for (int j = 0; j < 4; j++) {
-            kprintf("%d", ((struct uacpi_installed_table*) o)->hdr.signature[i]);
-        }
-        // kprintf(" ");
-        if (((struct uacpi_installed_table*) o)->hdr.signature == "APIC") {
-            // ACPI_MADT = (struct MADT *) (((struct uacpi_installed_table*) uacpi_acpi_madt)->ptr);
-        }
-    }
-
-    struct uacpi_table* ut;
-    // uacpi_table_find_by_signature("APIC", ut);
-    uacpi_table_find((uacpi_table_identifiers*) ("BOCHS"), ut);
-    kprintf("%llu", ut->ptr);
-    ACPI_MADT = (struct MADT*) ut;
-
-    acpi_parse_rsdp((void*)(rsdp_virt_addr));
     
     //may need to map msr but idk
     uint32_t msr_high;
@@ -301,9 +275,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
     kprint(" divider: ");
     kprintln_uint64(16);
-    *lapic_initial_count = UINT32_MAX;
-
-
+    *lapic_initial_count = 0;
 }
 
 
@@ -323,17 +295,17 @@ void init_mp(struct limine_mp_request* mp_request) {
         a[i]->goto_address = ap_start_address;
         kpass(1000);//HERE need to wait for the ap to initialize because of shared global variables. gonna implement a spinlock and a sync thing later and a better wait system
     }
-
-
 }
 
 void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole timer thing calculation thing. we only set the already calculated values here
-    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
-    kprint("rsdp physical address: ");
-    kprintln_uint64(rsdp_phys_addr);
-    uint64_t rsdp_virt_addr = rsdp_phys_addr;
-    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
-    acpi_parse_rsdp((void*)(rsdp_virt_addr));
+    // uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    // kprint("rsdp physical address: ");
+    // kprintln_uint64(rsdp_phys_addr);
+    // uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    // map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    // acpi_parse_rsdp((void*)(rsdp_virt_addr));//HERE we use uacpi now instead
+
+    uacpi_init();
     
     //may need to map msr but idk
     uint32_t msr_high;
@@ -398,7 +370,6 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
     kprint(" divider: ");
     kprintln_uint64(16);
-    *lapic_initial_count = UINT32_MAX;
+    *lapic_initial_count = 0;
     kprintln("local apic enabled");
 }
-

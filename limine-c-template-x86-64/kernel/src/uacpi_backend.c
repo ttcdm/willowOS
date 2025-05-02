@@ -6,6 +6,7 @@
 
 #include <kutils.h>
 #include <paging.h>
+#include <vmm.h>
 
 #include "uacpi/uacpi.h"
 #include "uacpi/kernel_api.h"
@@ -33,7 +34,9 @@
 // }
 
 uacpi_status uacpi_kernel_get_rsdp(uacpi_phys_addr *out_rsdp_address) {
-    *out_rsdp_address = (uint64_t) get_rsdp_physical_address();
+    *out_rsdp_address = (uint64_t*) get_rsdp_physical_address();
+    kprintf("rsdp physical address: %llu\n", *out_rsdp_address);
+    return UACPI_STATUS_OK;//ALWAYS ALWAYS ALWAYS REMEMBER TO RETURN A VALUE IF. IF YOU'RE NOT SURE GO CHECK PLEASEEEEEEEE
 }
 
 void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this works
@@ -49,13 +52,14 @@ void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this wor
     for (size_t i = 0; i < size; i++) {
         map_page((uint64_t*) pml4_address_virt_glob, down + (i * 4096), down + (i * 4096), 0b11);//identity map it i guess
     }
-    return (void*) up+len;
+    return (void*) (addr);
+    // return kmalloc_byte(up-down);
 }
 
 void uacpi_kernel_unmap(void *addr, uacpi_size len) {
-    kprintf("\n\x1b[31mUACPI: unmap not implemented yet\x1b[0m\n");
+    kprintf("\x1b[31mUACPI: unmap not implemented yet\x1b[0m\n");
 }
 
 void uacpi_kernel_log(uacpi_log_level level, const uacpi_char* c) {
-    kprintf("\nUACPI: level: %d code: %c\n", level, c);
+    kprintf("UACPI: level: %d code: %c\n", level, *c);
 }
