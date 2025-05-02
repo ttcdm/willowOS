@@ -53,7 +53,6 @@ void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this wor
         map_page((uint64_t*) pml4_address_virt_glob, down + (i * 4096), down + (i * 4096), 0b11);//identity map it i guess
     }
     return (void*) (addr);
-    // return kmalloc_byte(up-down);
 }
 
 void uacpi_kernel_unmap(void *addr, uacpi_size len) {

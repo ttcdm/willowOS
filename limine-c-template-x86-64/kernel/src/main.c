@@ -449,7 +449,7 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    init_mp(&mp_request);
+    // init_mp(&mp_request);
 
     // hpet is initialized inside init_bsp_lapic();
 
