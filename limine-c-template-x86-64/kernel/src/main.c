@@ -347,6 +347,7 @@ void test_memory() {//mini test
 		kprintln("memory test failed");
         print_heap(10);
     }
+    // kfree(x);
 }
 
 
@@ -448,7 +449,7 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    // init_mp(&mp_request);
+    init_mp(&mp_request);
 
     // hpet is initialized inside init_bsp_lapic();
 
@@ -471,9 +472,10 @@ void kmain(void) {
 
 
     init_ioapic();
-    while (1) {
-        asm volatile ("sti");
-    }
+
+    // while (1) {
+    //     asm volatile ("sti");
+    // }
 
     //asm volatile ("int $64");
 
@@ -502,6 +504,7 @@ void start_ap() {//remember to not call any non processor specific init function
     load_tss();
 
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
+    // pic_disable();//there's only one pic for the entire system i think so no need to call again
     init_ap_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
     volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
     // *lapic_svr &= ~0x100;//disable lapic
