@@ -13,6 +13,7 @@
 #include <hpet.h>
 #include <scheduler.h>
 #include <ioapic.h>
+#include <vfs.h>
 
 #include <limine.h>
 
@@ -472,6 +473,8 @@ void kmain(void) {
 
 
     init_ioapic();
+
+    init_vfs();
 
     // while (1) {
     //     asm volatile ("sti");
