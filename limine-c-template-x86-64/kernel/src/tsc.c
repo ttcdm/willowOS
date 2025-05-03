@@ -17,6 +17,10 @@ uint64_t tsc_read() { return rdtsc(); }
 
 uint64_t tsc_read_ns() { return tsc_ticks_to_ns(tsc_read()); }
 
+uint64_t tsc_read_ms() {return tsc_read_ns() / 1000000; }
+
+uint64_t tsc_read_s() {return tsc_read_ms() / 1000; }
+
 uint64_t tsc_ns_to_ticks(uint64_t time) { return tsc_freq * time / ONE_SECOND; }
 
 uint64_t tsc_ticks_to_ns(uint64_t ticks) {

@@ -158,3 +158,10 @@ void print_kb(uint8_t scancode) {//not sure if this should be static. has a quir
         kprintf("%c", c[0]);
     }
 }
+
+char* strncpy(char* s1, char* s2, size_t n) {//taken straight from glibc
+    size_t size = kstrlen(s2, n);
+    if (size != n)
+      memset(s1 + size, '\0', n - size);
+    return memcpy (s1, s2, size);
+}

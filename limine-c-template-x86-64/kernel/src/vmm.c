@@ -116,6 +116,8 @@ uint64_t* kmalloc(uint64_t size) {
                 current->alloc_length = size;//size of allocated memory
 				// kprint("allocated heap at index: ");
                 // kprintln_uint64(index);
+
+                kprintf_interruptable("allocated heap at index: %llu\n", index);
                 
                 
                 // asm volatile ("sti");
@@ -147,6 +149,7 @@ void kfree(uint64_t* virt_address) {
     // kprint_uint64(alloc_length_node);
     // kprint(" starting index: ");
     // kprintln_uint64(index);
+    kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
     asm volatile ("sti");
 }
 
@@ -169,6 +172,7 @@ void kfree_interruptable(uint64_t* virt_address) {
     // kprint(" starting index: ");
     // kprintln_uint64(index);
     // asm volatile ("sti");
+    kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
 }
 
 

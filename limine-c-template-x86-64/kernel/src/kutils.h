@@ -13,7 +13,7 @@
 // #include <stdatomic.h>
 
 
-
+//the actual definitions of these functions are kinda scattered all over the place since i'm using this header file as a main link to expose util stuff
 
 
 
@@ -78,3 +78,5 @@ bool is_lshift(uint8_t scancode);
 void print_kb(uint8_t scancode);
 
 uint64_t get_rsdp_physical_address();
+
+char* strncpy(char* dest, char* source, size_t num);
