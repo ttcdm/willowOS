@@ -1,6 +1,6 @@
 #include <vfs.h>
 
-
+void init_vfs() {}
 void fopen() {}
 void fread() {}
 void fwrite() {}

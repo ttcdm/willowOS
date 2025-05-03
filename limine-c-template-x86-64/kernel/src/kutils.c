@@ -160,7 +160,7 @@ void print_kb(uint8_t scancode) {//not sure if this should be static. has a quir
 }
 
 char* strncpy(char* s1, char* s2, size_t n) {//taken straight from glibc
-    size_t size = kstrlen(s2, n);
+    size_t size = kstrlen(s2);//not sure if it handles something without null terminating char
     if (size != n)
       memset(s1 + size, '\0', n - size);
     return memcpy (s1, s2, size);

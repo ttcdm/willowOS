@@ -34,7 +34,7 @@
 // }
 
 uacpi_status uacpi_kernel_get_rsdp(uacpi_phys_addr *out_rsdp_address) {
-    *out_rsdp_address = (uint64_t*) get_rsdp_physical_address();
+    *out_rsdp_address = (uint64_t) get_rsdp_physical_address();
     kprintf("rsdp physical address: %llu\n", *out_rsdp_address);
     return UACPI_STATUS_OK;//ALWAYS ALWAYS ALWAYS REMEMBER TO RETURN A VALUE IF. IF YOU'RE NOT SURE GO CHECK PLEASEEEEEEEE
 }
