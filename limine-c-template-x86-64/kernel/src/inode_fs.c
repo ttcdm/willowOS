@@ -1,8 +1,8 @@
 #include <inode_fs.h>
 
-void init_vfs() {
+void init_inode_fs() {
     // create_file();
-    inode_t* root_inode = kmalloc_byte(sizeof(inode_t));
+    inode_t* root_inode = (inode_t*) kmalloc_byte(sizeof(inode_t));
     root_inode->header.permissions[0] = 'r';
     root_inode->header.permissions[1] = 'w';
     root_inode->header.permissions[2] = 'x';
@@ -18,7 +18,7 @@ void init_vfs() {
 
 //these function names are just taken from the paper
 inode_t* create_file(inode_t* directory_inode, char* name, uint64_t size) {
-    inode_t* file_inode = kmalloc_byte(sizeof(inode_t));
+    inode_t* file_inode = (inode_t*) kmalloc_byte(sizeof(inode_t));
     file_inode->header.permissions[0] = 'r';
     file_inode->header.permissions[1] = 'w';
     file_inode->header.permissions[2] = 'x';

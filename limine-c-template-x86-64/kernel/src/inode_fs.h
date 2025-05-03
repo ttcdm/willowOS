@@ -31,6 +31,6 @@ typedef struct inode {//maybe void is better than uint64_t in this case
     void*** indirect_pointer1;
     void**** indirect_pointer2;
     void* next_free_entry;//not sure if i should just put the raw address here instead
-} inode_t
+} inode_t;
 
-void init_vfs(void);
+void init_inode_fs(void);
