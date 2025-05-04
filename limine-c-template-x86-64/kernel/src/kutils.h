@@ -80,3 +80,4 @@ void print_kb(uint8_t scancode);
 uint64_t get_rsdp_physical_address();
 
 char* strncpy(char* dest, char* source, size_t num);
+int strcmp (const char *p1, const char *p2);
