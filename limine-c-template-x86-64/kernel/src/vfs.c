@@ -18,10 +18,10 @@ void init_tmpfs() {
     tmpfs_list_files(test_dir_1);
     tmpfs_file_t* test_file_1 = tmpfs_create_file(test_dir_1, "test file 1", 1000);
     tmpfs_list_files(test_dir_1);
-    tmpfs_file_t* test_dir_2 = tmpfs_create_directory(test_dir_1, "test dir 2");
+    tmpfs_directory_t* test_dir_2 = tmpfs_create_directory(test_dir_1, "test dir 2");
     tmpfs_list_files(test_dir_1);
     tmpfs_create_file(test_dir_2, "test file 2", 1000);
-    tmpfs_delete_directory(test_dir_1, "test dir 2");
+    tmpfs_delete_directory_no_orphan(test_dir_1, "test dir 2");
     tmpfs_list_files(test_dir_1);
     for (int i = 0; i < 3; i++) {
         // tmpfs_create_file(test_dir_1, "test file", 4096);
@@ -102,7 +102,7 @@ void tmpfs_delete_file(tmpfs_directory_t* dir, char* name) {//recursive search
             return;
         }
         else if ((((tmpfs_header_t*) dir->files[i])->type == 1)) {
-            tmpfs_delete_file(((tmpfs_directory_t*) dir->files[i]), name);
+            // tmpfs_delete_file(((tmpfs_directory_t*) dir->files[i]), name);//we don't recursively search for file to delete. only the stuff inside the current directory
         }
     }
     kprintf("tmpfs_delete_file(): file not found\n");
@@ -118,13 +118,37 @@ void tmpfs_delete_directory(tmpfs_directory_t* dir, char* name) {//we orphan the
             return;
         }
         else if ((((tmpfs_header_t*) dir->files[i])->type == 1) && (strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {
-            tmpfs_delete_file(((tmpfs_directory_t*) dir->files[i]), name);
+            // tmpfs_delete_directory(((tmpfs_directory_t*) dir->files[i]), name);//we don't recursively search for file. only the stuff inside the current directory
         }
     }
     kprintf("tmpfs_delete_directory(): directory not found\n");
 }
+
+void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name) {//we orphan the files ig. also, if we do end up not doing a root dir pointer, i'm not actually sure how you would delete it with this function since you don't have a parent directory to parse through
+    for (int i = 0; i < TMPFS_MAX_FILES; i++) {
+        if (dir->files[i] == NULL) {continue;}
+        //if the names are the same and if it isn't null and if its type is a directory
+        if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 1)) {//we cast to header and not file because it could be either a file or a directory
+            for (int j = 0; j < TMPFS_MAX_FILES; j++) {
+                if (((tmpfs_directory_t*) dir->files[i])->files[j] != NULL) {
+                    //HERE remember to add recursive deletion since this only deletes the files in the current directory
+                    kfree(((tmpfs_directory_t*) dir->files[i])->files[j]);
+                }
+            }
+            kfree(dir->files[i]);
+            dir->files[i] = NULL;
+            dir->probably_next_free_entry_index--;
+            return;
+        }
+        else if ((((tmpfs_header_t*) dir->files[i])->type == 1) && (strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {
+            tmpfs_delete_directory(((tmpfs_directory_t*) dir->files[i]), name);//we don't recursively search for file. only the stuff inside the current directory
+        }
+    }
+    kprintf("tmpfs_delete_directory(): directory not found\n");
+}
+
 void tmpfs_list_files(tmpfs_directory_t* dir) {//remember that it's files and not file. also maybe make this list directoreis as well?
-    kprintf("---\n");
+    kprintf("-%s-\n", dir->header.name);
     for (int i = 0; i < TMPFS_MAX_FILES; i++) {
         if (dir->files[i] != NULL) {
             //remember to add file size as well
@@ -133,7 +157,9 @@ void tmpfs_list_files(tmpfs_directory_t* dir) {//remember that it's files and no
     }
     kprintf("---\n");
 }
-void tmpfs_write_to_file(tmpfs_file_t* file, char* msg, uint64_t size) {}//these should probably support fopen fseek ftell and such
+void tmpfs_write_to_file(tmpfs_file_t* file, char* msg, uint64_t size) {//these should probably support fopen fseek ftell and such
+    // wri
+}
 void tmpfs_read_from_file(tmpfs_file_t* file, char* msg, uint64_t size) {}
 
 

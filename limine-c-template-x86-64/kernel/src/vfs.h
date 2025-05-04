@@ -38,6 +38,8 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size);//poi
 void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name);
 void tmpfs_delete_file(tmpfs_directory_t* dir, char* name);
 void tmpfs_delete_directory(tmpfs_directory_t* dir, char* name);
+void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name);
+
 void tmpfs_list_files(tmpfs_directory_t* dir);//remember that it's files and not file. also maybe make this list directoreis as well?
 void tmpfs_write_to_file(tmpfs_file_t* file, char* msg, uint64_t size);//these should probably support fopen fseek ftell and such
 void tmpfs_read_from_file(tmpfs_file_t* file, char* msg, uint64_t size);
