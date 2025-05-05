@@ -1,12 +1,39 @@
 #include <vfs.h>
 
 void init_vfs() {
-    init_tmpfs();
+    // init_tmpfs();
+
+    vfs_t* tmpfs = (vfs_t*) kmalloc_byte(sizeof(vfs_t));//place inside init_tmpfs() and have it return this
+    vfs_ops_t* tmpfs_ops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
+    vnode_ops_t* tmpfs_vnode_ops = (vnode_ops_t*) kmalloc_byte(sizeof(vnode_ops_t));
+    tmpfs_vnode_ops->vnode_mkdir = tmpfs_create_directory;
+    tmpfs_vnode_ops->vnode_create = tmpfs_create_file;
+    tmpfs_vnode_ops->vnode_rmdir = tmpfs_delete_directory;
+    tmpfs_vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
+    tmpfs_vnode_ops->vnode_remove = tmpfs_delete_file;
+    tmpfs->vfs_ops = tmpfs_ops;
+    vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
+    tmpfs_root_vnode->vnode_data;
+
+
 }
 void init_tmpfs() {
     //we load stuff from ustar and we just parse it and create our own custom filesystem
     tmpfs_directory_t* root_dir_pointer = (tmpfs_directory_t*) kmalloc_byte(sizeof(tmpfs_directory_t));
     tmpfs_directory_t* root_dir = tmpfs_create_directory(root_dir_pointer, "/");//not sure if i should actually do it with a root dir pointer
+    
+    vfs_t* tmpfs = (vfs_t*) kmalloc_byte(sizeof(vfs_t));//place inside init_tmpfs() and have it return this
+    vfs_ops_t* tmpfs_ops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
+    vnode_ops_t* tmpfs_vnode_ops = (vnode_ops_t*) kmalloc_byte(sizeof(vnode_ops_t));
+    tmpfs_vnode_ops->vnode_mkdir = tmpfs_create_directory;
+    tmpfs_vnode_ops->vnode_create = tmpfs_create_file;
+    tmpfs_vnode_ops->vnode_rmdir = tmpfs_delete_directory;
+    tmpfs_vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
+    tmpfs_vnode_ops->vnode_remove = tmpfs_delete_file;
+    tmpfs->vfs_ops = tmpfs_ops;
+    vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
+    tmpfs_root_vnode->vnode_data = (vnode_t*) root_dir;
+    
     tmpfs_file_t* test_file = tmpfs_create_file(root_dir, "test file", 4096);
     tmpfs_directory_t* test_dir = tmpfs_create_directory(root_dir, "test dir");
     tmpfs_list_files(root_dir);
@@ -47,7 +74,7 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
             }
         }
     }
-    tmpfs_file_t* new_file = (tmpfs_file_t*) kmalloc_byte(size);
+    tmpfs_file_t* new_file = (tmpfs_file_t*) kmalloc_byte(sizeof(tmpfs_file_t));
     new_file->header.permissions[0] = 'r';
     new_file->header.permissions[1] = 'w';
     new_file->header.permissions[2] = 'x';
@@ -59,6 +86,7 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     new_file->size = size;
     dir->files[dir->probably_next_free_entry_index] = new_file;
     dir->probably_next_free_entry_index++;
+    kmalloc actual file data
     return new_file;
 
 }
