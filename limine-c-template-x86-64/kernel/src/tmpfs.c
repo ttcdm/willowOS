@@ -248,6 +248,10 @@ void tmpfs_close(tmpfs_fd_t* fd) {
     kfree((uint64_t*) fd);
 }
 
+void tmpfs_not_available() {
+    kprintf("tmpfs function not available\n");
+}
+
 
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
     for (int i = 0; i < TMPFS_MAX_FILES; i++) {
@@ -263,7 +267,11 @@ void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
 
 vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
     tmpfs_header_t* temp = tmpfs_lookup(vnode->vnode_data, name);
-    vnode_t* ret = tmpfs_link_vnode(temp, temp->type);
+    if (temp == NULL) {return NULL;}
+    vnode_t* ret;
+    // ret = tmpfs_link_vnode(temp, temp->type+1);//HERE vtype has vnon, vreg, vdir, which is 0, 1, 2 but tmpfs_header_t has 0, 1 which corresponds to file and dir respectively, so we get an off by one error. we can fix it by just adding 1 but explicitly specifying it via if statements is probably safer
+    if (temp->type == 0) {ret = tmpfs_link_vnode(temp, VREG);}
+    else if (temp->type == 1) {ret = tmpfs_link_vnode(temp, VDIR);}
     return ret;
 }
 
