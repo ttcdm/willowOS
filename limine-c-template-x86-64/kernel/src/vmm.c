@@ -92,6 +92,7 @@ uint64_t* kmalloc(uint64_t size) {
     while (current != NULL) {//fixes the same off by one error in alloc_frame()
         int fits = 0;//0 for fits 1 for does not fit
         if (current->status == 0) {
+            // kprintf("%d\n", index);
             heap_page* probe = current;//probe should be stored in memory or something idk instead of stack. idk actually
             for (int i = 0; i < size-1; i++) {//we do size-1 because the last line sets it as the last node we need but it doesn't actually check it, and so it gets checked by the if block at the end
                 if (probe->next == NULL) {
@@ -105,6 +106,7 @@ uint64_t* kmalloc(uint64_t size) {
                 probe = probe->next;
             }
             if (fits == 1) {
+                current = current->next;//HERE the issue was because we didn't incrememnt the start location of the probe/where the free space starts at. we could also probbaly make this faster by skipping to the index that "broke" the prob instead so we don't reiterate over nodes we've already checked
                 continue;
             }
             if (probe->status == 0) {

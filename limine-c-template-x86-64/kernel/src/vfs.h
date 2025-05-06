@@ -16,6 +16,7 @@ typedef struct vnode vnode_t;
 typedef struct vnode_ops vnode_ops_t;
 typedef struct vfs vfs_t;
 typedef struct vfs_ops vfs_ops_t;
+typedef struct vfs_fd vfs_fd_t;
 
 enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };
 
@@ -40,8 +41,8 @@ struct vnode_ops {//HERE remember to always match the return types to prevent er
     size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
     void (*vnode_wr)();
     int (*vnode_ioctl)();
-    vnode_t* (*vnode_lookup)(vnode_t* vnode, char* name);
-    vnode_t* (*vnode_create)(vnode_t* vnode, char* name, uint64_t size);
+    vnode_t* (*vnode_lookup)();
+    vnode_t* (*vnode_create)();
     void (*vnode_remove)();
     void* (*vnode_mkdir)();
     void (*vnode_rmdir)();
@@ -67,12 +68,12 @@ struct vfs_ops {
     int (*vfs_vget)();
 };
 
-typedef struct vfs_fd {
+struct vfs_fd {
     void* data;
     uint64_t size;
     uint64_t position;
     uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
-} vfs_fd_t;
+};
 
 
 void init_vfs();
