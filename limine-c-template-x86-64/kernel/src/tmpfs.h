@@ -56,6 +56,8 @@ void tmpfs_list_files(tmpfs_directory_t* dir);//remember that it's files and not
 void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);//these should probably support fopen fseek ftell and such
 size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);
 
+void tmpfs_not_available(void);
+
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
 void tmpfs_close(tmpfs_fd_t* fd);
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name);
