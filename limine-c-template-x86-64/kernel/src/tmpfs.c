@@ -1,20 +1,19 @@
 #include <tmpfs.h>
 
 
-void init_tmpfs() {
+vfs_t* vfs_tmpfs;//not sure if we should actually declare this as a global variable, but this is just for linking the vnodes to tmpfs
+vfs_t* init_tmpfs() {
     //we load stuff from ustar and we just parse it and create our own custom filesystem
     tmpfs_directory_t* root_dir_pointer = (tmpfs_directory_t*) kmalloc_byte(sizeof(tmpfs_directory_t));
-    tmpfs_directory_t* root_dir = tmpfs_create_directory(root_dir_pointer, "/");//not sure if i should actually do it with a root dir pointer
+    tmpfs_directory_t* root_dir = tmpfs_create_directory(root_dir_pointer, "TMPFS_ROOT");//not sure if i should actually do it with a root dir pointer
     
-    // vfs_t* tmpfs = (vfs_t*) kmalloc_byte(sizeof(vfs_t));//place inside init_tmpfs() and have it return this
+    vfs_tmpfs = (vfs_t*) kmalloc_byte(sizeof(vfs_t));//place inside init_tmpfs() and have it return this
     // vfs_ops_t* tmpfs_ops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
-    // vnode_ops_t* tmpfs_vnode_ops = (vnode_ops_t*) kmalloc_byte(sizeof(vnode_ops_t));
-    // tmpfs_vnode_ops->vnode_mkdir = tmpfs_create_directory;
-    // tmpfs_vnode_ops->vnode_create = tmpfs_create_file;
-    // tmpfs_vnode_ops->vnode_rmdir = tmpfs_delete_directory;
-    // tmpfs_vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
-    // tmpfs_vnode_ops->vnode_remove = tmpfs_delete_file;
-    // tmpfs->vfs_ops = tmpfs_ops;
+
+    // vfs_tmpfs->vnode_covered = tmpfs_link_vnode(root_dir, VDIR);
+    vnode_t* root_vnode = tmpfs_link_vnode(root_dir, VDIR);
+    vfs_tmpfs->vnode_covered = root_vnode;
+
     // vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
     // tmpfs_root_vnode->vnode_data = (vnode_t*) root_dir;
     
@@ -50,7 +49,9 @@ void init_tmpfs() {
 
     tmpfs_fd_t* f = tmpfs_open(test_dir_1, "test file", 0);
     tmpfs_write_to_file(f, "hello world", 11, 0);
-    char* buffer = kmalloc_byte(64);
+
+    char* buffer = kmalloc_byte(4096);
+    
     tmpfs_read_from_file(f, buffer, 11, 0);
     kprintf("%s\n", buffer);
     tmpfs_write_to_file(f, "hello world", 11, 11);
@@ -65,7 +66,8 @@ void init_tmpfs() {
     tmpfs_file_t* temp1 = tmpfs_lookup(test_dir_1, "test file");
     kprintf("%s\n", temp1->header.name);
     
-
+    
+    return vfs_tmpfs;
 }
 
 void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
@@ -93,30 +95,17 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     new_file->size = size;
     dir->files[dir->probably_next_free_entry_index] = new_file;
     dir->probably_next_free_entry_index++;
+
     new_file->data = kmalloc_byte(size);
 
+    // new_file->header.path;//do something about the path
+
+    // tmpfs_link_vnode(new_file, VREG);//not 100% sure how i'm supposed to go about this
     return new_file;
 
 }
 
-vnode_t* tmpfs_link_vnode(void* data, enum vtype type) {
-    vnode_t* new_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
-    new_vnode->vnode_data = (vnode_t*) data;
-    new_vnode->vnode_type = type;
-    if (type == VDIR) {
-        new_vnode->vnode_ops->vnode_mkdir = tmpfs_create_directory;
-        new_vnode->vnode_ops->vnode_create = tmpfs_create_file;
-        new_vnode->vnode_ops->vnode_rmdir = tmpfs_delete_directory;
-        new_vnode->vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
-        new_vnode->vnode_ops->vnode_remove = tmpfs_delete_file;    
-    }
-    else if (type == VREG) {
-        new_vnode->vnode_ops->vnode_rd = tmpfs_read_from_file;//MAYBE COMBINE READ AND WRITE???
-        new_vnode->vnode_ops->vnode_wr = tmpfs_write_to_file;
-    }
 
-    return new_vnode;
-}
 
 void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     if (dir->probably_next_free_entry_index == TMPFS_MAX_FILES) {//because len-1
@@ -145,7 +134,7 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     dir->files[dir->probably_next_free_entry_index] = new_dir;
     dir->probably_next_free_entry_index++;
     
-    
+    // tmpfs_link_vnode(new_dir, VDIR);//not 100% sure how i'm supposed to go about this
     return new_dir;
 }
 
@@ -259,6 +248,7 @@ void tmpfs_close(tmpfs_fd_t* fd) {
     kfree(fd);
 }
 
+
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
     for (int i = 0; i < TMPFS_MAX_FILES; i++) {
         if (dir->files[i] == NULL) {continue;}
@@ -269,4 +259,43 @@ void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
     }
     kprintf("tmpfs_lookup(): file or directory not found\n");
     return NULL;
+}
+
+vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
+    tmpfs_header_t* temp = tmpfs_lookup(vnode->vnode_data, name);
+    vnode_t* ret = tmpfs_link_vnode(temp, temp->type);
+    return ret;
+}
+
+vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
+    vnode_t* new_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
+    new_vnode->vnode_type = type;
+    //do something about storing paths either here or inside the file object
+    //remember to add reference count as well and maybe the rest of the members
+    //remember to add ioctl as well
+    vnode_ops_t* ops = kmalloc_byte(sizeof(vnode_ops_t));
+    new_vnode->vnode_ops = ops;
+    if (type == VDIR) {
+        new_vnode->vnode_ops->vnode_create = vnode_tmpfs_create_file;
+        new_vnode->vnode_ops->vnode_remove = tmpfs_delete_file;    
+        new_vnode->vnode_ops->vnode_mkdir = tmpfs_create_directory;
+        new_vnode->vnode_ops->vnode_rmdir = tmpfs_delete_directory;
+        new_vnode->vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
+        new_vnode->vnode_ops->vnode_lookup = vnode_tmpfs_lookup;
+    }
+    else if (type == VREG) {
+        new_vnode->vnode_ops->vnode_rd = tmpfs_read_from_file;//MAYBE COMBINE READ AND WRITE???
+        new_vnode->vnode_ops->vnode_wr = tmpfs_write_to_file;
+    }
+
+    // vnode_t* root_vnode = (vnode_t*) root_dir;
+    new_vnode->vnode_vfsmountedhere = vfs_tmpfs;
+    new_vnode->vnode_data = file_object;
+    return new_vnode;
+}
+
+vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size) {
+    tmpfs_file_t* file = tmpfs_create_file((tmpfs_directory_t*) vnode->vnode_data, name, size);
+    vnode_t* ret = tmpfs_link_vnode(file, VREG);
+    return ret;
 }

@@ -8,8 +8,9 @@
 #include <kutils.h>
 #include <vmm.h>
 #include <tsc.h>
-#include <tmpfs.h>
+// #include <tmpfs.h>
 
+//taken from https://www.cs.fsu.edu/~awang/courses/cop5611_s2024/vnode.pdf
 
 typedef struct vnode vnode_t;
 typedef struct vnode_ops vnode_ops_t;
@@ -35,16 +36,16 @@ struct vnode {
 
 };
 
-struct vnode_ops {
-    int (*vnode_rd)();
-    int (*vnode_wr)();
+struct vnode_ops {//HERE remember to always match the return types to prevent errors
+    size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
+    void (*vnode_wr)();
     int (*vnode_ioctl)();
-    int (*vnode_lookup)();
-    int (*vnode_create)();
-    int (*vnode_remove)();
-    int (*vnode_mkdir)();
-    int (*vnode_rmdir)();
-    int (*vnode_rmdir_no_orphan)();
+    vnode_t* (*vnode_lookup)(vnode_t* vnode, char* name);
+    vnode_t* (*vnode_create)(vnode_t* vnode, char* name, uint64_t size);
+    void (*vnode_remove)();
+    void* (*vnode_mkdir)();
+    void (*vnode_rmdir)();
+    void (*vnode_rmdir_no_orphan)();
 };
 
 struct vfs {
@@ -66,6 +67,12 @@ struct vfs_ops {
     int (*vfs_vget)();
 };
 
+typedef struct vfs_fd {
+    void* data;
+    uint64_t size;
+    uint64_t position;
+    uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
+} vfs_fd_t;
 
 
 void init_vfs();
