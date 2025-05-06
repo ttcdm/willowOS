@@ -14,6 +14,7 @@
 #include <scheduler.h>
 #include <ioapic.h>
 #include <vfs.h>
+#include <tmpfs.h>
 
 #include <limine.h>
 
