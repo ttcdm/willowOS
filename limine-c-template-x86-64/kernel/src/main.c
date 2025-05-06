@@ -475,7 +475,15 @@ void kmain(void) {
 
     init_ioapic();
 
+
+    void* a = kmalloc_byte(4096);
+    void* b = kmalloc_byte(4096);
+    kfree(a);
+    kmalloc_byte(4097);
+    kprintf("hi");
+
     init_vfs();
+    
 
     // while (1) {
     //     asm volatile ("sti");

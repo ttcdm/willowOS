@@ -81,3 +81,7 @@ uint64_t get_rsdp_physical_address();
 
 char* strncpy(char* dest, char* source, size_t num);
 int strcmp (const char *p1, const char *p2);
+
+//taken from libc
+char* strtok(char *s, const char *delim);
+char* strtok_r(char *s, const char *delim, char **last);

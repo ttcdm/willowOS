@@ -17,6 +17,7 @@ typedef struct tmpfs_header {
     uint16_t user_id;
     uint16_t group_id;
     char name[128];//we cap the length of the name at 128 chars ig
+    char path[1024];
     uint8_t type;//0 for file, 1 for directory
     uint64_t timestamps[3];//ctime(inode change time), mtime, atime;//use tsc to get/update timestamps
 } tmpfs_header_t;
@@ -41,8 +42,10 @@ typedef struct tmpfs_fd {
     uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
 } tmpfs_fd_t;
 
-void init_tmpfs();
+vfs_t* init_tmpfs();
 
+
+//remmeber to add wrappers for vfs so we can just use vnodes instead of fs specific variables
 void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size);//pointer to created object
 void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name);
 void tmpfs_delete_file(tmpfs_directory_t* dir, char* name);
@@ -56,3 +59,7 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
 void tmpfs_close(tmpfs_fd_t* fd);
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name);
+
+vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type);
+vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size);
+vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name);
