@@ -50,7 +50,7 @@ vfs_t* init_tmpfs() {
     tmpfs_fd_t* f = tmpfs_open(test_dir_1, "test file", 0);
     tmpfs_write_to_file(f, "hello world", 11, 0);
 
-    char* buffer = kmalloc_byte(4096);
+    char* buffer = (char*) kmalloc_byte(4096);
     
     tmpfs_read_from_file(f, buffer, 11, 0);
     kprintf("%s\n", buffer);
@@ -217,7 +217,7 @@ void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t o
         file->size = offset+size;
     }
 
-    memcpy((uint64_t) file->data+offset, data, size);
+    memcpy((void*) ((uint64_t) file->data+offset), data, size);
 
 }
 
@@ -229,12 +229,12 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
     if (count > size) {
         count = size;
     }
-    memcpy(data, (uint64_t)(file->data)+offset, count);
+    memcpy(data, (void*) ((uint64_t)(file->data)+offset), count);
     return count;
 }
 
-tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {
-    tmpfs_fd_t* fd = kmalloc(sizeof(tmpfs_fd_t));
+tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
+    tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc(sizeof(tmpfs_fd_t));
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
     fd->data = file->data;
     fd->size = file->size;
@@ -245,7 +245,7 @@ tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {
 }
 
 void tmpfs_close(tmpfs_fd_t* fd) {
-    kfree(fd);
+    kfree((uint64_t*) fd);
 }
 
 
@@ -273,7 +273,7 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     //do something about storing paths either here or inside the file object
     //remember to add reference count as well and maybe the rest of the members
     //remember to add ioctl as well
-    vnode_ops_t* ops = kmalloc_byte(sizeof(vnode_ops_t));
+    vnode_ops_t* ops = (vnode_ops_t*) kmalloc_byte(sizeof(vnode_ops_t));
     new_vnode->vnode_ops = ops;
     if (type == VDIR) {
         new_vnode->vnode_ops->vnode_create = vnode_tmpfs_create_file;
@@ -284,8 +284,8 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
         new_vnode->vnode_ops->vnode_lookup = vnode_tmpfs_lookup;
     }
     else if (type == VREG) {
-        new_vnode->vnode_ops->vnode_rd = tmpfs_read_from_file;//MAYBE COMBINE READ AND WRITE???
-        new_vnode->vnode_ops->vnode_wr = tmpfs_write_to_file;
+        new_vnode->vnode_ops->vnode_rd = vnode_tmpfs_read_from_file;//MAYBE COMBINE READ AND WRITE???
+        new_vnode->vnode_ops->vnode_wr = vnode_tmpfs_write_to_file;
     }
 
     // vnode_t* root_vnode = (vnode_t*) root_dir;
@@ -298,4 +298,12 @@ vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size) {
     tmpfs_file_t* file = tmpfs_create_file((tmpfs_directory_t*) vnode->vnode_data, name, size);
     vnode_t* ret = tmpfs_link_vnode(file, VREG);
     return ret;
+}
+
+void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
+    tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
+}
+
+size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
+    return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
 }
