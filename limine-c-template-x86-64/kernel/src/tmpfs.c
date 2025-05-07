@@ -275,6 +275,39 @@ vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
     return ret;
 }
 
+
+vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size) {
+    tmpfs_file_t* file = tmpfs_create_file((tmpfs_directory_t*) vnode->vnode_data, name, size);
+    vnode_t* ret = tmpfs_link_vnode(file, VREG);
+    return ret;
+}
+
+void vnode_tmpfs_delete_file(vnode_t* vnode, char* name) {
+    tmpfs_delete_file((tmpfs_directory_t*) vnode->vnode_data, name);
+}
+
+void* vnode_tmpfs_create_directory(vnode_t* vnode, char* name) {
+    tmpfs_directory_t* dir = tmpfs_create_directory((tmpfs_directory_t*) vnode->vnode_data, name);
+    vnode_t* ret = tmpfs_link_vnode(dir, VDIR);
+    return ret;
+}
+
+void vnode_tmpfs_delete_directory(vnode_t* vnode, char* name) {
+    tmpfs_delete_directory((tmpfs_directory_t*) vnode->vnode_data, name);
+}
+
+void vnode_tmpfs_delete_directory_no_orphan(vnode_t* vnode, char* name) {
+    tmpfs_delete_directory_no_orphan((tmpfs_directory_t*) vnode->vnode_data, name);
+}
+
+void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
+    tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
+}
+
+size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
+    return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
+}
+
 vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     vnode_t* new_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
     new_vnode->vnode_type = type;
@@ -285,10 +318,10 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     new_vnode->vnode_ops = ops;
     if (type == VDIR) {
         new_vnode->vnode_ops->vnode_create = vnode_tmpfs_create_file;
-        new_vnode->vnode_ops->vnode_remove = tmpfs_delete_file;    
-        new_vnode->vnode_ops->vnode_mkdir = tmpfs_create_directory;
-        new_vnode->vnode_ops->vnode_rmdir = tmpfs_delete_directory;
-        new_vnode->vnode_ops->vnode_rmdir_no_orphan = tmpfs_delete_directory_no_orphan;
+        new_vnode->vnode_ops->vnode_remove = vnode_tmpfs_delete_file;    
+        new_vnode->vnode_ops->vnode_mkdir = vnode_tmpfs_create_directory;
+        new_vnode->vnode_ops->vnode_rmdir = vnode_tmpfs_delete_directory;
+        new_vnode->vnode_ops->vnode_rmdir_no_orphan = vnode_tmpfs_delete_directory_no_orphan;
         new_vnode->vnode_ops->vnode_lookup = vnode_tmpfs_lookup;
     }
     else if (type == VREG) {
@@ -300,18 +333,4 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     new_vnode->vnode_vfsmountedhere = vfs_tmpfs;
     new_vnode->vnode_data = file_object;
     return new_vnode;
-}
-
-vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size) {
-    tmpfs_file_t* file = tmpfs_create_file((tmpfs_directory_t*) vnode->vnode_data, name, size);
-    vnode_t* ret = tmpfs_link_vnode(file, VREG);
-    return ret;
-}
-
-void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
-    tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
-}
-
-size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
-    return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
 }

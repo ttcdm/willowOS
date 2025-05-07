@@ -62,8 +62,13 @@ tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
 void tmpfs_close(tmpfs_fd_t* fd);
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name);
 
-vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type);
-vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size);
 vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name);
+vnode_t* vnode_tmpfs_create_file(vnode_t* vnode, char* name, uint64_t size);
+void vnode_tmpfs_delete_file(vnode_t* vnode, char* name);
+void* vnode_tmpfs_create_directory(vnode_t* vnode, char* name);
+void vnode_tmpfs_delete_directory(vnode_t* vnode, char* name);
+void vnode_tmpfs_delete_directory_no_orphan(vnode_t* vnode, char* name);
 void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset);//these should probably support fopen fseek ftell and such
 size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset);
+
+vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type);
