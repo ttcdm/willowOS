@@ -34,6 +34,7 @@ struct vnode {
     vfs_t *vfs_vfsp;//vfs we're in
     enum vtype vnode_type;
     void* vnode_data; /* private data */
+    vfs_t* mounted_vfs;
 
 };
 
@@ -78,6 +79,9 @@ struct vfs_fd {
 
 void init_vfs();
 
+void vnode_mount_vfs(vnode_t* parent_vnode, vfs_t* vfs);
+
+void vnode_unmount_vfs(vnode_t* vnode, char* name);
 
 //IMPLEMENT THESE AS SYSCALLS
 // void fopen();

@@ -232,3 +232,26 @@ uint64_t* kmalloc_byte_interruptable(uint64_t size) {//kmalloc alloc's 64 bytes 
         }
     }
 }
+
+uint64_t* realloc_byte(uint64_t* virt_address, uint64_t size) {
+    asm volatile("cli");
+    uint64_t* ret = kmalloc_byte_interruptable(size);
+    
+    //we need to find how much was actually allocated in the first place
+    uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
+    heap_page* current = heap_page_head;
+    for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
+        current = current->next;//we do the second last one because at the end of the loop it moves onto the last node
+    }
+    uint64_t alloc_length_node = current->alloc_length;
+
+    if ((alloc_length_node * 64) >= size) {
+        memcpy(ret, virt_address, size);
+    }
+    else {
+        memcpy(ret, virt_address, alloc_length_node * 64);
+    }
+    
+    asm volatile ("sti");
+
+}

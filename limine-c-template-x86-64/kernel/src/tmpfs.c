@@ -7,16 +7,23 @@ vfs_t* init_tmpfs() {
     tmpfs_directory_t* root_dir_pointer = (tmpfs_directory_t*) kmalloc_byte(sizeof(tmpfs_directory_t));
     tmpfs_directory_t* root_dir = tmpfs_create_directory(root_dir_pointer, "TMPFS_ROOT");//not sure if i should actually do it with a root dir pointer
     
+
     vfs_tmpfs = (vfs_t*) kmalloc_byte(sizeof(vfs_t));//place inside init_tmpfs() and have it return this
     // vfs_ops_t* tmpfs_ops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
 
     // vfs_tmpfs->vnode_covered = tmpfs_link_vnode(root_dir, VDIR);
     vnode_t* root_vnode = tmpfs_link_vnode(root_dir, VDIR);
     vfs_tmpfs->vnode_covered = root_vnode;
+    vfs_ops_t* vops = kmalloc_byte(sizeof(vfs_ops_t));
+    vfs_tmpfs->vfs_ops = vops;
+    vfs_tmpfs->vfs_ops->vfs_mount = vnode_mount_vfs;
+
 
     // vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
     // tmpfs_root_vnode->vnode_data = (vnode_t*) root_dir;
     
+
+
     tmpfs_file_t* test_file = tmpfs_create_file(root_dir, "test file", 4096);
     tmpfs_directory_t* test_dir = tmpfs_create_directory(root_dir, "test dir");
     tmpfs_list_files(root_dir);
@@ -266,6 +273,15 @@ void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
 }
 
 vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
+
+    //check for if we're looking for a mounted vfs as well
+    if (vnode->mounted_vfs != NULL) {//i don't think we can put this all in one if statement because checking if it's null must happen first
+        if (strcmp(((tmpfs_header_t*) vnode->mounted_vfs->vnode_covered->vnode_data)->name, name) == 0) {//we check if the mounted vfs' covered vnode which is the root vnode of that fs has a name that matches the vnode we're looking for. however, this only works for tmpfs because it uses the header which contains the name, so for other fs's we must either use the same header or use the local vnode's or vfs' type for their specific lookup function idk... also this only supports only one vfs mounted per vnode for now
+            return vnode->mounted_vfs->vnode_covered;
+        }
+    }
+
+
     tmpfs_header_t* temp = tmpfs_lookup(vnode->vnode_data, name);
     if (temp == NULL) {return NULL;}
     vnode_t* ret;
