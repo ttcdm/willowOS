@@ -18,7 +18,7 @@ typedef struct tmpfs_header {
     uint16_t group_id;
     char name[128];//we cap the length of the name at 128 chars ig
     char path[1024];
-    uint8_t type;//0 for file, 1 for directory
+    uint8_t type;//0 for file, 1 for directory, 8 for vfs
     uint64_t timestamps[3];//ctime(inode change time), mtime, atime;//use tsc to get/update timestamps
 } tmpfs_header_t;
 
@@ -34,6 +34,11 @@ typedef struct tmpfs_directory {
     // void* first_file;//implement linked list
     uint64_t probably_next_free_entry_index;//uint32_t or even uint16_t would probably suffice but oh well
 } tmpfs_directory_t;
+
+typedef struct tmpfs_vfs {
+    tmpfs_header_t header;
+    vfs_t* vfs;
+} tmpfs_vfs_t;
 
 typedef struct tmpfs_fd {
     void* data;

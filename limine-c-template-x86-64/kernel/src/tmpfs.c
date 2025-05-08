@@ -13,6 +13,9 @@ vfs_t* init_tmpfs() {
     // vfs_tmpfs->vnode_covered = tmpfs_link_vnode(root_dir, VDIR);
     vnode_t* root_vnode = tmpfs_link_vnode(root_dir, VDIR);
     vfs_tmpfs->vnode_covered = root_vnode;
+    vfs_ops_t* vops = kmalloc_byte(sizeof(vfs_ops_t));
+    vfs_tmpfs->vfs_ops = vops;
+
 
     // vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
     // tmpfs_root_vnode->vnode_data = (vnode_t*) root_dir;
@@ -272,6 +275,7 @@ vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
     // ret = tmpfs_link_vnode(temp, temp->type+1);//HERE vtype has vnon, vreg, vdir, which is 0, 1, 2 but tmpfs_header_t has 0, 1 which corresponds to file and dir respectively, so we get an off by one error. we can fix it by just adding 1 but explicitly specifying it via if statements is probably safer
     if (temp->type == 0) {ret = tmpfs_link_vnode(temp, VREG);}
     else if (temp->type == 1) {ret = tmpfs_link_vnode(temp, VDIR);}
+    else if (temp->type == 8) {ret = ((tmpfs_vfs_t*) temp)->vfs->vnode_covered;}//we don't need to link it because it's already been linked via the creation of the vfs i think
     return ret;
 }
 
@@ -333,4 +337,37 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     new_vnode->vnode_vfsmountedhere = vfs_tmpfs;
     new_vnode->vnode_data = file_object;
     return new_vnode;
+}
+
+void* vnode_tmpfs_mount(vnode_t* parent_vnode, vfs_t* m_vfs) {
+
+    vnode_t* root_vnode = m_vfs->vnode_covered;
+    // parent_vnode->vnode_ops->vnode_mkdir(parent_vnode, m_vfs->);
+
+    tmpfs_directory_t* dir = parent_vnode->vnode_data;
+
+    if (dir->probably_next_free_entry_index == TMPFS_MAX_FILES) {//because len-1
+        kprintf("tmpfs_create_directory(): out of space\n");
+        return NULL;
+    }
+    if (dir->files[dir->probably_next_free_entry_index] != NULL) {
+        for (int i = 0; i < TMPFS_MAX_FILES; i++) {
+            if (dir->files[i] == NULL) {
+                dir->probably_next_free_entry_index = i;
+                break;
+            }
+        }
+    }
+    tmpfs_vfs_t* new_vfs = (tmpfs_vfs_t*) kmalloc_byte(sizeof(tmpfs_vfs_t));
+    new_vfs->header.permissions[0] = 'r';
+    new_vfs->header.permissions[1] = 'w';
+    new_vfs->header.permissions[2] = 'x';
+    new_vfs->header.user_id = 0;
+    new_vfs->header.group_id = 0;
+    new_vfs->header.type = 8;
+    for (int i = 0; i < 3; i++) {new_vfs->header.timestamps[i] = 0;}//remmeber to switch to tsc
+    strncpy(new_vfs->header.name, m_vfs->name, kstrlen(m_vfs->name)+1);
+    dir->files[dir->probably_next_free_entry_index] = new_vfs;
+    dir->probably_next_free_entry_index++;
+    return new_vfs;
 }

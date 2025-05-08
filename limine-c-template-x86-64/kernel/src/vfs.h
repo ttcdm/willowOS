@@ -18,7 +18,7 @@ typedef struct vfs vfs_t;
 typedef struct vfs_ops vfs_ops_t;
 typedef struct vfs_fd vfs_fd_t;
 
-enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };
+enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD};
 
 struct vnode {
     uint16_t vnode_flag; /* vnode flags */
@@ -34,6 +34,8 @@ struct vnode {
     vfs_t *vfs_vfsp;//vfs we're in
     enum vtype vnode_type;
     void* vnode_data; /* private data */
+
+    char name[128];//not sure if i should have a name here
 
 };
 
@@ -52,10 +54,11 @@ struct vnode_ops {//HERE remember to always match the return types to prevent er
 struct vfs {
     vfs_t* next_vfs;
     vfs_ops_t* vfs_ops;
-    vnode_t* vnode_covered;//figure out what this means/what it's for
+    vnode_t* vnode_covered;//root vnode of the fs???
     int vfs_flag;//add other attributes/data ig
     int vfs_bsize;
     void* vfs_data;
+    char name[128];
 };
 
 struct vfs_ops {
