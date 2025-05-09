@@ -1,5 +1,7 @@
 #include <vmm.h>
 
+#define VERBOSE
+
 
 /*
 
@@ -81,8 +83,8 @@ uint64_t init_heap() {
 uint64_t* kmalloc(uint64_t size) {
     // asm volatile ("cli");
     if (size == 0) {
-        kprintln("allocated 0 bytes. returning 0");
-        return 0;//might page fault if you try to dereference this
+        kprintln("allocated 0 bytes. returning NULL");
+        return NULL;//might page fault if you try to dereference this
     }
     heap_page* current = heap_page_head;
     // current = current->next;
@@ -119,7 +121,9 @@ uint64_t* kmalloc(uint64_t size) {
 				// kprint("allocated heap at index: ");
                 // kprintln_uint64(index);
 
+                #ifdef VERBOSE
                 kprintf_interruptable("allocated heap at index: %llu\n", index);
+                #endif
                 
                 
                 // asm volatile ("sti");
@@ -151,7 +155,9 @@ void kfree(uint64_t* virt_address) {
     // kprint_uint64(alloc_length_node);
     // kprint(" starting index: ");
     // kprintln_uint64(index);
+    #ifdef VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
+    #endif
     asm volatile ("sti");
 }
 
@@ -174,7 +180,9 @@ void kfree_interruptable(uint64_t* virt_address) {
     // kprint(" starting index: ");
     // kprintln_uint64(index);
     // asm volatile ("sti");
+    #ifdef VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
+    #endif
 }
 
 
@@ -233,10 +241,21 @@ uint64_t* kmalloc_byte_interruptable(uint64_t size) {//kmalloc alloc's 64 bytes 
     }
 }
 
-uint64_t* realloc_byte(uint64_t* virt_address, uint64_t size) {
+uint64_t* krealloc_byte(uint64_t* virt_address, uint64_t size) {//should work
     asm volatile("cli");
+
     uint64_t* ret = kmalloc_byte_interruptable(size);
     
+    if (ret == NULL) {
+        asm volatile ("sti");//always remember to sti after cli if the function's supposed to be uninterruptable
+        return ret;
+    }
+
+    if (virt_address == NULL) {
+        asm volatile ("sti");
+        return ret;//we don't copy the data over because NULl doesn't point to any data
+    }
+
     //we need to find how much was actually allocated in the first place
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
@@ -251,7 +270,11 @@ uint64_t* realloc_byte(uint64_t* virt_address, uint64_t size) {
     else {
         memcpy(ret, virt_address, alloc_length_node * 64);
     }
+
+    kfree(virt_address);//not sure if we should free the old ptr in case other things depend on it but oh well
     
     asm volatile ("sti");
+
+    return ret;
 
 }
