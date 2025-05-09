@@ -30,7 +30,7 @@ void init_vfs() {
     vnode_t* f2 = d->vnode_ops->vnode_lookup(d, "TMPFS_ROOT");
     kprintf("%s\n", ((tmpfs_header_t*)f2->vnode_data)->name);
 
-
+    
     tmpfs_list_files(f2->vnode_data);
 
     // vnode_unmount_vfs
