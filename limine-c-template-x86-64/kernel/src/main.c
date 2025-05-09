@@ -480,9 +480,14 @@ void kmain(void) {
     void* b = kmalloc_byte(4096);
     kfree(a);
     kmalloc_byte(4097);
-    kprintf("hi");
 
     init_vfs();
+
+    init_scheduler();
+
+
+
+    
     
 
     // while (1) {
