@@ -60,7 +60,7 @@ struct vfs {
 };
 
 struct vfs_ops {
-    int (*vfs_mount)();
+    void (*vfs_mount)();
     int (*vfs_unmount)();
     int (*vfs_root)();
     int (*vfs_statfs)();
