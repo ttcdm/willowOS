@@ -14,6 +14,16 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "msvc-x64",
             "cStandard": "c11"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cStandard": "c11"
         }
     ],
     "version": 4

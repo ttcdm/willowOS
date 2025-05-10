@@ -15,6 +15,7 @@
 #include <ioapic.h>
 #include <vfs.h>
 #include <tmpfs.h>
+#include <mutex.h>
 
 #include <limine.h>
 
@@ -484,6 +485,9 @@ void kmain(void) {
     init_vfs();
 
     init_scheduler();
+
+
+    init_mutex();
 
 
 

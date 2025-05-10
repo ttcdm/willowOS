@@ -14,7 +14,7 @@ vfs_t* init_tmpfs() {
     // vfs_tmpfs->vnode_covered = tmpfs_link_vnode(root_dir, VDIR);
     vnode_t* root_vnode = tmpfs_link_vnode(root_dir, VDIR);
     vfs_tmpfs->vnode_covered = root_vnode;
-    vfs_ops_t* vops = kmalloc_byte(sizeof(vfs_ops_t));
+    vfs_ops_t* vops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
     vfs_tmpfs->vfs_ops = vops;
     vfs_tmpfs->vfs_ops->vfs_mount = vnode_mount_vfs;
 
