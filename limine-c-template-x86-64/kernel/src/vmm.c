@@ -1,6 +1,6 @@
 #include <vmm.h>
 
-// #define VERBOSE
+#define VERBOSE
 
 
 /*

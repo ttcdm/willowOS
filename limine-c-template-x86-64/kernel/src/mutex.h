@@ -10,7 +10,6 @@
 
 
 // https://www.ibm.com/docs/en/xl-c-and-cpp-aix/16.1.0?topic=functions-sync-bool-compare-swap
-// rowleydownload.co.uk/arm/documentation/gnu/gcc/_005f_005fsync-Builtins.html
 
 typedef struct mutex {
     bool locked;
