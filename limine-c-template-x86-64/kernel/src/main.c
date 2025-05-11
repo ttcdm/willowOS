@@ -302,15 +302,57 @@ void kprintf(char* fmt, ...) {
     va_list args_copy;
     va_copy(args_copy, args);
     uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
-    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+
+    // char* str = (char*) kmalloc_byte_interruptable(size+5);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    
     char str[size];//was told that using a variable length array was a bad idea...
     npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
+
+    // kmalloc_byte(2);
+    // mutex_t* mutex = (mutex_t*) kmalloc_byte_interruptable(sizeof(mutex_t));
+    // mutex->object = ft_ctx;
+    // mutex->locked = 0;
+    // acquire_mutex(mutex);
     flanterm_write(ft_ctx, str, size);
+    // release_mutex(mutex);
+    // kfree_interruptable((uint64_t*) mutex);
+
     // kfree((uint64_t*) str);
     va_end(args);
     va_end(args_copy);
     asm volatile ("sti");
 }
+
+void kprintf_locked(char* fmt, ...) {
+    asm volatile ("cli");
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+
+    char* str = (char*) kmalloc_byte_interruptable(size+5);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    
+    // char str[size];//was told that using a variable length array was a bad idea...
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
+
+    // kmalloc_byte(2);
+    mutex_t* mutex = (mutex_t*) kmalloc_byte_interruptable(sizeof(mutex_t));
+    mutex->object = ft_ctx;
+    mutex->locked = 0;
+    acquire_mutex(mutex);
+    flanterm_write(ft_ctx, str, size);
+    release_mutex(mutex);
+    kfree_interruptable((uint64_t*) mutex);
+
+    kfree((uint64_t*) str);
+    va_end(args);
+    va_end(args_copy);
+    asm volatile ("sti");
+}
+
 void kprintf_interruptable(char* fmt, ...) {
     // asm volatile ("cli");
     va_list args;
@@ -318,10 +360,17 @@ void kprintf_interruptable(char* fmt, ...) {
     va_list args_copy;
     va_copy(args_copy, args);
     uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
-    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    // char* str = (char*) kmalloc_byte_interruptable(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
     char str[size];//should be fine
     npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
+
+    // mutex_t* mutex = (mutex_t*) kmalloc_byte_interruptable(sizeof(mutex_t));
+    // mutex->object = ft_ctx;
+    // acquire_mutex(mutex);
     flanterm_write(ft_ctx, str, size);
+    // release_mutex(mutex);
+    
     // kfree((uint64_t*) str);
     va_end(args);
     va_end(args_copy);
@@ -452,7 +501,7 @@ void kmain(void) {
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    // init_mp(&mp_request);
+    init_mp(&mp_request);
 
     // hpet is initialized inside init_bsp_lapic();
 
@@ -482,12 +531,12 @@ void kmain(void) {
     kfree(a);
     kmalloc_byte(4097);
 
-    init_vfs();
+    // init_vfs();
 
     init_scheduler();
 
 
-    init_mutex();
+    // init_mutex();
 
 
 
@@ -547,10 +596,13 @@ void start_ap() {//remember to not call any non processor specific init function
     // }
     kprintln("ap initialized!\n");
 
-    // kpass(5000);
+    kpass(5000);
     // if ((*lapic_id)>>24==1) {
-    //     init_scheduler();
+        // init_scheduler();
     // }
+
+    push_thread(create_thread(((*lapic_id)>>24), gen2));
+    while (1) reschedule();
 
     while (1) {asm volatile ("hlt");}
 }
