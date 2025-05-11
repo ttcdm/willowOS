@@ -21,6 +21,7 @@
 size_t kstrlen(char* msg);
 
 void kprintf(char* fmt, ...);
+void kprintf_locked(char* fmt, ...);
 void kprintf_interruptable(char* fmt, ...);
 void kprint(char* str);
 void kprintln(char* str);
