@@ -22,5 +22,6 @@ bool acquire_mutex(mutex_t* mutex) {
 bool release_mutex(mutex_t* mutex) {
 
     __sync_bool_compare_and_swap(&mutex->locked, 1, 0);
+    __sync_bool_compare_and_swap(&mutex->locked, 1, 0);
     //we return whether or not the operation was successful
 }
