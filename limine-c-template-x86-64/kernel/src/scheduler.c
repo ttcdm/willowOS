@@ -48,6 +48,10 @@ void gen1() {
 
 }
 
+void gen2() {
+	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
+}
+
 void idle_thread() {
 	while (1) {
 		asm volatile ("pause");
@@ -96,9 +100,12 @@ void init_scheduler() {
 	// 	else push_thread(create_thread(i, gen0));
 	// }
 
-	push_thread(create_thread(0, gen0));
+	// push_thread(create_thread(0, gen0));
 	// push_thread(create_thread(1, gen1));
 	// block_thread(0);
+
+	push_thread(create_thread(0, gen2));
+	push_thread(create_thread(1, gen2));
 
 
 	lapic_periodic(5, 80, 0b0011, 0);

@@ -578,9 +578,12 @@ void start_ap() {//remember to not call any non processor specific init function
         asm volatile ("pause");
     }
 
-    while (1) {
-        kprintf("BYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYE");
-    }
+    // while (1) {
+    //     kprintf("BYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYE");
+    // }
+
+    push_thread(create_thread((*lapic_id)>>24, gen2));
+    while (1) reschedule();
 
     while (1) {asm volatile ("hlt");}
 }
