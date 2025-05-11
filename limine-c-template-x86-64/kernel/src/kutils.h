@@ -85,3 +85,5 @@ int strcmp (const char *p1, const char *p2);
 //taken from libc
 char* strtok(char *s, const char *delim);
 char* strtok_r(char *s, const char *delim, char **last);
+
+extern uint64_t smp_ticket;

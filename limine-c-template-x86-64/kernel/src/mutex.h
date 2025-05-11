@@ -16,7 +16,6 @@ typedef struct mutex {
     void* object;
 } mutex_t;
 
-void init_mutex();
 
 bool acquire_mutex(mutex_t* mutex);
 bool release_mutex(mutex_t* mutex);
