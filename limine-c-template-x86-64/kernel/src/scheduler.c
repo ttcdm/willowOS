@@ -48,10 +48,6 @@ void gen1() {
 
 }
 
-void gen2() {
-	while (1) kprintf_locked("gen2: hi from thread %d\n", get_current_thread()->pid);
-}
-
 void idle_thread() {
 	while (1) {
 		asm volatile ("pause");
@@ -100,11 +96,9 @@ void init_scheduler() {
 	// 	else push_thread(create_thread(i, gen0));
 	// }
 
-	// push_thread(create_thread(0, gen0));
+	push_thread(create_thread(0, gen0));
 	// push_thread(create_thread(1, gen1));
 	// block_thread(0);
-
-	push_thread(create_thread(0, gen2));
 
 
 	lapic_periodic(5, 80, 0b0011, 0);
@@ -117,7 +111,7 @@ void init_scheduler() {
 thread_context* pop_front(thread_context* thread) {
 	volatile thread_context* head = ready_queue_head;
 	if (ready_queue_head->next_thread == NULL) {
-		//kprintf_interruptable("no more threads\n");
+		kprintf_interruptable("no more threads\n");
 		return NULL;
 	}
 	ready_queue_head = ready_queue_head->next_thread;
@@ -174,7 +168,7 @@ void reschedule() {
 		// assert(current_thread);
 		// uint64_t* a;// = kmalloc_byte(256);//placeholder
 		if (!current_thread) {
-			//kprintf_interruptable("no more threads");
+			kprintf_interruptable("no more threads");
 			while (1) {asm volatile ("cli; hlt");}
 			// goto end;
 		}
@@ -202,7 +196,7 @@ void reschedule() {
 	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
 	// assert(next_thread);
 	if (!next_thread) {
-		//kprintf_interruptable("error no more threads");
+		kprintf_interruptable("error no more threads");
 		while (1) {asm volatile ("cli; hlt");}
 	// assert(next_thread);
 	}
@@ -221,7 +215,7 @@ void reschedule() {
 		// pop_front(ready_queue);
         // // push_back(ready_queue, current_thread);//&ready_queue
 		// if (next_thread->next_thread == NULL) {
-		// 	//kprintf_interruptable("hihihi");
+		// 	kprintf_interruptable("hihihi");
 		// 	while (1);
 		// 	// return;
 		// }
@@ -244,7 +238,7 @@ void reschedule() {
 	// }
 
 
-	// //kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
+	// kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 
 	// volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);//HERE technically this isn't needed because you can't queue irq 72 again if it's already been queued
 	// if (*(lapic_irr) >> 8 & 1) {
@@ -256,7 +250,7 @@ void reschedule() {
 	// else {
 
 	if (next_thread->status[3] == 1) {
-		//kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
+		kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
 		while (1);
 	}
 	
@@ -269,13 +263,13 @@ void reschedule() {
 		if (running_thread->pid == next_thread->pid) {
 			return;
 		}
-		//kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
+		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
 
 		running_thread = next_thread;
 
 		// print_queue();
-		// //kprintf_interruptable(" | %d", next_thread->pid);
-		// //kprintf_interruptable("HIHIHI");
+		// kprintf_interruptable(" | %d", next_thread->pid);
+		// kprintf_interruptable("HIHIHI");
 		ready_queue_second_last->last_run_time = tsc_read_ns();
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
@@ -309,12 +303,12 @@ void scheduler_return() {//basically pthread_exit
 	ready_queue_second_last = current_thread;
 	volatile thread_context* next_thread = pop_front(ready_queue);
 	if (!next_thread) {
-		//kprintf_interruptable("no more threads");
+		kprintf_interruptable("no more threads");
 		while (1) {asm volatile ("cli; hlt");}
 		// goto end;
 	}
 	// if (next_thread->pid == get_current_thread()->pid) {
-	// 	//kprintf_interruptable("no more threads to schedule");
+	// 	kprintf_interruptable("no more threads to schedule");
 	// 	while (1);
 	// }
 
@@ -334,7 +328,7 @@ void scheduler_return() {//basically pthread_exit
 
 	// volatile thread_context* a = (thread_context*) kmalloc_byte(64);
 	uint64_t* a;
-	// //kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+	// kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 
 	// volatile uint32_t* lapic_irr = (uint32_t*)(ACPI_MADT->lapic_addr + 0x220);//HERE technically this isn't needed because you can't queue irq 72 again if it's already been queued
 	// if (*(lapic_irr) >> 8 & 1) {
@@ -345,7 +339,7 @@ void scheduler_return() {//basically pthread_exit
 	// }
 	// else {
 	// if (next_thread->status[3] == 1) {
-	// 		//kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
+	// 		kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
 	// 		while (1);
 	// }
 
@@ -355,7 +349,7 @@ void scheduler_return() {//basically pthread_exit
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 		next_thread = pop_front(ready_queue);
 		if (temp_pid == next_thread->pid) {
-			//kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
+			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
 			// while (1);
 			ready_queue_second_last->last_run_time = tsc_read_ns();
 			switch_thread(&a, create_thread(0xDEADBEEFCAFEBABE, idle_thread)->current_rsp);
@@ -371,7 +365,7 @@ void scheduler_return() {//basically pthread_exit
 		ready_queue_second_last = current_thread;
 		ready_queue_second_last->status[3] = 1;//HERE the logic is weird so we just block the finished thread and let the scheduler handle it. it's not the best fix imo but it works for now. i just hope that it actually gets removed from the queue itself
 		ready_queue_second_last->last_run_time = tsc_read_ns();
-		//kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 		running_thread = next_thread;
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, next_thread->current_rsp);
@@ -413,7 +407,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);
-	//kprintf_interruptable("created thread %d\n", pid);
+	kprintf_interruptable("created thread %d\n", pid);
 	return new_thread;
 }
 
@@ -454,12 +448,12 @@ thread_context* block_thread(uint64_t pid) {
 		asm volatile ("cli");
 		if (current_thread->pid == pid) {
 			if (current_thread->status[3] == 1) {
-				//kprintf_interruptable("\nthread %d is already blocked\n", pid);
+				kprintf_interruptable("\nthread %d is already blocked\n", pid);
 				asm volatile ("sti");
 				return NULL;
 			}
 			current_thread->status[3] = 1;
-			//kprintf_interruptable("\nblocked thread %d\n", pid);
+			kprintf_interruptable("\nblocked thread %d\n", pid);
 			// while (1);
 			if (pid == get_current_thread()->pid) {
 				asm volatile ("int $72");//not sure if it should do this before returning if it's trying to block itself, but i'm not sure if it matters either
@@ -469,7 +463,7 @@ thread_context* block_thread(uint64_t pid) {
 		}
 		current_thread = current_thread->next_thread;
 	}
-	//kprintf_interruptable("\nthread %d not found\n", pid);
+	kprintf_interruptable("\nthread %d not found\n", pid);
 	asm volatile ("sti");
 	return NULL;//might run into issues with it being a null pointer
 }
@@ -482,10 +476,10 @@ void unblock_thread(thread_context* thread) {
 		// push_back(ready_queue, thread);
 		// push_back(ready_queue, thread);
 		// push_thread(create_thread(0, gen0));
-		//kprintf_interruptable("\nunblocked thread %d\n", thread->pid);
+		kprintf_interruptable("\nunblocked thread %d\n", thread->pid);
 	}
 	else {
-		//kprintf_interruptable("\nthread %d is not blocked\n", thread->pid);
+		kprintf_interruptable("\nthread %d is not blocked\n", thread->pid);
 	}
 	asm volatile ("sti");
 }
@@ -493,7 +487,7 @@ void unblock_thread(thread_context* thread) {
 void yield_thread() {
 	asm volatile ("cli");
 	volatile thread_context* current_thread = get_current_thread();
-	//kprintf_interruptable("\nyielding thread %d\n", current_thread->pid);
+	kprintf_interruptable("\nyielding thread %d\n", current_thread->pid);
 	push_back(ready_queue, current_thread);//maybe add a check for if it's blocked
 	reschedule();
 	// asm volatile ("sti");//technically no need for sti because switch_thread() inside reschedule already sti's and it eventually gets back here i think
@@ -508,7 +502,7 @@ thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use 
 		asm volatile ("cli");
 		if (current_thread->pid == pid) {
 			if (current_thread->status[3] == 1 || current_thread->status[4] == 1) {
-				//kprintf_interruptable("\nthread %d is already blocked or sleeping\n", pid);
+				kprintf_interruptable("\nthread %d is already blocked or sleeping\n", pid);
 				asm volatile ("sti");
 				return NULL;
 			}
@@ -516,7 +510,7 @@ thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use 
 			current_thread->last_run_time = tsc_read_ns();
 			current_thread->sleep_for_ms = ms;
 			current_thread->status[4] = 1;
-			//kprintf_interruptable("\slept thread %d\n", pid);
+			kprintf_interruptable("\slept thread %d\n", pid);
 			// while (1);
 			if (pid == get_current_thread()->pid) {
 				//no need to sti here because software interrupts i.e. int 72 does not care about the interrupt flag
@@ -527,7 +521,7 @@ thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use 
 		}
 		current_thread = current_thread->next_thread;
 	}
-	//kprintf_interruptable("\nthread %d not found\n", pid);
+	kprintf_interruptable("\nthread %d not found\n", pid);
 	asm volatile ("sti");
 	return NULL;//might run into issues with it being a null pointer
 }
@@ -541,7 +535,7 @@ thread_context* get_thread_by_pid(uint64_t pid) {
 		}
 		current_thread = current_thread->next_thread;
 	}
-	//kprintf_interruptable("\nthread %d not found\n", pid);
+	kprintf_interruptable("\nthread %d not found\n", pid);
 	asm volatile ("sti");
 	return NULL;
 }
@@ -549,12 +543,12 @@ thread_context* get_thread_by_pid(uint64_t pid) {
 void print_queue() {
 	asm volatile ("cli");
 	volatile thread_context* current_thread = ready_queue_head;
-	//kprintf_interruptable("\n||| ");
+	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
 	for (int i = 0; i < 3; i++) {
-		//kprintf_interruptable("%d ", current_thread->pid);
+		kprintf_interruptable("%d ", current_thread->pid);
 		current_thread = current_thread->next_thread;
 	}
-	//kprintf_interruptable("|||\n");
+	kprintf_interruptable("|||\n");
 	asm volatile ("sti");
 }

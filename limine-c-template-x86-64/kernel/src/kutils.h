@@ -21,7 +21,6 @@
 size_t kstrlen(char* msg);
 
 void kprintf(char* fmt, ...);
-void kprintf_locked(char* fmt, ...);
 void kprintf_interruptable(char* fmt, ...);
 void kprint(char* str);
 void kprintln(char* str);
@@ -86,3 +85,5 @@ int strcmp (const char *p1, const char *p2);
 //taken from libc
 char* strtok(char *s, const char *delim);
 char* strtok_r(char *s, const char *delim, char **last);
+
+extern uint64_t smp_ticket;

@@ -85,7 +85,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
-    //kprintf_interruptable("\nthread interrupted\n");
+    kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
     // current_thread->frame[0] = 1;//signaled for rescheduling
 
@@ -97,7 +97,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
 
 void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a higher priority
     // asm volatile ("cli");
-    // //kprintf_interruptable("HIHIHIHI");
+    // kprintf_interruptable("HIHIHIHI");
     volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
     volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
     *lapic_eoi = 0;
@@ -109,7 +109,7 @@ void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a hi
             // current_thread->last_run_time = tsc_read_ns();
             current_thread->sleep_for_ms = 0;
             current_thread->status[4] = 0;
-            //kprintf_interruptable("waking thread %d", current_thread->pid);
+            kprintf_interruptable("waking thread %d", current_thread->pid);
             unblock_thread(current_thread);
 		}
 		current_thread = current_thread->next_thread;

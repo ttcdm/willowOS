@@ -37,7 +37,8 @@
             "stdint.h": "c",
             "event.h": "c",
             "kernel_api.h": "c",
-            "paging.h": "c"
+            "paging.h": "c",
+            "shared_mutex": "c"
         }
     }
 }
