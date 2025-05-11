@@ -19,7 +19,7 @@
 
 #define PIT_FREQ 1193182//in hz
 
-#define NUM_CORES 4//HERE remember to set this as the # of cores we use
+#define NUM_CORES 64//HERE remember to set this as the # of cores we use. might actually be fine to leave it as more than we have beacuse it's only used to creating arrays and not loops
 
 // https://wiki.osdev.org/8259_PIC#Disabling
 

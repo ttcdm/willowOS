@@ -1,7 +1,7 @@
 #include <vfs.h>
 #include <tmpfs.h>//i put this here instead of inside vfs.h because it was causing definition or redefinition? issues
 
-void init_vfs() {
+void init_vfs(struct limine_module_request* module_request) {
     vfs_t* tmpfs = init_tmpfs();
 
     kprintf("\n\n");
@@ -32,6 +32,13 @@ void init_vfs() {
 
     
     tmpfs_list_files(f2->vnode_data);
+
+
+
+    // map_page((uint64_t*) pml4_address_virt_glob, module_request->response->modules[0]->address, module_request->response->modules[0]->address, 0b11);
+    // kprintf("%s", module_request->response->modules[0]->cmdline);
+    // kprintf("%d\n", module_request->response->module_count);
+
 
     // vnode_unmount_vfs
 }

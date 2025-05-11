@@ -82,6 +82,17 @@ static volatile struct limine_mp_request mp_request = {
     .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
+// __attribute__((used, section(".limine_requests")))
+// static volatile struct limine_internal_module internal_module = {
+//     .path = "../../tmpfs.tar"
+// };
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_module_request module_request = {
+    .id = LIMINE_MODULE_REQUEST,
+    .revision = 0
+};
+
 
 
 // Finally, define the start and end markers for the Limine requests.
@@ -469,7 +480,7 @@ void kmain(void) {
 
     smp_init = 0;
     smp_ticket = 0;
-    init_mp(&mp_request);
+    // init_mp(&mp_request);
     smp_init = 1;
 
     // hpet is initialized inside init_bsp_lapic();
@@ -500,13 +511,13 @@ void kmain(void) {
     kfree(a);
     kmalloc_byte(4097);
 
-    init_vfs();
+    init_vfs(&module_request);
 
     // init_scheduler();
 
-    while (1) {
-        kprintf("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHI\n");
-    }
+    // while (1) {
+    //     kprintf("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHI\n");
+    // }
 
 
 
@@ -578,12 +589,16 @@ void start_ap() {//remember to not call any non processor specific init function
         asm volatile ("pause");
     }
 
-    // while (1) {
-    //     kprintf("BYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYE");
-    // }
+    while (1) {
+        kprintf("BYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYE");
+    }
 
-    push_thread(create_thread((*lapic_id)>>24, gen2));
-    while (1) reschedule();
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+
+    // while (1) reschedule();
 
     while (1) {asm volatile ("hlt");}
 }

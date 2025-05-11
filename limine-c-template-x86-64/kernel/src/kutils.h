@@ -87,3 +87,8 @@ char* strtok(char *s, const char *delim);
 char* strtok_r(char *s, const char *delim, char **last);
 
 extern uint64_t smp_ticket;
+
+//from osdev wiki on ustar
+//https://wiki.osdev.org/USTAR
+int oct2bin(unsigned char *str, int size);
+int tar_lookup(unsigned char *archive, char *filename, char **out);

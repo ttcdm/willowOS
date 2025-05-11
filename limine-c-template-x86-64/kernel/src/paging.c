@@ -127,3 +127,25 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     pt->entries[pt_index] = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 }
+
+void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
+    uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
+    uint64_t pd_index = (virt_address >> 21) & 0x1FF;
+    uint64_t pt_index = (virt_address >> 12) & 0x1FF;
+    uint64_t offset = virt_address & 0xFFF;
+
+    page_struct* pml4 = (void*)pml4_address;
+    uint64_t pml4_entry = pml4->entries[pml4_index];
+
+    page_struct* pdpt = (page_struct*)((pml4_entry & ~0xfff) + hhdm_offset);
+    uint64_t pdpt_entry = pdpt->entries[pdpt_index];
+
+    page_struct* pd = (page_struct*)((pdpt_entry & ~0xfff) + hhdm_offset);
+    uint64_t pd_entry = pd->entries[pd_index];
+
+    page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
+    free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
+    pt->entries[pt_index] = NULL;
+    asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+}
