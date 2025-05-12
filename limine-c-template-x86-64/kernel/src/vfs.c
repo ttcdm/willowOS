@@ -37,7 +37,13 @@ void init_vfs(struct limine_module_request* module_request) {
 
     // map_page((uint64_t*) pml4_address_virt_glob, module_request->response->modules[0]->address, module_request->response->modules[0]->address, 0b11);
     // kprintf("%s", module_request->response->modules[0]->cmdline);
-    // kprintf("%d\n", module_request->response->module_count);
+    // kprintf("%llx\n", module_request->response->modules[0]);
+    // assert(module_request->response->modules[0]);
+    for (int i = 8; i < module_request->response->module_count; i++) {
+        if (module_request->response->modules[i] != NULL) {
+            kprintf("%s\n", module_request->response->modules[i]->cmdline);
+        }
+    }
 
 
     // vnode_unmount_vfs

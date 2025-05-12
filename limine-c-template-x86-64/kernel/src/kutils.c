@@ -251,7 +251,7 @@ int tar_lookup(unsigned char *archive, char *filename, char **out) {
 
     while (!memcmp(ptr + 257, "ustar", 5)) {
         int filesize = oct2bin(ptr + 0x7c, 11);
-        if (!memcmp(ptr, filename, strlen(filename) + 1)) {
+        if (!memcmp(ptr, filename, kstrlen(filename) + 1)) {
             *out = ptr + 512;
             return filesize;
         }

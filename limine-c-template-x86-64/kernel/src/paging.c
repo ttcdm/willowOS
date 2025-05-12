@@ -146,6 +146,6 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
 
     page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
     free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
-    pt->entries[pt_index] = NULL;
+    pt->entries[pt_index] = (uint64_t) NULL;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 }
