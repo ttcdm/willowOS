@@ -11,7 +11,7 @@ uint8_t last_alloced_frame;
 uint64_t hhdm_offset;
 
 uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
-    starting_address = memmap_arr[0].base;
+    // starting_address = memmap_arr[0].base + 300000;//first 100k is self reserved for alloc_frame()'s bitmap
     struct usable_memmaps_region* current = &memmap_arr[0];
     // while (current->next != NULL) {
     while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
@@ -76,6 +76,10 @@ uint64_t pml4_address_virt_glob;
 
 uint64_t cr3_global;
 void init_paging() {
+    starting_address = memmap_arr[0].base + 100000;//first 100k is self reserved for alloc_frame()'s bitmap
+    struct usable_memmaps_region* current = &memmap_arr[0];
+
+
     kprint("cr3: ");
     cr3_global = (uint64_t)get_cr3();//get_cr3() somehow returns the wrong value after this so i just set it as a variable
     kprintln_uint64(cr3_global);

@@ -39,11 +39,46 @@ void init_vfs(struct limine_module_request* module_request) {
     // kprintf("%s", module_request->response->modules[0]->cmdline);
     // kprintf("%llx\n", module_request->response->modules[0]);
     // assert(module_request->response->modules[0]);
-    for (int i = 8; i < module_request->response->module_count; i++) {
-        if (module_request->response->modules[i] != NULL) {
-            kprintf("%s\n", module_request->response->modules[i]->cmdline);
+    for (int i = 0; i < module_request->response->module_count; i++) {
+        kprintf("%s\n", module_request->response->modules[i]->path);
+        if (strcmp(module_request->response->modules[i]->path, "/boot/tmpfs.tar") == 0) {
+            void* tarball = module_request->response->modules[i]->address;
+            char* file_data = (char*) kmalloc_byte(8192);//too lazy to compute for octal to decimal size again...
+            uint64_t a_size = tar_lookup(tarball, "hi.txt", &file_data);
+
+            char a_str[13];          // 12 digits + null terminator
+            a_str[12] = '\0';        // Null-terminate
+            
+            for (int j = 11; j >= 0; j--) {//chatgpt generated
+                a_str[j] = '0' + (a_size % 10);
+                a_size /= 10;
+            }
+            uint64_t b_size = oct2bin(a_str, 12);
+            b_size++;//idk why but b_size seems to be one less than the actual size
+
+            kprintf("%llu\n", b_size);
+
+            for (int j = 0; j < b_size; j++) {
+                kprintf("%c", file_data[j]);
+            }
+
+            root->vnode_ops->vnode_create(root, "hi2.txt", b_size);
+            vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi2.txt");
+            vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
+            f->vnode_ops->vnode_wr(fd, file_data, b_size, 0);
+
+            char buffer1[b_size];
+            f->vnode_ops->vnode_rd(fd, buffer1, b_size, 0);//remember to always read with offset 0 if you wanna read from the beginning
+
+            kprintf("%s\n", buffer1);
+
+            // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
+            
+
         }
     }
+
+
 
 
     // vnode_unmount_vfs

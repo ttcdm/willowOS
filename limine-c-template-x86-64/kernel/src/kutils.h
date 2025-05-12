@@ -92,3 +92,6 @@ extern uint64_t smp_ticket;
 //https://wiki.osdev.org/USTAR
 int oct2bin(unsigned char *str, int size);
 int tar_lookup(unsigned char *archive, char *filename, char **out);
+
+void itoa(int n, char s[]);
+void itoa_reverse(char s[]);

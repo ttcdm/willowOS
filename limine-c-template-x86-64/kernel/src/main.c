@@ -228,6 +228,10 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
     for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
         memmap_arr[0].frame_bitmap[i] = 0x00;
 	}
+
+    // memmap_arr[0].frame_bitmap_length = memmap_arr[0].length / 4096;
+    // uint64_t next_bitmap_start = memmap_arr[0].base + memmap_arr[0].frame_bitmap_length + 1;//hopefully there's no off by one error. i'm using +1 just in case
+    
     memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//HERE we use 2 as the terminating character/value
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
@@ -238,6 +242,11 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
         usable_memmap->type = usable_memmaps[i]->type;
+
+        // usable_memmap->frame_bitmap = (uint64_t*) next_bitmap_start;
+        // usable_memmap->frame_bitmap_length = usable_memmap->length / 4096;
+        // next_bitmap_start += usable_memmap->frame_bitmap_length + 1;
+
         //memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
         for (int i = 0; i < usable_memmap->length / 4096; i++) {
             usable_memmap->frame_bitmap[i] = 0x00;
