@@ -177,6 +177,9 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     }
 }
 
+struct limine_memmap_entry** usable_memmaps_pointer;
+uint64_t usable_memmaps_amount;
+
 struct limine_memmap_entry** usable_memmaps_1_ptr;//HERE we use linked lists now so this shouldn't really matter. (strikethrough) for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish (strikethrough)
 
 
@@ -428,6 +431,9 @@ void kmain(void) {
 
     // kprint("helloworld\n");
     kprintln("willowOS");
+
+    usable_memmaps_pointer = memmap_request.response->entries;
+    usable_memmaps_amount = memmap_request.response->entry_count;
 
     struct usable_memmaps_region* memmap = init_memmaps();
 

@@ -9,6 +9,8 @@
 
 uint64_t alloc_frame(void);
 
+uint64_t alloc_frame_better(void);
+
 void free_frame(uint64_t phys_address);
 
 typedef struct page_frame {
@@ -37,6 +39,8 @@ struct usable_memmaps_region {
 	// uint64_t frame_bitmap_length;
 	struct usable_memmaps_region* next;
 };//HERE not sure if i need to align or use packed for general structures
+
+extern uint8_t** memmap_bitmap;
 
 extern struct usable_memmaps_region memmap_arr[32];
 

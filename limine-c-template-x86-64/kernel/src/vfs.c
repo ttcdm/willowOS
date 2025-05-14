@@ -44,17 +44,7 @@ void init_vfs(struct limine_module_request* module_request) {
         if (strcmp(module_request->response->modules[i]->path, "/boot/tmpfs.tar") == 0) {
             void* tarball = module_request->response->modules[i]->address;
             char* file_data = (char*) kmalloc_byte(8192);//too lazy to compute for octal to decimal size again...
-            uint64_t a_size = tar_lookup(tarball, "hi.txt", &file_data);
-
-            char a_str[13];          // 12 digits + null terminator
-            a_str[12] = '\0';        // Null-terminate
-            
-            for (int j = 11; j >= 0; j--) {//chatgpt generated
-                a_str[j] = '0' + (a_size % 10);
-                a_size /= 10;
-            }
-            uint64_t b_size = oct2bin(a_str, 12);
-            b_size++;//idk why but b_size seems to be one less than the actual size
+            uint64_t b_size = tar_lookup_bin(tarball, "hi.txt", &file_data);
 
             kprintf("%llu\n", b_size);
 
@@ -67,10 +57,28 @@ void init_vfs(struct limine_module_request* module_request) {
             vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
             f->vnode_ops->vnode_wr(fd, file_data, b_size, 0);
 
-            char buffer1[b_size];
+            char* buffer1 = (char*) kmalloc_byte(b_size);
             f->vnode_ops->vnode_rd(fd, buffer1, b_size, 0);//remember to always read with offset 0 if you wanna read from the beginning
 
             kprintf("%s\n", buffer1);
+
+
+            char* file_data1 = (char*) kmalloc_byte(8192);
+            b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
+
+            root->vnode_ops->vnode_create(root, "bye2.txt", b_size);
+            vnode_t* f1 = root->vnode_ops->vnode_lookup(root, "bye2.txt");
+            vfs_fd_t* fd1 = (vfs_fd_t*) tmpfs_open(root->vnode_data, "bye2.txt", 0);
+
+
+            
+            f1->vnode_ops->vnode_wr(fd1, file_data1, b_size, 0);
+
+            buffer1 = krealloc_byte(buffer1, b_size);
+            f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
+
+            kprintf("%s\n", buffer1);
+            
 
             // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
             

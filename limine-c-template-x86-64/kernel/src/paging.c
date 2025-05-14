@@ -30,8 +30,39 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
     return 0;
 }
 
+uint8_t** memmap_bitmap;
 
-void free_frame(uint64_t phys_address) {//pretty sure this works
+uint64_t alloc_frame_better(void) {
+    kprintf("%d", usable_memmaps_amount);
+    
+    for (int i = 0; i < usable_memmaps_amount; i++) {
+        struct limine_memmap_entry* current_memmap = usable_memmaps_pointer[i];
+    }
+
+
+    struct usable_memmaps_region* current = &memmap_arr[0];
+    while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
+        for (int i = 0; i < current->length / 4096; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (((current->frame_bitmap[i] << (8-j)) >> j) == 0x00) {
+                }
+            }
+            // if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
+            //     current->frame_bitmap[i] = 0x01;
+            //     last_alloced_frame = i;//idek if this is even supposed to be here atp
+            //     memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
+            //     // kprintln("page allocated successfully");
+            //     return current->base + (i * 4096);
+            // }
+        }
+        current = current->next;
+    }
+	kprintln("no more frames to allocate. returning 0");
+    return 0;
+}
+
+
+void free_frame(uint64_t phys_address) {//pretty sure this works. may have to align input to 4kib??
     uint8_t index;
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
@@ -76,9 +107,17 @@ uint64_t pml4_address_virt_glob;
 
 uint64_t cr3_global;
 void init_paging() {
-    starting_address = memmap_arr[0].base + 100000;//first 100k is self reserved for alloc_frame()'s bitmap
-    struct usable_memmaps_region* current = &memmap_arr[0];
+    // memmap_bitmap = usable_memmaps_pointer[0]->base;
+    for (int i = 0; i < usable_memmaps_amount; i++) {
+        if (usable_memmaps_pointer[i]->type == 0) {
+            memmap_bitmap = usable_memmaps_pointer[i]->base + hhdm_offset;
+            break;
+        }
+    }
+    //get total size of usable ram and adjust the memmap size accordingly
 
+    // alloc_frame_better();
+    // while (1) {}
 
     kprint("cr3: ");
     cr3_global = (uint64_t)get_cr3();//get_cr3() somehow returns the wrong value after this so i just set it as a variable

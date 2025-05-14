@@ -262,32 +262,49 @@ int tar_lookup(unsigned char *archive, char *filename, char **out) {
 
 
 
- /* itoa:  convert n to characters in s */
- void itoa(int n, char s[])
- {
-     int i, sign;
- 
-     if ((sign = n) < 0)  /* record sign */
-         n = -n;          /* make n positive */
-     i = 0;
-     do {       /* generate digits in reverse order */
-         s[i++] = n % 10 + '0';   /* get next digit */
-     } while ((n /= 10) > 0);     /* delete it */
-     if (sign < 0)
-         s[i++] = '-';
-     s[i] = '\0';
-     itoa_reverse(s);
- }
+/* itoa:  convert n to characters in s */
+void itoa(int n, char s[])
+{
+    int i, sign;
 
-  /* reverse:  reverse string s in place */
-  void itoa_reverse(char s[])
-  {
-      int i, j;
-      char c;
-  
-      for (i = 0, j = kstrlen(s)-1; i<j; i++, j--) {
-          c = s[i];
-          s[i] = s[j];
-          s[j] = c;
-      }
-  }
+    if ((sign = n) < 0)  /* record sign */
+        n = -n;          /* make n positive */
+    i = 0;
+    do {       /* generate digits in reverse order */
+        s[i++] = n % 10 + '0';   /* get next digit */
+    } while ((n /= 10) > 0);     /* delete it */
+    if (sign < 0)
+        s[i++] = '-';
+    s[i] = '\0';
+    itoa_reverse(s);
+}
+
+/* reverse:  reverse string s in place */
+void itoa_reverse(char s[])
+{
+    int i, j;
+    char c;
+
+    for (i = 0, j = kstrlen(s)-1; i<j; i++, j--) {
+        c = s[i];
+        s[i] = s[j];
+        s[j] = c;
+    }
+}
+
+
+uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data) {//currently no protection against trying to find a file that doens't exist
+    uint64_t a_size = tar_lookup(tarball, filename, file_data);
+
+    char a_str[13];          // 12 digits + null terminator
+    a_str[12] = '\0';        // Null-terminate
+    
+    for (int j = 11; j >= 0; j--) {//chatgpt generated
+        a_str[j] = '0' + (a_size % 10);
+        a_size /= 10;
+    }
+    uint64_t b_size = oct2bin(a_str, 12);
+    b_size++;//idk why but b_size seems to be one less than the actual size
+
+    return b_size;//HERE B_SIZE HAS BEEN INCREMENTED BY ONE
+}
