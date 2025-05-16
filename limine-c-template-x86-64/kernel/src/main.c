@@ -16,6 +16,7 @@
 #include <vfs.h>
 #include <tmpfs.h>
 #include <mutex.h>
+#include <syscalls.h>
 
 #include <limine.h>
 
@@ -535,8 +536,7 @@ void kmain(void) {
     // }
 
 
-
-
+    init_syscalls();
     
     
 

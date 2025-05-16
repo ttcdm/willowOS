@@ -39,6 +39,7 @@
             "kernel_api.h": "c",
             "paging.h": "c",
             "shared_mutex": "c"
-        }
+        },
+        "remote.autoForwardPortsFallback": 0
     }
 }
