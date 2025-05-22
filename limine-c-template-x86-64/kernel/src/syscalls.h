@@ -7,7 +7,8 @@
 
 #include <kutils.h>
 
-
+extern uint64_t top;
+extern void* user_code;
 
 void init_syscalls(void);
 

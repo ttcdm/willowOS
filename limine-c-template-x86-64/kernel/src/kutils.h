@@ -100,3 +100,6 @@ extern struct limine_memmap_entry** usable_memmaps_pointer;
 extern uint64_t usable_memmaps_amount;
 
 uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data);
+
+uint64_t rdmsr(uint32_t msr);
+void wrmsr(uint32_t msr, uint64_t value);

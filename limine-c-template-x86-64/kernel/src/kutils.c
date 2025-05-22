@@ -308,3 +308,17 @@ uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data) {//curr
 
     return b_size;//HERE B_SIZE HAS BEEN INCREMENTED BY ONE
 }
+
+//stolen from nyaux
+uint64_t rdmsr(uint32_t msr) {
+  uint32_t low = 0;
+  uint32_t high = 0;
+  __asm__ volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
+  uint64_t combined = ((uint64_t)high << 32) | low;
+  return combined;
+}
+void wrmsr(uint32_t msr, uint64_t value) {
+  uint32_t low = (uint32_t)value;
+  uint32_t high = (uint32_t)(value >> 32);
+  __asm__ volatile("wrmsr" : : "a"(low), "d"(high), "c"(msr));
+}
