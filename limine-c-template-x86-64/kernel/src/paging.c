@@ -129,6 +129,7 @@ void init_paging() {
         page[i] = cr3[i];//not 100% sure what's going on honestly
     }
 
+
     uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
     pml4_address_virt_glob = (uint64_t) page;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
@@ -136,7 +137,6 @@ void init_paging() {
 }
 
 void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
-    permissions = 0b111;
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
@@ -146,7 +146,7 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     page_struct* pml4 = (void*)pml4_address;
     uint64_t pml4_entry = pml4->entries[pml4_index];
     if (!(pml4_entry & 1)) {
-        uint64_t new_entry = (alloc_frame()) | permissions;
+        uint64_t new_entry = (alloc_frame()) | permissions;//we can save a lotta space by only only calling alloc_frame once and we just offset into that frame
         pml4->entries[pml4_index] = new_entry;
         pml4_entry = new_entry;
     }
@@ -171,13 +171,6 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     uint64_t* pt_entry = &pt->entries[pt_index];
     *pt_entry = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
-
-    // kprintf("pml4_entry: %b\n", pml4_entry);
-    // kprintf("pdpt_entry: %b\n", pdpt_entry);
-    // kprintf("pd_entry: %b\n", pd_entry);
-    // kprintf("pt_entry: %b\n", *(&pt->entries[pt_index]));
-    // kprintf("pml4_index = %d, pdpt_index = %d, pd_index = %d, pt_index = %d\n", pml4_index, pdpt_index, pd_index, pt_index);
-    // kprintf("pt virt addr: %llx\n", (uint64_t)pt);
 }
 
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
@@ -199,5 +192,36 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
     free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
     pt->entries[pt_index] = (uint64_t) NULL;
+    asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+}
+
+void change_page_map(uint64_t virt_address, uint64_t permissions) {
+    uint64_t* pml4_address = pml4_address_virt_glob;
+
+    uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
+    uint64_t pd_index = (virt_address >> 21) & 0x1FF;
+    uint64_t pt_index = (virt_address >> 12) & 0x1FF;
+    uint64_t offset = virt_address & 0xFFF;
+
+    page_struct* pml4 = (void*)pml4_address;
+    uint64_t pml4_entry = pml4->entries[pml4_index];
+    pml4_entry |= permissions;
+    pml4->entries[pml4_index] = pml4_entry;//HERE ALWAYS REMEMBER TO DO WRITEBACKS
+
+    page_struct* pdpt = (page_struct*)((pml4_entry & ~0xfff) + hhdm_offset);
+    uint64_t pdpt_entry = pdpt->entries[pdpt_index];
+    pdpt_entry |= permissions;
+    pdpt->entries[pdpt_index] = pdpt_entry;//HERE ALWAYS REMEMBER TO DO WRITEBACKS
+
+    page_struct* pd = (page_struct*)((pdpt_entry & ~0xfff) + hhdm_offset);
+    uint64_t pd_entry = pd->entries[pd_index];
+    pd_entry |= permissions;
+    pd->entries[pd_index] = pd_entry;//HERE ALWAYS REMEMBER TO DO WRITEBACKS
+
+    page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
+    uint64_t* pt_entry = &pt->entries[pt_index];
+    *pt_entry |= permissions;
+
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 }

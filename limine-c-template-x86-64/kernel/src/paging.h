@@ -29,6 +29,7 @@ uint64_t virt_lookup(uint64_t virt_address);
 
 void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions);
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address);
+void change_page_map(uint64_t virt_address, uint64_t permissions);
 
 struct usable_memmaps_region {
 	uint64_t base;

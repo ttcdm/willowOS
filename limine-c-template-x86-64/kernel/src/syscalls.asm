@@ -7,6 +7,7 @@ extern top
 jump_to_user:
 
 
+
     ; mov r11, 0x202
     ; mov rax, [rel top]   ; Load the value stored in 'top'
     ; mov rsp, rax         ; Set user stack
@@ -17,7 +18,7 @@ jump_to_user:
     pop r11
     ; mov r11, 0x202
     ; mov rsp, [gs:0]
-    mov rsp, top
+    mov rsp, [top]
     swapgs
     o64 sysret
 

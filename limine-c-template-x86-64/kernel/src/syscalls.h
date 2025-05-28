@@ -6,8 +6,9 @@
 #include <limine.h>
 
 #include <kutils.h>
+#include <paging.h>
 
-extern uint64_t top;
+extern uint64_t* top;
 extern void* user_code;
 
 void init_syscalls(void);
