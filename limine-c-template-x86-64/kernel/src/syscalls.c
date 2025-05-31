@@ -21,7 +21,7 @@ void test_a() {
     while (1) {
         int i = 0;
         i++;
-        kprint("hi");
+        // kprint("hi");
     }
 }
 
@@ -34,7 +34,7 @@ typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
 
 void init_syscalls() {
 
-    top = kmalloc_byte(4096) + 4096;
+    top = (uint64_t*) kmalloc_byte(4096) + 4096;
 
     uint32_t msr_low, msr_high;
 
@@ -81,8 +81,8 @@ void init_syscalls() {
 
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
-    change_page_map(test_a, 0b111);
-    change_page_map(top, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
+    change_page_map((uint64_t) test_a, 0b111);
+    change_page_map((uint64_t) top, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 
     jump_to_user();

@@ -74,7 +74,7 @@ void init_vfs(struct limine_module_request* module_request) {
             
             f1->vnode_ops->vnode_wr(fd1, file_data1, b_size, 0);
 
-            buffer1 = krealloc_byte(buffer1, b_size);
+            buffer1 = (char*) krealloc_byte((uint64_t*) buffer1, b_size);
             f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
 
             kprintf("%s\n", buffer1);

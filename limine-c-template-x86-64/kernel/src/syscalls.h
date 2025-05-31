@@ -7,6 +7,7 @@
 
 #include <kutils.h>
 #include <paging.h>
+#include <vmm.h>
 
 extern uint64_t* top;
 extern void* user_code;

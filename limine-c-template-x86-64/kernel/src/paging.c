@@ -110,7 +110,7 @@ void init_paging() {
     // memmap_bitmap = usable_memmaps_pointer[0]->base;
     for (int i = 0; i < usable_memmaps_amount; i++) {
         if (usable_memmaps_pointer[i]->type == 0) {
-            memmap_bitmap = usable_memmaps_pointer[i]->base + hhdm_offset;
+            // memmap_bitmap = usable_memmaps_pointer[i]->base + hhdm_offset;
             break;
         }
     }
@@ -196,7 +196,7 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
 }
 
 void change_page_map(uint64_t virt_address, uint64_t permissions) {
-    uint64_t* pml4_address = pml4_address_virt_glob;
+    uint64_t* pml4_address = (uint64_t*) pml4_address_virt_glob;
 
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
