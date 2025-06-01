@@ -18,28 +18,30 @@ void* user_code;
 void test_a() {
     // kprintf("hi");
     // while (1) asm volatile ("hlt");
+    asm volatile ("syscall");
     while (1) {
         int i = 0;
         i++;
         // kprint("hi");
     }
+
+    
+    
 }
-
-typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
-    uint64_t entries[512];
-} page_struct;
-
-
 
 
 void init_syscalls() {
 
-    top = (uint64_t*) kmalloc_byte(4096) + 4096;
+    top = (uint64_t*) kmalloc_byte(16384) + 16384;
+
+    for (int i = 0; i < 4; i++) {
+        change_page_map((uint64_t) top + (i * 4096), 0b111);
+    }
 
     uint32_t msr_low, msr_high;
 
     // 1. Set LSTAR (RIP to jump to on syscall)
-    uint64_t lstar = (uint64_t)test_a;
+    uint64_t lstar = (uint64_t) syscall_handler;
     msr_low = (uint32_t)(lstar & 0xFFFFFFFF);
     msr_high = (uint32_t)(lstar >> 32);
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(MSR_LSTAR));
@@ -62,6 +64,14 @@ void init_syscalls() {
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
 
+    uint64_t gs_base = (uint64_t) kmalloc_byte(64);
+    uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(64);
+    change_page_map(gs_base, 0b111);
+    change_page_map(kernel_gs_base, 0b111);
+    // uint64_t gs_base = (uint64_t) top;
+    wrmsr(0xC0000101, gs_base);
+    wrmsr(0xC0000102, kernel_gs_base);
+
 
     /*
     • IA32_KERNEL_GS_BASE — Used by SWAPGS instruction.
@@ -81,7 +91,7 @@ void init_syscalls() {
 
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
-    change_page_map((uint64_t) test_a, 0b111);
+    change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
     change_page_map((uint64_t) top, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 

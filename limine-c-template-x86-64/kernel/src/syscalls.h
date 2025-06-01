@@ -18,4 +18,5 @@ void test_a(void);
 
 void jump_to_user(void);
 
-void syscall1(void);
+
+void syscall_handler(uint64_t num);

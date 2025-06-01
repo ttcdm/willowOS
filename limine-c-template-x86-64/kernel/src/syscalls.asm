@@ -6,27 +6,66 @@ extern top
 [global jump_to_user]
 jump_to_user:
 
-
-
-    ; mov r11, 0x202
-    ; mov rax, [rel top]   ; Load the value stored in 'top'
-    ; mov rsp, rax         ; Set user stack
-    ; mov rcx, user_code
     mov rcx, test_a
-    ; mov rcx, aa;
+
     pushfq
     pop r11
     ; mov r11, 0x202
     ; mov rsp, [gs:0]
+    mov [gs:8], rsp
     mov rsp, [top]
+    mov [gs:0], rsp
     swapgs
     o64 sysret
 
 ; jump_to_user1:
 ;     call test_a
 
+;put syscall_handler into LSTAR msr before calling syscall
+[global syscall_handler]
+syscall_handler:
+    swapgs
+    ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
+    mov [gs:0], rsp
+    mov rsp, [gs:8]
+    ; push_regs
 
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+    ;get rdi and index into some array of syscalls
+    
+    ;call corresponding routine via call
 
+    call syscall0
+
+    pop rcx
+    pop r11
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    
+
+    mov rsp, [gs:0]
+    swapgs
+    o64 sysret
+
+syscall0:
+    push r11
+    push rcx
+    call test_b
+    ret
+
+test_b:
+    jmp test_b
+    ret
 
 ; syscall1:
 ;     cli
