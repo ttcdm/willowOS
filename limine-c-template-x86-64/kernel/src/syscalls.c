@@ -11,13 +11,14 @@
 #define KERNEL_CS   0x08
 
 
-uint64_t* top;
+uint64_t* usermode_stack_base;
 
 void* user_code;
 
 void test_a() {
-    // kprintf("hi");
-    // while (1) asm volatile ("hlt");
+    uint64_t syscall_num = 0;
+    asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
+
     asm volatile ("syscall");
     while (1) {
         int i = 0;
@@ -32,10 +33,10 @@ void test_a() {
 
 void init_syscalls() {
 
-    top = (uint64_t*) kmalloc_byte(16384) + 16384;
+    usermode_stack_base = (uint64_t*) kmalloc_byte(16384) + 16384;
 
-    for (int i = 0; i < 4; i++) {
-        change_page_map((uint64_t) top + (i * 4096), 0b111);
+    for (int i = 1; i <= 4; i++) {
+        change_page_map((uint64_t) usermode_stack_base - (i * 4096), 0b111);//HERE we do minus instead of plus because we're going from usermode_stack_base down. we do <= 4 because the 4th one covers from the bottom most address and i=1 because the first one covers from the page previous to it to the top most address i think
     }
 
     uint32_t msr_low, msr_high;
@@ -68,7 +69,7 @@ void init_syscalls() {
     uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(64);
     change_page_map(gs_base, 0b111);
     change_page_map(kernel_gs_base, 0b111);
-    // uint64_t gs_base = (uint64_t) top;
+    // uint64_t gs_base = (uint64_t) usermode_stack_base;
     wrmsr(0xC0000101, gs_base);
     wrmsr(0xC0000102, kernel_gs_base);
 
@@ -81,7 +82,7 @@ void init_syscalls() {
     */
 
 
-    // map_page((uint64_t*)pml4_address_virt_glob, top, top, 0b111);
+    // map_page((uint64_t*)pml4_address_virt_glob, usermode_stack_base, usermode_stack_base, 0b111);
     // map_page((uint64_t*)pml4_address_virt_glob, (uint64_t) test_a, (uint64_t) test_a, 0b111);
     // void* user_code = (void*)0x400000;
     // memcpy(user_code, (void*)test_a, 64); // careful: make sure size fits 
@@ -92,9 +93,17 @@ void init_syscalls() {
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
     change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
-    change_page_map((uint64_t) top, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
+    change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 
     jump_to_user();
 }
 
+void syscall_switcher(uint64_t num) {
+    kprintf("syscall switcher: syscall %llu\n", num);
+    switch (num) {
+        case 0:
+            syscall0();
+            break;
+    }
+}

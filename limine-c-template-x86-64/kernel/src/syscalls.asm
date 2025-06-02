@@ -1,6 +1,7 @@
 extern test_a
 extern user_code
-extern top
+extern usermode_stack_base
+extern syscall_switcher
 
 
 [global jump_to_user]
@@ -13,7 +14,7 @@ jump_to_user:
     ; mov r11, 0x202
     ; mov rsp, [gs:0]
     mov [gs:8], rsp
-    mov rsp, [top]
+    mov rsp, [usermode_stack_base]
     mov [gs:0], rsp
     swapgs
     o64 sysret
@@ -40,7 +41,10 @@ syscall_handler:
     
     ;call corresponding routine via call
 
-    call syscall0
+    mov rdi, rax
+    call syscall_switcher
+
+    ; call syscall0
 
     pop rcx
     pop r11
@@ -57,6 +61,8 @@ syscall_handler:
     swapgs
     o64 sysret
 
+
+[global syscall0]
 syscall0:
     push r11
     push rcx
