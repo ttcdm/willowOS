@@ -1,4 +1,6 @@
 #include <syscalls.h>
+#include <vfs.h>
+#include <tmpfs.h>
 
 #define MSR_LSTAR   0xC0000082
 #define MSR_STAR    0xC0000081
@@ -16,7 +18,7 @@ uint64_t* usermode_stack_base;
 void* user_code;
 
 void test_a() {
-    uint64_t syscall_num = 0;
+    uint64_t syscall_num = 1;
     asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
 
     asm volatile ("syscall");
@@ -33,7 +35,7 @@ void test_a() {
 
 void init_syscalls() {
 
-    usermode_stack_base = (uint64_t*) kmalloc_byte(16384) + 16384;
+    usermode_stack_base = (uint64_t*) (((uint64_t) kmalloc_byte(16384)) + 16384);
 
     for (int i = 1; i <= 4; i++) {
         change_page_map((uint64_t) usermode_stack_base - (i * 4096), 0b111);//HERE we do minus instead of plus because we're going from usermode_stack_base down. we do <= 4 because the 4th one covers from the bottom most address and i=1 because the first one covers from the page previous to it to the top most address i think
@@ -105,5 +107,73 @@ void syscall_switcher(uint64_t num) {
         case 0:
             syscall0();
             break;
+        case 1:
+            syscall1();
+            break;
+        case 2:
+            syscall2();
+            break;
+        case 3:
+            syscall3();
+            break;
+        case 4:
+            syscall4();
+            break;
+        case 5:
+            syscall5();
+            break;
+        case 6:
+            syscall6();
+            break;
+        case 7:
+            syscall7();
+            break;
+        case 8:
+            syscall8();
+            break;
+        case 9:
+            syscall9();
+            break;
     }
+}
+
+void syscall0() {//open
+
+}
+
+void syscall1() {//close
+    kprintf("syscall1\n");
+    while (1);
+}
+
+void syscall2() {//read
+
+}
+
+void syscall3() {//write
+
+}
+
+void syscall4() {
+
+}
+
+void syscall5() {
+
+}
+
+void syscall6() {
+
+}
+
+void syscall7() {
+
+}
+
+void syscall8() {
+
+}
+
+void syscall9() {
+
 }

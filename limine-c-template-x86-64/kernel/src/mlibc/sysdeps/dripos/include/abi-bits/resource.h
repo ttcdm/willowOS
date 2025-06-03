@@ -1,0 +1,1 @@
+../../../../abis/dripos/resource.h
