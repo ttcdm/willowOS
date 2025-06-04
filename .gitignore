@@ -58,3 +58,4 @@ dkms.conf
 /limine-c-template-x86-64/qemu-log
 ./limine-c-template-x86-64/iso_contents/boot/kernel
 limine-c-template-x86-64/iso_contents/boot/kernel
+.DS_Store

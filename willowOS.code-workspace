@@ -38,7 +38,11 @@
             "event.h": "c",
             "kernel_api.h": "c",
             "paging.h": "c",
-            "shared_mutex": "c"
+            "shared_mutex": "c",
+            "internal-sysdeps.hpp": "c",
+            "stddef.h": "c",
+            "complex.h": "c",
+            "apic.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

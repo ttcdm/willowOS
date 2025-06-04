@@ -45,6 +45,9 @@ ifeq ($(CC_IS_CLANG),1)
         -target x86_64-unknown-none
 endif
 
+#-mno-80387
+# -mno-sse
+#-mno-sse2
 # Internal C flags that should not be changed by the user.
 override CFLAGS += \
     -Wall \
@@ -59,17 +62,29 @@ override CFLAGS += \
     -fdata-sections \
     -m64 \
     -march=x86-64 \
-    -mno-80387 \
     -mno-mmx \
-    -mno-sse \
-    -mno-sse2 \
     -mno-red-zone \
     -mcmodel=kernel
 
+#we put freestnd-c-hdrs-0bsd first because the linux directory also has stddef.h and that causes errors if it's included first. this is a bad way to fix it i think
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
     -I src \
     -isystem freestnd-c-hdrs-0bsd \
+    -isystem src/mlibc-6.0.1/options/ansi/include \
+    -isystem src/mlibc-6.0.1/options/posix/include \
+    -isystem src/mlibc-6.0.1/options/glibc/include \
+    -isystem src/mlibc-6.0.1/options/bsd/include \
+    -isystem src/mlibc-6.0.1/options/linux/include \
+    -isystem src/mlibc-6.0.1/options/internal/include \
+    -isystem src/mlibc-6.0.1/sysdeps/generic/include \
+    -isystem src/mlibc-6.0.1/sysdeps/willowos/include \
+    -isystem src/mlibc-6.0.1/sysdeps/willowos/generic \
+    -isystem src/mlibc-6.0.1/sysdeps/willowos/generic/bits \
+    -isystem src/mlibc-6.0.1/linux-headers/linux \
+    -isystem src/mlibc-6.0.1/linux-headers/linux/include \
+    -isystem src/mlibc-6.0.1/linux-headers/include/linux \
+    -isystem src/mlibc-6.0.1/build \
     $(CPPFLAGS) \
     -DLIMINE_API_REVISION=2 \
     -MMD \
