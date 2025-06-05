@@ -43,7 +43,8 @@ void init_vfs(struct limine_module_request* module_request) {
         kprintf("%s\n", module_request->response->modules[i]->path);
         if (strcmp(module_request->response->modules[i]->path, "/boot/tmpfs.tar") == 0) {
             void* tarball = module_request->response->modules[i]->address;
-            char* file_data = (char*) kmalloc_byte(8192);//too lazy to compute for octal to decimal size again...
+            // char* file_data = (char*) kmalloc_byte(8192);//too lazy to compute for octal to decimal size again...
+            char* file_data = (char*) kmalloc_byte(8);//i don't think we actually need to allocate the size of the file. only the size of the pointer because it's a pointer to the file data and not the file data itself, and tar_lookup_bin() changes the value of the pointer via a double pointer
             uint64_t b_size = tar_lookup_bin(tarball, "hi.txt", &file_data);
 
             kprintf("%llu\n", b_size);
@@ -63,7 +64,7 @@ void init_vfs(struct limine_module_request* module_request) {
             kprintf("%s\n", buffer1);
 
 
-            char* file_data1 = (char*) kmalloc_byte(8192);
+            char* file_data1 = (char*) kmalloc_byte(8);
             b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
 
             root->vnode_ops->vnode_create(root, "bye2.txt", b_size);
@@ -78,9 +79,21 @@ void init_vfs(struct limine_module_request* module_request) {
             f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
 
             kprintf("%s\n", buffer1);
-            
 
             // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
+
+
+
+            void* exec_ptr = (void*) kmalloc_byte(8);
+            b_size = tar_lookup_bin(tarball, "a.out", &exec_ptr);
+            root->vnode_ops->vnode_create(root, "a.out", b_size);
+            vnode_t* exec_file = root->vnode_ops->vnode_lookup(root, "a.out");
+
+            vfs_fd_t* exec_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "a.out", 0);
+            exec_file->vnode_ops->vnode_wr(exec_fd, exec_ptr, b_size, 0);
+
+            init_loader(exec_fd);
+            
             
 
         }
