@@ -1,7 +1,7 @@
 #include <loader.h>
 
 void init_loader(vfs_fd_t* file) {
-    kprintf("loader init\n\n");
+    kprintf("loader init\n");
 
     //so basically, for nonrelocatable elfs, we just call alloc_frame() and map it to the appropriate addresses.
     //the alloc_frame() bitmap already takes care of everything for us so it doesn't matter for virt addresses that are the same cuz alloc_frame() will put them at different phys addresses
@@ -37,11 +37,14 @@ void init_loader(vfs_fd_t* file) {
                 }
             }
 
-            memcpy((void*) phdr->p_vaddr, (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data), phdr->p_filesz);
+            //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
+            //HERE remember to reread the docs and calculate the offsets correctly
+            memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
+
         }
 
     }
 
-    // asm volatile ("jmp %0" : : "r" (ehdr->e_entry));
-    
+    asm volatile ("jmp %0" : : "r" (ehdr->e_entry));
+
 }
