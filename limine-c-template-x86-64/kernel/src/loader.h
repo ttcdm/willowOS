@@ -10,6 +10,7 @@
 #include <vmm.h>
 #include <tmpfs.h>
 #include <vfs.h>
+#include <scheduler.h>
 
 void init_loader(vfs_fd_t* file);
 
