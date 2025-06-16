@@ -22,13 +22,21 @@ void syscall_handler(uint64_t num);
 
 void syscall_switcher(uint64_t num);
 
-void syscall0(void);
-void syscall1(void);
-void syscall2(void);
-void syscall3(void);
-void syscall4(void);
-void syscall5(void);
-void syscall6(void);
-void syscall7(void);
-void syscall8(void);
-void syscall9(void);
+void push_syscall_args(void);
+void pop_syscall_args(void);
+
+void syscall_asm(uint64_t num);
+
+int syscall0(void);
+int syscall1(void);
+int syscall2(void);
+int syscall3(void);
+int syscall4(size_t num, char* str);
+int syscall5(void);
+int syscall6(void);
+int syscall7(void);
+int syscall8(void);
+int syscall9(void);
+
+
+int syscall_log(char* str);

@@ -19,9 +19,16 @@ void* user_code;
 
 void test_a() {
     uint64_t syscall_num = 1;
-    asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
 
-    asm volatile ("syscall");
+
+    // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
+    // asm volatile ("syscall");
+
+    int a = syscall_log("hi");
+    if (a == 0) {
+        syscall_log("bye");
+    }
+
     while (1) {
         int i = 0;
         i++;
@@ -101,79 +108,93 @@ void init_syscalls() {
     jump_to_user();
 }
 
-void syscall_switcher(uint64_t num) {
-    kprintf("syscall switcher: syscall %llu\n", num);
-    switch (num) {
-        case 0:
-            syscall0();
-            break;
-        case 1:
-            syscall1();
-            break;
-        case 2:
-            syscall2();
-            break;
-        case 3:
-            syscall3();
-            break;
-        case 4:
-            syscall4();
-            break;
-        case 5:
-            syscall5();
-            break;
-        case 6:
-            syscall6();
-            break;
-        case 7:
-            syscall7();
-            break;
-        case 8:
-            syscall8();
-            break;
-        case 9:
-            syscall9();
-            break;
-    }
+// void syscall_switcher(uint64_t num) {
+//     kprintf("syscall switcher: syscall %llu\n", num);
+//     switch (num) {
+//         case 0:
+//             syscall0();
+//             break;
+//         case 1:
+//             syscall1();
+//             break;
+//         case 2:
+//             syscall2();
+//             break;
+//         case 3:
+//             syscall3();
+//             break;
+//         case 4:
+//             syscall4();
+//             break;
+//         case 5:
+//             syscall5();
+//             break;
+//         case 6:
+//             syscall6();
+//             break;
+//         case 7:
+//             syscall7();
+//             break;
+//         case 8:
+//             syscall8();
+//             break;
+//         case 9:
+//             syscall9();
+//             break;
+//     }
+// }
+
+/*help from jw
+int syscall0(int id) {int ret; asm volatile("syscall" : "=a"(ret): "D"(id) : "memory"); return ret;}
+int syscall1(int id, int arg1) {int ret; asm volatile("syscall" : "=a"(ret): "D"(id), "S"(arg1) : "memory"); return ret;} ...
+*/
+
+int syscall0() {//open
+
 }
 
-void syscall0() {//open
-
-}
-
-void syscall1() {//close
+int syscall1() {//close
     kprintf("syscall1\n");
     while (1);
 }
 
-void syscall2() {//read
+int syscall2() {//read
 
 }
 
-void syscall3() {//write
+int syscall3() {//write
 
 }
 
-void syscall4() {
+int syscall4(size_t num, char* str) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
+    kprintf("%s\n", str);//no checks against non null terminated strings
+    return 0;
+}
+
+int syscall5() {
 
 }
 
-void syscall5() {
+int syscall6() {
 
 }
 
-void syscall6() {
+int syscall7() {
 
 }
 
-void syscall7() {
+int syscall8() {
 
 }
 
-void syscall8() {
+int syscall9() {
 
 }
 
-void syscall9() {
-
+int syscall_log(char* str) {
+    int ret;
+    size_t num = 4;
+    // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
+    asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(str) : "memory");
+    return ret;
 }
