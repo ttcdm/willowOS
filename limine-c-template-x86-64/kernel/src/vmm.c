@@ -80,6 +80,7 @@ uint64_t init_heap() {
     return heap_start;
 }
 
+// uint64_t index = 0;
 uint64_t* kmalloc(uint64_t size) {
     // asm volatile ("cli");
     if (size == 0) {
@@ -90,6 +91,9 @@ uint64_t* kmalloc(uint64_t size) {
     // current = current->next;
 
     uint64_t index = 0;
+    // for (uint64_t k = 0; k < index; k++) {
+    //     current = current->next;
+    // }
     // while (current->next != NULL) {
     while (current != NULL) {//fixes the same off by one error in alloc_frame()
         int fits = 0;//0 for fits 1 for does not fit

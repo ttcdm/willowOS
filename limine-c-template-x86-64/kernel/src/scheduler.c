@@ -56,21 +56,24 @@ void gen2() {
 	// volatile thread_context* current_thread = get_current_thread();
 	// push_thread(current_thread);
 	aaa += 2;
-	if (aaa == 2) {
-		push_thread(create_thread(aaa, gen2));
-		push_thread(create_thread(aaa+1, gen2));
-		push_thread(create_thread(aaa+2, gen2));
-		push_thread(create_thread(aaa+3, gen2));
-		push_thread(create_thread(aaa+4, gen2));
+	if (aaa) {
+		// hot_push_thread(create_thread(aaa, gen1));
+		// hot_push_thread(create_thread(aaa+1, gen1));
+		// push_thread(create_thread(aaa+2, gen2));
+		// push_thread(create_thread(aaa+3, gen2));
+		// push_thread(create_thread(aaa+4, gen2));
 
 
 	}
-	reschedule();
+	
+	// reschedule();
+	asm volatile ("sti");
+	// yield_thread();
 	// asm volatile ("sti");
 	
-	// yield_thread();
-	while (1);
-	// while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
+	yield_thread();
+	// while (1);
+	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
 
 void idle_thread() {
@@ -154,6 +157,13 @@ thread_context* pop_front(thread_context* thread) {
 }
 
 void push_back(thread_context* ready_queue, thread_context* thread) {
+	ready_queue_end->next_thread = thread;
+	ready_queue_second_last = ready_queue_end;
+	// current_actual = &ready_queue_end;
+	ready_queue_end = ready_queue_end->next_thread;
+}
+
+void hot_push_thread(thread_context* thread) {
 	ready_queue_end->next_thread = thread;
 	ready_queue_second_last = ready_queue_end;
 	// current_actual = &ready_queue_end;

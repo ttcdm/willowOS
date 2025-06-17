@@ -537,7 +537,15 @@ void kmain(void) {
     // }
 
 
-    init_syscalls();
+    // init_syscalls();
+
+    kmalloc_byte(16000);
+    void* c = kmalloc_byte(128);
+    kmalloc_byte(16000);
+    kmalloc_byte(15483);
+    kfree(c);
+    kmalloc_byte(12349);
+    kprintf("hi");
 
 
     

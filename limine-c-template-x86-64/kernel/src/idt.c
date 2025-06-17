@@ -78,6 +78,7 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
     *lapic_eoi = 0;
 }
 
+uint64_t bbb = 0;
 void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack overflow said bits 3 to 7 which is for every 8
     // disable_preemption();
     asm volatile ("cli");
@@ -87,10 +88,21 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
     // current_thread->frame[0] = 1;//signaled for rescheduling
-
+    bbb+=2;
+    if (bbb == 2) {
+        push_thread(create_thread(bbb, gen2));
+        push_thread(create_thread(bbb+1, gen2));
+        push_thread(create_thread(bbb+2, gen2));
+        push_thread(create_thread(bbb+3, gen2));
+        push_thread(create_thread(bbb+4, gen2));
+        push_thread(create_thread(bbb+5, gen2));
+    }
+    
     if (current_thread->status[3] == 0) {
         push_back(ready_queue, current_thread);//&ready_queue
     }
+
+
     reschedule();
 }
 

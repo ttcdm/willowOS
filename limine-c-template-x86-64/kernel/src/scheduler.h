@@ -67,6 +67,7 @@ void scheduler_return();
 
 thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
+void hot_push_thread(thread_context* thread);
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 
