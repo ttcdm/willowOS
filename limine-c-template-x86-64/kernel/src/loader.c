@@ -1,4 +1,5 @@
 #include <loader.h>
+#include <scheduler.h>
 
 void init_loader(vfs_fd_t* file) {
     kprintf("loader init\n");
@@ -47,6 +48,9 @@ void init_loader(vfs_fd_t* file) {
 
     // asm volatile ("jmp %0" : : "r" (ehdr->e_entry));
 
-    push_thread(create_thread(100, ehdr->e_entry));//HERE remember to change the pid
+    // push_thread(create_thread(100, (void*) ehdr->e_entry));//HERE remember to change the pid
+    // push_thread(create_thread(0, gen2));
+
+    // reschedule();
 
 }

@@ -1,5 +1,6 @@
 #include <vfs.h>
 #include <tmpfs.h>//i put this here instead of inside vfs.h because it was causing definition or redefinition? issues
+#include <loader.h>
 
 void init_vfs(struct limine_module_request* module_request) {
     vfs_t* tmpfs = init_tmpfs();
@@ -85,7 +86,7 @@ void init_vfs(struct limine_module_request* module_request) {
 
 
             void* exec_ptr = (void*) kmalloc_byte(8);
-            b_size = tar_lookup_bin(tarball, "a.out", &exec_ptr);
+            b_size = tar_lookup_bin(tarball, "a.out", (char**) &exec_ptr);
             root->vnode_ops->vnode_create(root, "a.out", b_size);
             vnode_t* exec_file = root->vnode_ops->vnode_lookup(root, "a.out");
 

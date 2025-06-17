@@ -78,7 +78,6 @@ void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna
     *lapic_eoi = 0;
 }
 
-
 void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack overflow said bits 3 to 7 which is for every 8
     // disable_preemption();
     asm volatile ("cli");

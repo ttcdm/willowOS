@@ -73,4 +73,6 @@ void reschedule();
 void enable_preemption();
 void disable_preemption();
 
+void gen0();
+void gen1();
 void gen2();

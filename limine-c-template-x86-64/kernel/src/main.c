@@ -530,7 +530,7 @@ void kmain(void) {
 
     init_vfs(&module_request);
 
-    // init_scheduler();
+    init_scheduler();
 
     // while (1) {
     //     kprintf("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHI\n");

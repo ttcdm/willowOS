@@ -48,8 +48,29 @@ void gen1() {
 
 }
 
+int aaa = 0;
 void gen2() {
-	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
+	kprintf_interruptable("hi");
+	
+	asm volatile ("cli");
+	// volatile thread_context* current_thread = get_current_thread();
+	// push_thread(current_thread);
+	aaa += 2;
+	if (aaa == 2) {
+		push_thread(create_thread(aaa, gen2));
+		push_thread(create_thread(aaa+1, gen2));
+		push_thread(create_thread(aaa+2, gen2));
+		push_thread(create_thread(aaa+3, gen2));
+		push_thread(create_thread(aaa+4, gen2));
+
+
+	}
+	reschedule();
+	// asm volatile ("sti");
+	
+	// yield_thread();
+	while (1);
+	// while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
 
 void idle_thread() {
@@ -104,8 +125,15 @@ void init_scheduler() {
 	// push_thread(create_thread(1, gen1));
 	// block_thread(0);
 
-	push_thread(create_thread(0, gen2));
-	push_thread(create_thread(1, gen2));
+	push_thread(create_thread(1500, gen2));
+	// push_thread(create_thread(1501, gen2));
+	// push_thread(create_thread(1502, gen2));
+	// push_thread(create_thread(1503, gen2));
+	// push_thread(create_thread(1504, gen2));
+	// push_thread(create_thread(1505, gen2));
+
+
+	// push_thread(create_thread(3, gen1));
 
 
 	lapic_periodic(5, 80, 0b0011, 0);
@@ -169,7 +197,8 @@ void reschedule() {
 	
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
-		current_thread = pop_front(ready_queue);
+		// current_thread = pop_front(ready_queue);
+		current_thread = get_current_thread();
 		// assert(current_thread);
 		uint64_t* a;// = kmalloc_byte(256);//placeholder
 		// assert(current_thread);
@@ -211,6 +240,8 @@ void reschedule() {
 		// kprintf("1 thread left");
 		// lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
+
+		kprintf_interruptable("byebye");
 		return;//don't switch just return
 	}
 
@@ -410,7 +441,8 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 
-    volatile uint64_t* thread_rsp = new_thread->stack_base + THREAD_STACK_SIZE;//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
+	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC
+    volatile uint64_t* thread_rsp = (uint64_t*) (((uint64_t) new_thread->stack_base) + THREAD_STACK_SIZE);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);
@@ -427,7 +459,13 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 	**sp = (uint64_t) entry;
 	*sp -= 1;
 	**sp = (uint64_t) enable_preemption;
+	// *sp = ((uint64_t) *sp) & ~0xf;
 	*sp -= 6;
+	// *sp += 2;
+	// *sp -= 5;
+	// *sp += 4;
+	// *sp -= 1;
+	// *sp -= 4;
 }
 
 
