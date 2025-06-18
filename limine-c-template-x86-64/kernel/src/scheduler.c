@@ -99,7 +99,7 @@ void gen2() {
     }
 
 
-    reschedule();
+    // reschedule();
 	// yield_thread();
 	// while (1);
 
@@ -287,7 +287,7 @@ void reschedule() {
 	}
 	if (next_thread->pid == running_thread->pid) {//HERE FIX ME
 		// kprintf("1 thread left");
-		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
 
 		kprintf_interruptable("byebye");
@@ -469,9 +469,9 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//add lock thing here
 	disable_preemption();
 	// kmalloc_byte(4096);
-	volatile uint64_t* thread_base = kmalloc_byte(sizeof(uint64_t) * 2000);//16kb
+	volatile uint64_t* thread_base = kmalloc_byte_interruptable(sizeof(uint64_t) * 2000);//16kb
 	// kmalloc_byte(4096);
-	volatile thread_context* new_thread = (thread_context*) kmalloc_byte(sizeof(thread_context));
+	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));
 	// kmalloc_byte(4096);
 	// enable_preemption();
 

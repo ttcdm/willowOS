@@ -88,8 +88,8 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
     // current_thread->frame[0] = 1;//signaled for rescheduling
-    bbb+=15;
-    if (bbb == 16) {
+    bbb+=2;
+    if (bbb == 3) {
         push_thread(create_thread(bbb, gen2));
         push_thread(create_thread(bbb+1, gen2));
         push_thread(create_thread(bbb+2, gen2));
