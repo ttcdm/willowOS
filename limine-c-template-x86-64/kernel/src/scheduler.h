@@ -15,7 +15,7 @@
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
-#define THREAD_QUANTUM 10//not sure if quantum is the right word
+#define THREAD_QUANTUM 100//not sure if quantum is the right word
 
 typedef struct thread_context_declared {
 	uint64_t start_time;
@@ -67,7 +67,7 @@ void scheduler_return();
 
 thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
-void hot_push_thread(thread_context* thread);
+void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 

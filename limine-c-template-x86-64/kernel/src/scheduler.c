@@ -50,67 +50,10 @@ void gen1() {
 
 int aaa = 0;
 void gen2() {
-	// kprintf_interruptable("hi");
-	
-	// asm volatile ("cli");
-	// volatile thread_context* current_thread = get_current_thread();
-	
-	// aaa += 15;
-	// if (aaa) {
-	// 	hot_push_thread(create_thread(aaa, gen2));
-	// 	hot_push_thread(create_thread(aaa+1, gen2));
-	// 		kprintf_interruptable("zz");
-
-	// 	push_thread(create_thread(aaa+2, gen2));
-	// 	push_thread(create_thread(aaa+3, gen2));
-	// 	push_thread(create_thread(aaa+4, gen2));
-
-
-	// }
-	
-	// if (current_thread->status[3] == 0) push_thread(current_thread);
-
-	// reschedule();
-	// asm volatile ("sti");
-	// yield_thread();
-	// asm volatile ("sti");
-	
-	// yield_thread();
-
-	asm volatile ("cli");
-    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-    *lapic_eoi = 0;
-    kprintf_interruptable("\nthread interrupted\n");
-    volatile thread_context* current_thread = get_current_thread();
-    // current_thread->frame[0] = 1;//signaled for rescheduling
-    aaa+=2;
-    if (aaa == 2) {
-        push_thread(create_thread(aaa, gen2));
-        push_thread(create_thread(aaa+1, gen2));
-        push_thread(create_thread(aaa+2, gen2));
-        push_thread(create_thread(aaa+3, gen2));
-        push_thread(create_thread(aaa+4, gen2));
-        push_thread(create_thread(aaa+5, gen2));
-    }
-    
-    if (current_thread->status[3] == 0) {
-        // push_back(ready_queue, current_thread);//&ready_queue
-    }
-
-
-    // reschedule();
-	// yield_thread();
-	// while (1);
-
-	/*
-	i don't know why this duplicate code would work in the isr but not in the threaded function
-	my only guess is that it has something to do with stack corruption but i'm not sure
-	the only difference between gen2 and the isr is that before the isr is called,
-	rsp is moved down by 8 and moved back up 8 afterwards
-	also, the isr asm stub returns with iretq which brings it to userspace???
-
-	*/
+	kprintf_interruptable("hi");
+	aaa += 2;
+	if (aaa == 2) hot_create_and_push_thread(2, gen2);
+	reschedule();
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
@@ -202,11 +145,10 @@ void push_back(thread_context* ready_queue, thread_context* thread) {
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
-void hot_push_thread(thread_context* thread) {
-	ready_queue_end->next_thread = thread;
-	ready_queue_second_last = ready_queue_end;
-	// current_actual = &ready_queue_end;
-	ready_queue_end = ready_queue_end->next_thread;
+void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
+	asm volatile ("cli");
+	push_thread(create_thread(pid, thread_entry));
+	asm volatile ("sti");
 }
 
 thread_context* get_current_thread() {
@@ -287,7 +229,7 @@ void reschedule() {
 	}
 	if (next_thread->pid == running_thread->pid) {//HERE FIX ME
 		// kprintf("1 thread left");
-		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		// lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//idk maybe disregard the stuff after this sentence; i think reschedule() does return so we can call it after creating a thread so we can leave this off i think. i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
 
 		kprintf_interruptable("byebye");
