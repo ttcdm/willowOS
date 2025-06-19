@@ -42,7 +42,8 @@
             "internal-sysdeps.hpp": "c",
             "stddef.h": "c",
             "complex.h": "c",
-            "apic.h": "c"
+            "apic.h": "c",
+            "ranges": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

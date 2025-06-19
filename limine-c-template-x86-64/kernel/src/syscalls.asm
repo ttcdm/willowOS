@@ -34,14 +34,12 @@ section .text
 jump_to_user:
     cli
     mov rcx, rdi
-    pushfq
-    pop r11
     mov r11, 0x202
     mov [gs:8], rsp
     mov rsp, [usermode_stack_base]
     mov [gs:0], rsp
+
     swapgs
-    sti
     o64 sysret
 
 ;put syscall_handler into LSTAR msr before calling syscall
@@ -55,7 +53,7 @@ syscall_handler:
 
     push rbx
     push rbp
-    push r12
+    push r12 
     push r13
     push r14
     push r15

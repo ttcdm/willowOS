@@ -53,7 +53,7 @@ int aaa = 0;
 void gen2() {
 	// kprintf_interruptable("hi");
 	aaa += 2;
-	// if (aaa == 2) hot_create_and_push_thread(2, gen2);
+	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
@@ -242,7 +242,7 @@ void reschedule() {
 		// lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//idk maybe disregard the stuff after this sentence; i think reschedule() does return so we can call it after creating a thread so we can leave this off i think. i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
 
-		kprintf_interruptable("byebye");
+		// kprintf_interruptable("byebye");
 		return;//don't switch just return
 	}
 
@@ -292,6 +292,14 @@ void reschedule() {
 		kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
 		while (1);
 	}
+
+	kprintf("hi\n");
+	kprintf("current: %d\n", current_thread->status[3]);
+	kprintf("next: %d", next_thread->status[3]);
+	// next_thread->status[3] = 0;
+	// if (next_thread->pid == 0) {
+	// 	kprintf("status: %d", current_thread->status[3]);
+	// }
 	
 	if (next_thread->status[3] == 0) {
 		// for (int i = 0; i < 5; i++) {
@@ -320,6 +328,9 @@ void reschedule() {
 }
 
 void scheduler_return() {//basically pthread_exit
+
+	//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
+
 	// disable_preemption();
 	asm volatile ("cli");
 
@@ -422,6 +433,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	disable_preemption();
 	// kmalloc_byte(4096);
 	volatile uint64_t* thread_base = kmalloc_byte_interruptable(sizeof(uint64_t) * 2000);//16kb
+
 	// kmalloc_byte(4096);
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
 	// kmalloc_byte(4096);

@@ -75,9 +75,20 @@ void init_loader(vfs_fd_t* file) {
     // jump_to_user(test_a);
 
 
+    // push_thread(create_thread(3, gen2));
+    hot_create_and_push_thread(3, gen2);
+    // hot_create_and_push_thread(5, gen2);
+    hot_exec_elf(0, (void*) ehdr->e_entry);//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
+    
+    // hot_create_and_push_thread(0, (void*) ehdr->e_entry);
+    // hot_exec_elf(0, test_a);
+
+    // thread_context* t = create_thread(100, userspace_run_elf);
+    // t->elf_entry = (void*) ehdr->e_entry;
+    // push_thread(t);
+
     hot_create_and_push_thread(2, gen2);
-    // hot_create_and_push_thread(3, gen2);
-    hot_exec_elf(0, (void*) ehdr->e_entry);
+    // hot_create_and_push_thread(4, gen2);
     // hot_exec_elf(1, (void*) ehdr->e_entry);
 
     while (1) reschedule();
@@ -86,8 +97,10 @@ void init_loader(vfs_fd_t* file) {
 
 void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
     asm volatile ("cli");
-    if (get_current_thread()->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
-        jump_to_user(get_current_thread()->elf_entry);
+    volatile thread_context* t = get_current_thread();
+    if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
+        kprintf("\npid: %d\n", t->pid);
+        jump_to_user(t->elf_entry);
     }
     else {
         kprintf_interruptable("no valid elf entry to execute");
