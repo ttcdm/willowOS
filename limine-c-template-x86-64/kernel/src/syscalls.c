@@ -105,7 +105,7 @@ void init_syscalls() {
     change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 
-    jump_to_user();
+    // jump_to_user();
 }
 
 // void syscall_switcher(uint64_t num) {

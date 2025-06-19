@@ -16,7 +16,10 @@ void init_syscalls(void);
 
 void test_a(void);
 
-void jump_to_user(void);
+// void jump_to_user(void (*entry)(void));
+void jump_to_user(void* entry);
+// void jump_to_user();
+
 
 void syscall_handler(uint64_t num);
 

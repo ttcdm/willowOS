@@ -11,8 +11,11 @@
 #include <tmpfs.h>
 #include <vfs.h>
 #include <scheduler.h>
+#include <syscalls.h>
 
 void init_loader(vfs_fd_t* file);
+
+void userspace_run_elf();
 
 
 //https://man7.org/linux/man-pages/man5/elf.5.html

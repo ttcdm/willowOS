@@ -32,13 +32,15 @@ syscall_array:
 section .text
 [global jump_to_user]
 jump_to_user:
-    mov rcx, test_a
+    cli
+    mov rcx, rdi
     pushfq
     pop r11
     mov [gs:8], rsp
     mov rsp, [usermode_stack_base]
     mov [gs:0], rsp
     swapgs
+    sti
     o64 sysret
 
 ;put syscall_handler into LSTAR msr before calling syscall

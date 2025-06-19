@@ -1,4 +1,5 @@
 #include <scheduler.h>
+#include <loader.h>
 
 //HERE ONLY USE "THREAD SAFE" FUNCTIONS. DO NOT USE FUNCTIONS THAT STI DURING SECTIONS THAT ARE CLI'D
 
@@ -50,10 +51,10 @@ void gen1() {
 
 int aaa = 0;
 void gen2() {
-	kprintf_interruptable("hi");
+	// kprintf_interruptable("hi");
 	aaa += 2;
-	if (aaa == 2) hot_create_and_push_thread(2, gen2);
-	reschedule();
+	// if (aaa == 2) hot_create_and_push_thread(2, gen2);
+	// reschedule();
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
@@ -148,6 +149,15 @@ void push_back(thread_context* ready_queue, thread_context* thread) {
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 	asm volatile ("cli");
 	push_thread(create_thread(pid, thread_entry));
+	asm volatile ("sti");
+}
+
+void hot_exec_elf(uint64_t pid, void* elf_entry) {
+	asm volatile ("cli");
+	volatile thread_context* t = create_thread(pid, userspace_run_elf);
+    t->elf_entry = elf_entry;
+    push_thread(t);
+    // reschedule();//not sure if i should add reschedule here
 	asm volatile ("sti");
 }
 
@@ -413,7 +423,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	// kmalloc_byte(4096);
 	volatile uint64_t* thread_base = kmalloc_byte_interruptable(sizeof(uint64_t) * 2000);//16kb
 	// kmalloc_byte(4096);
-	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));
+	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
 	// kmalloc_byte(4096);
 	// enable_preemption();
 
@@ -431,6 +441,8 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	// new_thread->rip = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
+
+	new_thread->elf_entry = NULL;
 
 	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC
     volatile uint64_t* thread_rsp = (uint64_t*) (((uint64_t) new_thread->stack_base) + THREAD_STACK_SIZE);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think

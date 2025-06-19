@@ -528,9 +528,11 @@ void kmain(void) {
     kfree(a);
     kmalloc_byte(4097);
 
+    init_syscalls();//we call init_syscalls() first because it maps test_a and usermode_stack_base
+
     init_vfs(&module_request);
 
-    init_scheduler();
+    // init_scheduler();
 
     // while (1) {
     //     kprintf("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHI\n");
@@ -545,7 +547,7 @@ void kmain(void) {
     kmalloc_byte(15483);
     kfree(c);
     kmalloc_byte(12349);
-    kprintf("hi");
+    // kprintf("hi");
 
 
     

@@ -19,22 +19,33 @@ void init_loader(vfs_fd_t* file) {
             if (phdr->p_memsz < 4096) {
                 segment_start = alloc_frame();
                 map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+
+                change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 segment_start = alloc_frame();
                 map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+
+                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+
                 for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
                     uint64_t next_frame = alloc_frame();
                     map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
+                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
                 }
             }
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
                 segment_start = alloc_frame();
                 map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+
+                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+
                 for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
                     uint64_t next_frame = alloc_frame();
                     map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+
+                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
                 }
             }
 
@@ -51,6 +62,34 @@ void init_loader(vfs_fd_t* file) {
     // push_thread(create_thread(100, (void*) ehdr->e_entry));//HERE remember to change the pid
     // push_thread(create_thread(0, gen2));
 
+
+    //remember to wrap with cli and sti or change hot_push...
+    // thread_context* t = create_thread(100, userspace_run_elf);
+    // thread_context* t = create_thread(100, (void*) ehdr->e_entry);
+    // t->elf_entry = (void*) ehdr->e_entry;
+    // push_thread(t);
+
     // reschedule();
 
+    // jump_to_user((void*) ehdr->e_entry);
+    // jump_to_user(test_a);
+
+
+    hot_create_and_push_thread(2, gen2);
+    hot_create_and_push_thread(3, gen2);
+    // push_thread(create_thread(0, gen2));
+    hot_exec_elf(0, (void*) ehdr->e_entry);
+    while (1) reschedule();
+
+}
+
+void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
+    asm volatile ("cli");
+    if (get_current_thread()->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
+        jump_to_user(get_current_thread()->elf_entry);
+    }
+    else {
+        kprintf_interruptable("no valid elf entry to execute");
+    }
+    asm volatile ("sti");
 }

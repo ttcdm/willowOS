@@ -33,6 +33,8 @@ typedef struct thread_context_declared {
 	uint64_t* current_rsp;
 	uint64_t current_misaligned_by;
 	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING.//running flag isn't used for now. also this should probably be bool but oh well
+	// void (*elf_entry)(void);
+	void* elf_entry;
 	struct thread_context_declared* next_thread;
 
 } thread_context;
@@ -68,6 +70,9 @@ void scheduler_return();
 thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
+
+void hot_exec_elf(uint64_t pid, void* elf_entry);
+
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 
