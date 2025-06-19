@@ -36,6 +36,7 @@ jump_to_user:
     mov rcx, rdi
     pushfq
     pop r11
+    mov r11, 0x202
     mov [gs:8], rsp
     mov rsp, [usermode_stack_base]
     mov [gs:0], rsp

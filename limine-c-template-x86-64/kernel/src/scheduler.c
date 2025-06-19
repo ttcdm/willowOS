@@ -198,8 +198,8 @@ void reschedule() {
 	
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
-		// current_thread = pop_front(ready_queue);
-		current_thread = get_current_thread();
+		current_thread = pop_front(ready_queue);
+		// current_thread = get_current_thread();
 		// assert(current_thread);
 		uint64_t* a;// = kmalloc_byte(256);//placeholder
 		// assert(current_thread);

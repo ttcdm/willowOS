@@ -15,7 +15,8 @@ System requirements: whatever `Limine`, `mlibc`, and `uACPI` requires.<br>
 **Multiprocessing** - Currently using 4 physical cores. AP's are properly initialized and are executing C code. Their local APIC's are enabled as well. Currently trying to adapt the scheduler to be able to spread the load across all cores.<br>
 **Scheduling** - A working preemptive context switching scheduler. Able to create, push, run, block, unblock, and yield threads. A priority system hasn't been implemented yet so every thread gets equal CPU time unless they voluntarily yield early. Currently trying to get thread sleeping to work.<br>
 **VFS** - Functional tmpfs with a working vfs layer with vnodes representing each file object. USTAR functionalities have also been ported.<br>
-**Syscalls** - Using `syscall` and `sysret` for syscalls. Currently porting mlibc with the said syscalls. Most of the basic syscalls are just wrapped `vnode_ops`.<br>
+**Syscalls** - Using `syscall` and `sysret` for syscalls. The system for syscalls are fully functional, and I'm currently porting mlibc with the said syscalls. Most of the basic syscalls are just wrapped `vnode_ops`.<br>
+**ELF** - ELF program loading works and they are able to be threaded and ran by the scheduler in userspace.<br>
 **Miscellaneous** - Basic spinlocks and mutexes are implemented. Almost all functions also aren't wrapped with asserts even though assert is implemented.<br>
 **Things that still need to be fixed** - Rework the bitmap for each memmap for pmm so it's a proper bitmap. Maybe rework scheduler so the queue isn't pointing to itself multiple times or something, but it works for now so idk. Implement the rest of the VFS functions. Better mutex support? It currently only uses spinlocks and i don't exactly remember the distinctions between the two. Still need to fix timed thread sleeping, but thread blocking sorta suffices sometimes i think.<br>
 
