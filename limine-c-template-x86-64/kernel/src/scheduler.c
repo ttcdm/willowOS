@@ -213,10 +213,13 @@ void reschedule() {
 		// kprintf("%d\n", current_thread->pid);
 
 		push_back(ready_queue, current_thread);//&ready_queue
-		change_tss(&tss, current_thread->stack_base);
+		// change_tss(&tss, current_thread->stack_base);
 		// enable_preemption();
 		running_thread = current_thread;
 		running_thread->last_run_time = tsc_read_ns();
+
+		// change_tss(&tss, current_thread->current_rsp);
+		change_tss(&tss, current_thread->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
@@ -264,7 +267,7 @@ void reschedule() {
     }
 
 	// enable_preemption();
-	change_tss(&tss, next_thread->stack_base);
+	// change_tss(&tss, next_thread->stack_base);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 
@@ -295,7 +298,11 @@ void reschedule() {
 
 	kprintf("hi\n");
 	kprintf("current: %d\n", current_thread->status[3]);
-	kprintf("next: %d", next_thread->status[3]);
+	kprintf("next: %d\n", next_thread->status[3]);
+	// uint16_t cs;
+	// asm volatile ("mov %%cs, %0" : "=r"(cs));
+	// int cpl = cs & 0x3;
+	// kprintf("Current CPL: %d\n", cpl);
 	// next_thread->status[3] = 0;
 	// if (next_thread->pid == 0) {
 	// 	kprintf("status: %d", current_thread->status[3]);
@@ -318,6 +325,10 @@ void reschedule() {
 		// kprintf_interruptable(" | %d", next_thread->pid);
 		// kprintf_interruptable("HIHIHI");
 		ready_queue_second_last->last_run_time = tsc_read_ns();
+
+		// change_tss(&tss, next_thread->current_rsp);
+		change_tss(&tss, next_thread->stack_base);
+
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
 	}
@@ -406,7 +417,7 @@ void scheduler_return() {//basically pthread_exit
 		}
 		assert(next_thread);
 	}
-	change_tss(&tss, next_thread->stack_base);
+	// change_tss(&tss, next_thread->stack_base);
 	if (next_thread->status[3] == 0) {
 		// for (int i = 0; i < 5; i++) {
 		// 	ready_queue_second_last->status[i] = current_thread->status[i];
@@ -417,6 +428,10 @@ void scheduler_return() {//basically pthread_exit
 		ready_queue_second_last->last_run_time = tsc_read_ns();
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 		running_thread = next_thread;
+
+		// change_tss(&tss, next_thread->current_rsp);
+		change_tss(&tss, next_thread->stack_base);
+
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, next_thread->current_rsp);
 	}
