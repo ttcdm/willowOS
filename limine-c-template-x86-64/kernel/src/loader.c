@@ -76,20 +76,26 @@ void init_loader(vfs_fd_t* file) {
 
 
     // push_thread(create_thread(3, gen2));
-    // hot_create_and_push_thread(3, gen2);
+    hot_exec_elf(12, test_a);
+    hot_create_and_push_thread(3, gen2);
     hot_create_and_push_thread(5, gen2);
     //we can't create two threads of the same elf because we don't swap out cr3 currently
+    
     hot_exec_elf(0, (void*) ehdr->e_entry);//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
     
     // hot_create_and_push_thread(1, (void*) ehdr->e_entry);
     hot_exec_elf(1, test_a);
+    hot_create_and_push_thread(6, gen2);
+    hot_create_and_push_thread(7, gen2);
+    // hot_exec_elf(2, test_a);
 
     // hot_exec_elf(1, (void*) ehdr->e_entry);
 
 
     hot_create_and_push_thread(2, gen2);
-    // hot_create_and_push_thread(4, gen2);
-    // hot_exec_elf(1, (void*) ehdr->e_entry);
+    hot_create_and_push_thread(4, gen2);
+    hot_create_and_push_thread(10, gen2);
+    hot_exec_elf(11, test_a);
 
     while (1) reschedule();
 
@@ -101,9 +107,9 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
         kprintf("\npid: %d\n", t->pid);
         for (size_t i = 0; i < 5; i++) {
-            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4096), 0b111);
+            change_page_map((((uint64_t) t->stack_base) + THREAD_STACK_SIZE - THREAD_STACK_SIZE) + (i*4096), 0b111);
         }
-        jump_to_user(t->elf_entry, (void*) t->stack_base);
+        jump_to_user(t->elf_entry, (void*) t->stack_base+THREAD_STACK_SIZE);
     }
     else {
         kprintf_interruptable("no valid elf entry to execute");

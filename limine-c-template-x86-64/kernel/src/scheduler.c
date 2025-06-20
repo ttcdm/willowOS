@@ -219,7 +219,7 @@ void reschedule() {
 		running_thread->last_run_time = tsc_read_ns();
 
 		// change_tss(&tss, current_thread->current_rsp);
-		change_tss(&tss, current_thread->stack_base);
+		change_tss(&tss, current_thread->stack_base+THREAD_STACK_SIZE);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
@@ -324,11 +324,11 @@ void reschedule() {
 		else {
 			// change_tss(&tss, ready_queue_second_last->stack_base);
 		}
-		change_tss(&tss, ready_queue_second_last->stack_base);
+		// change_tss(&tss, ready_queue_second_last->stack_base+THREAD_STACK_SIZE);
 
 		// change_tss(&tss, current_thread->stack_base);
 		
-		// change_tss(&tss, next_thread->stack_base);
+		change_tss(&tss, next_thread->stack_base+THREAD_STACK_SIZE);
 
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
