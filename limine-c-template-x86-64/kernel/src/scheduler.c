@@ -55,6 +55,7 @@ void gen2() {
 	aaa += 2;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
+	if (aaa == 2) hot_exec_elf(4, test_a);
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
@@ -219,7 +220,7 @@ void reschedule() {
 		running_thread->last_run_time = tsc_read_ns();
 
 		// change_tss(&tss, current_thread->current_rsp);
-		change_tss(&tss, current_thread->stack_base+THREAD_STACK_SIZE);
+		change_tss(&tss, current_thread->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
@@ -314,21 +315,8 @@ void reschedule() {
 		// kprintf_interruptable(" | %d", next_thread->pid);
 		// kprintf_interruptable("HIHIHI");
 		ready_queue_second_last->last_run_time = tsc_read_ns();
-
-		// change_tss(&tss, next_thread->current_rsp);
-
-		//HERE the issue may also be because i'm setting the stack base to the kernel thread's instead of uesrmode_stack_base
-		if (0) {//next_thread->pid == 0) {
-			// change_tss(&tss, usermode_stack_base);
-		}
-		else {
-			// change_tss(&tss, ready_queue_second_last->stack_base);
-		}
-		// change_tss(&tss, ready_queue_second_last->stack_base+THREAD_STACK_SIZE);
-
-		// change_tss(&tss, current_thread->stack_base);
 		
-		change_tss(&tss, next_thread->stack_base+THREAD_STACK_SIZE);
+		change_tss(&tss, next_thread->stack_base);
 
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -415,7 +403,9 @@ void scheduler_return() {//basically pthread_exit
 			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
 			// while (1);
 			ready_queue_second_last->last_run_time = tsc_read_ns();
-			change_tss(&tss, ready_queue_second_last->stack_base);
+
+			change_tss(&tss, next_thread->stack_base);
+
 			switch_thread(&a, create_thread(0xDEADBEEFCAFEBABE, idle_thread)->current_rsp);
 		}
 		assert(next_thread);
@@ -432,8 +422,8 @@ void scheduler_return() {//basically pthread_exit
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 		running_thread = next_thread;
 
-		// change_tss(&tss, next_thread->current_rsp);
-		change_tss(&tss, ready_queue_second_last->stack_base);
+		change_tss(&tss, next_thread->stack_base);
+		// change_tss(&tss, ready_queue_second_last->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, next_thread->current_rsp);
@@ -450,7 +440,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//add lock thing here
 	disable_preemption();
 	// kmalloc_byte(4096);
-	volatile uint64_t* thread_base = kmalloc_byte_interruptable(sizeof(uint64_t) * 2000);//16kb
+	volatile uint64_t* thread_base = kmalloc_byte_interruptable(THREAD_STACK_SIZE) + THREAD_STACK_SIZE;//16kb
 
 	// kmalloc_byte(4096);
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
@@ -475,7 +465,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	new_thread->elf_entry = NULL;
 
 	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC
-    volatile uint64_t* thread_rsp = (uint64_t*) (((uint64_t) new_thread->stack_base) + THREAD_STACK_SIZE);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
+    volatile uint64_t* thread_rsp = (uint64_t*) ((uint64_t) new_thread->stack_base);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);

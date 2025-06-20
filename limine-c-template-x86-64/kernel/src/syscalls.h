@@ -9,7 +9,6 @@
 #include <paging.h>
 #include <vmm.h>
 
-extern uint64_t* usermode_stack_base;
 extern void* user_code;
 
 void init_syscalls(void);
