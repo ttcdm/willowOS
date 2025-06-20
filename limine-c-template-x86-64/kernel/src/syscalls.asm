@@ -44,6 +44,7 @@ jump_to_user:
 ;put syscall_handler into LSTAR msr before calling syscall
 [global syscall_handler]
 syscall_handler:
+    cli
     swapgs
     ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
     mov [gs:0], rsp
@@ -65,6 +66,8 @@ syscall_handler:
 
     ;i used nyaux's syscall handler as inspiration
     call [syscall_array + rdi * 8]
+    
+    cli
 
     pop rcx
     pop r11

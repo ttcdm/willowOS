@@ -20,15 +20,17 @@ void test_a() {
     // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
     // asm volatile ("syscall");
 
-    int a = syscall_log("hi");
+    // int a = syscall_log("hi");
+    int a;
     if (a == 0) {
-        syscall_log("bye");
+        // syscall_log("bye");
     }
 
     while (1) {
         syscall_log("hi from test_a\n");
         int i = 0;
         i++;
+        if (i == 1) i = 0;
         // kprint("hi");
     }
 
@@ -65,8 +67,8 @@ void init_syscalls() {
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
 
-    uint64_t gs_base = (uint64_t) kmalloc_byte(64);
-    uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(64);//HERE check if it's ok for these to be so far apart and not 8 bytes apart
+    uint64_t gs_base = (uint64_t) kmalloc_byte(4096);
+    uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(4096);//HERE check if it's ok for these to be so far apart and not 8 bytes apart
     change_page_map(gs_base, 0b111);
     change_page_map(kernel_gs_base, 0b111);
     // uint64_t gs_base = (uint64_t) usermode_stack_base;
@@ -93,6 +95,9 @@ void init_syscalls() {
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
     change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
+    change_page_map((uint64_t) test_a+0x1000, 0b111);
+    change_page_map((uint64_t) test_a+0x2000, 0b111);
+    change_page_map((uint64_t) test_a+0x3000, 0b111);
     // change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 

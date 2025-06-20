@@ -89,7 +89,7 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(7, gen2);
     // // hot_exec_elf(2, test_a);
 
-    // // hot_exec_elf(1, (void*) ehdr->e_entry);
+    hot_exec_elf(5, (void*) ehdr->e_entry);
 
 
     // hot_create_and_push_thread(2, gen2);
