@@ -268,6 +268,7 @@ void reschedule() {
 
 	// enable_preemption();
 	// change_tss(&tss, next_thread->stack_base);
+	// change_tss(&tss, current_thread->stack_base);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 
@@ -295,18 +296,6 @@ void reschedule() {
 		kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
 		while (1);
 	}
-
-	kprintf("hi\n");
-	kprintf("current: %d\n", current_thread->status[3]);
-	kprintf("next: %d\n", next_thread->status[3]);
-	// uint16_t cs;
-	// asm volatile ("mov %%cs, %0" : "=r"(cs));
-	// int cpl = cs & 0x3;
-	// kprintf("Current CPL: %d\n", cpl);
-	// next_thread->status[3] = 0;
-	// if (next_thread->pid == 0) {
-	// 	kprintf("status: %d", current_thread->status[3]);
-	// }
 	
 	if (next_thread->status[3] == 0) {
 		// for (int i = 0; i < 5; i++) {
@@ -327,7 +316,20 @@ void reschedule() {
 		ready_queue_second_last->last_run_time = tsc_read_ns();
 
 		// change_tss(&tss, next_thread->current_rsp);
-		change_tss(&tss, next_thread->stack_base);
+
+		//HERE the issue may also be because i'm setting the stack base to the kernel thread's instead of uesrmode_stack_base
+		if (0) {//next_thread->pid == 0) {
+			// change_tss(&tss, usermode_stack_base);
+		}
+		else {
+			// change_tss(&tss, ready_queue_second_last->stack_base);
+		}
+		change_tss(&tss, ready_queue_second_last->stack_base);
+
+		// change_tss(&tss, current_thread->stack_base);
+		
+		// change_tss(&tss, next_thread->stack_base);
+
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
@@ -413,6 +415,7 @@ void scheduler_return() {//basically pthread_exit
 			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
 			// while (1);
 			ready_queue_second_last->last_run_time = tsc_read_ns();
+			change_tss(&tss, ready_queue_second_last->stack_base);
 			switch_thread(&a, create_thread(0xDEADBEEFCAFEBABE, idle_thread)->current_rsp);
 		}
 		assert(next_thread);
@@ -430,7 +433,7 @@ void scheduler_return() {//basically pthread_exit
 		running_thread = next_thread;
 
 		// change_tss(&tss, next_thread->current_rsp);
-		change_tss(&tss, next_thread->stack_base);
+		change_tss(&tss, ready_queue_second_last->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, next_thread->current_rsp);

@@ -222,6 +222,6 @@ void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
 
 }
 
-void change_tss(struct TSS* tss, uint64_t rsp, uint64_t index) {//technically i don't need to pass it in since it's global
-    tss->rsp[index] = rsp;
+void change_tss(struct TSS* tss, uint64_t rsp) {//technically i don't need to pass it in since it's global
+    tss->rsp[0] = rsp;
 }

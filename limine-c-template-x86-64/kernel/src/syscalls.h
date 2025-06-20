@@ -17,7 +17,7 @@ void init_syscalls(void);
 void test_a(void);
 
 // void jump_to_user(void (*entry)(void));
-void jump_to_user(void* entry);
+void jump_to_user(void* entry, void* rsp);
 // void jump_to_user();
 
 

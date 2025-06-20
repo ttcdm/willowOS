@@ -30,6 +30,7 @@ void test_a() {
     }
 
     while (1) {
+        syscall_log("hi from test_a\n");
         int i = 0;
         i++;
         // kprint("hi");
