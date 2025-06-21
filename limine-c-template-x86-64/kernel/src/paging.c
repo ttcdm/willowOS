@@ -124,6 +124,7 @@ void init_paging() {
     kprintln_uint64(cr3_global);
 
     uint64_t* page = (void*)alloc_frame() + hhdm_offset;
+    // alloc_frame();//HERE not sure how much space i actually need for this. maybe call alloc_frame again for more space i guess
     uint64_t* cr3 = (void*)get_cr3() + hhdm_offset;
     for (int i = 0; i < 512; i++) {
         page[i] = cr3[i];//not 100% sure what's going on honestly

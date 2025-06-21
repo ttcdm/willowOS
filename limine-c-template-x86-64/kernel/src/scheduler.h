@@ -73,6 +73,8 @@ void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
 
 void hot_exec_elf(uint64_t pid, void* elf_entry);
 
+void hot_reschedule();
+
 thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 

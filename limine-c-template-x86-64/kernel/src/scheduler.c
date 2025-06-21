@@ -56,7 +56,7 @@ void gen2() {
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
 	if (aaa == 2) hot_exec_elf(4, test_a);
-	reschedule();
+	hot_reschedule();
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
@@ -160,6 +160,16 @@ void hot_exec_elf(uint64_t pid, void* elf_entry) {
     t->elf_entry = elf_entry;
     push_thread(t);
     // reschedule();//not sure if i should add reschedule here
+	asm volatile ("sti");
+}
+
+void hot_reschedule() {//HERE must use this to call reschedule instead of just reschedule() itself inside a thread because if you create a thread inside a thread and you don't call reschedule() right after it, it gets preempted and some stuff doesn't get pushed back and the logic breaks, so you must either do both in "atomically", i.e., without getting preempted or just have this after which takes care of it i think
+	asm volatile ("cli");
+	volatile thread_context* current_thread = get_current_thread();
+	if (current_thread->status[3] == 0) {
+		push_back(ready_queue, current_thread);
+    }
+	reschedule();
 	asm volatile ("sti");
 }
 

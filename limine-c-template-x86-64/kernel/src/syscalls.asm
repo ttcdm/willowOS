@@ -78,6 +78,8 @@ syscall_handler:
     pop r12
     pop rbp
     pop rbx
+
+    
     
 
     mov rsp, [gs:0]

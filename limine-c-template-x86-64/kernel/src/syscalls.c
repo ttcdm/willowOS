@@ -13,6 +13,15 @@
 #define KERNEL_CS   0x08
 
 
+void test_b() {
+    int i = 0;
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    return;
+
+}
+
 void test_a() {
     uint64_t syscall_num = 1;
 
@@ -27,10 +36,13 @@ void test_a() {
     }
 
     while (1) {
-        syscall_log("hi from test_a\n");
-        int i = 0;
-        i++;
-        if (i == 1) i = 0;
+        // syscall_log("hi from test_a");
+        syscall_test();
+        // test_b();
+
+        // int i = 0;
+        // i++;
+        // if (i == 1) i = 0;
         // kprint("hi");
     }
 
@@ -67,7 +79,7 @@ void init_syscalls() {
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
 
-    uint64_t gs_base = (uint64_t) kmalloc_byte(4096);
+    uint64_t gs_base = (uint64_t) kmalloc_byte(4096);//not sure how many bytes it actually needs and whether it goes up or down
     uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(4096);//HERE check if it's ok for these to be so far apart and not 8 bytes apart
     change_page_map(gs_base, 0b111);
     change_page_map(kernel_gs_base, 0b111);
@@ -95,9 +107,14 @@ void init_syscalls() {
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
     change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
-    change_page_map((uint64_t) test_a+0x1000, 0b111);
-    change_page_map((uint64_t) test_a+0x2000, 0b111);
-    change_page_map((uint64_t) test_a+0x3000, 0b111);
+    // change_page_map((uint64_t) test_a+0x1000, 0b111);
+    // change_page_map((uint64_t) test_a+0x2000, 0b111);
+    // change_page_map((uint64_t) test_a+0x3000, 0b111);
+    change_page_map((uint64_t) syscall_test, 0b111);
+    change_page_map((uint64_t) syscall_test+0x1000, 0b111);
+    change_page_map((uint64_t) syscall_test+0x2000, 0b111);
+    change_page_map((uint64_t) syscall_test-0x1000, 0b111);
+    change_page_map((uint64_t) syscall_test-0x2000, 0b111);
     // change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 
@@ -167,8 +184,8 @@ int syscall4(size_t num, char* str) {//log; remember to always have the syscall 
     return 0;
 }
 
-int syscall5() {
-
+int syscall5(uint64_t num) {
+    return 0;
 }
 
 int syscall6() {
@@ -192,5 +209,13 @@ int syscall_log(char* str) {
     size_t num = 4;
     // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(str) : "memory");
+    return ret;
+}
+
+int syscall_test() {
+    return 0;
+    int ret;
+    uint64_t num = 5;
+    asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
     return ret;
 }
