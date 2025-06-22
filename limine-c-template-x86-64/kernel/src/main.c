@@ -520,7 +520,7 @@ void kmain(void) {
     // asm volatile ("int $224");
 
 
-    init_ioapic();
+    // init_ioapic();
 
 
     void* a = kmalloc_byte(4096);

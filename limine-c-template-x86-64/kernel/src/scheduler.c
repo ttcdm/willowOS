@@ -448,6 +448,7 @@ void scheduler_return() {//basically pthread_exit
 }
 
 thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
+	asm volatile ("cli");
 	//add lock thing here
 	disable_preemption();
 	// kmalloc_byte(4096);
