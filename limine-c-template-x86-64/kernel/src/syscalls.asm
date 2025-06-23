@@ -35,7 +35,7 @@ jump_to_user:
     mov rcx, rdi
     mov r11, 0x202
     mov [gs:8], rsp
-    mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+    mov rsp, [rsi];not sure if i'm supposed to have brackets around rsi
     mov [gs:0], rsp
 
     swapgs

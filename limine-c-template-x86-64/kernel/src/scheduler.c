@@ -452,6 +452,7 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//add lock thing here
 	disable_preemption();
 	// kmalloc_byte(4096);
+
 	volatile uint64_t* thread_base = kmalloc_byte_interruptable(THREAD_STACK_SIZE) + THREAD_STACK_SIZE;//16kb
 
 	// kmalloc_byte(4096);

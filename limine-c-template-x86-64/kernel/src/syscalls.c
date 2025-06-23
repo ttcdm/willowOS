@@ -13,6 +13,7 @@
 #define KERNEL_CS   0x08
 
 
+
 void test_b() {
     int i = 0;
     int a = 0;
@@ -36,7 +37,7 @@ void test_a() {
     }
 
     while (1) {
-        // syscall_log("hi from test_a");
+        syscall_log("hi from test_a");
         syscall_test();
         // test_b();
 
@@ -110,11 +111,7 @@ void init_syscalls() {
     // change_page_map((uint64_t) test_a+0x1000, 0b111);
     // change_page_map((uint64_t) test_a+0x2000, 0b111);
     // change_page_map((uint64_t) test_a+0x3000, 0b111);
-    change_page_map((uint64_t) syscall_test, 0b111);
-    change_page_map((uint64_t) syscall_test+0x1000, 0b111);
-    change_page_map((uint64_t) syscall_test+0x2000, 0b111);
-    change_page_map((uint64_t) syscall_test-0x1000, 0b111);
-    change_page_map((uint64_t) syscall_test-0x2000, 0b111);
+
     // change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page
 
