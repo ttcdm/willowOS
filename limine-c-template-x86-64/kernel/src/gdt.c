@@ -73,7 +73,7 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
     // Encode the low 32 bits
     descriptor |= (limit & 0xFFFF);             // Lower 16 bits of limit
     descriptor |= (base & 0xFFFF) << 16;        // Lower 16 bits of base
-    descriptor |= ((base >> 16) & 0xFF) << 32;  // Middle 8 bits of base
+    descriptor |= (uint64_t) (((base >> 16) & 0xFF) << 32);  // Middle 8 bits of base
     descriptor |= ((uint64_t)access) << 40;     // Access byte
 
     // Encode the high 32 bits
@@ -218,7 +218,7 @@ void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
     tss->rsp[0] = 0x1000000; // Kernel stack pointer for privilege level 0//80000
     tss->ist[0] = 0x1100000; // Example IST stack pointer/90000
     tss->iomap_base = sizeof(tss); // End of TSS structure
-    create_tss_descriptor((uint64_t)tss, sizeof(*tss) - 1, gdt_table, 5);//for gdt_5
+    create_tss_descriptor((uint64_t)tss, sizeof(*tss), gdt_table, 5);//for gdt_5
 
 }
 
