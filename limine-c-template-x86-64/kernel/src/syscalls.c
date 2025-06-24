@@ -15,10 +15,10 @@
 
 
 void test_b() {
-    int i = 0;
-    int a = 0;
-    int b = 0;
-    int c = 0;
+    // int i = 0;
+    // int a = 0;
+    // int b = 0;
+    // int c = 0;
     return;
 
 }
@@ -38,8 +38,9 @@ void test_a() {
 
     while (1) {
         // syscall_log("hi from test_a");
-        syscall_test();
-        // test_b();
+        // syscall_test();
+        // syscall_yield();
+        test_b();
 
         int i = 0;
         i++;
@@ -78,11 +79,11 @@ void init_syscalls() {
     wrmsr(MSR_STAR, (uint64_t)((uint64_t)0x10 << 48) | (uint64_t)((uint64_t)0x8 << 32));
 
     wrmsr(MSR_SFMASK, 0x202);//HERE to basically cli as syscall happens instead of having to manually cli
-    // wrmsr(MSR_SFMASK, (1 << 9));  // mask IF
+    wrmsr(MSR_SFMASK, (1 << 9));  // mask IF
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
 
-    wrmsr(MSR_SFMASK, 0x202);//HERE to basically cli as syscall happens instead of having to manually cli
+    // wrmsr(MSR_SFMASK, 0x202);//HERE to basically cli as syscall happens instead of having to manually cli
 
 
     uint64_t gs_base = (uint64_t) kmalloc_byte(4096);//not sure how many bytes it actually needs and whether it goes up or down
@@ -115,7 +116,7 @@ void init_syscalls() {
     change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
     change_page_map((uint64_t) test_a+0x1000, 0b111);
     change_page_map((uint64_t) test_a+0x2000, 0b111);
-    // change_page_map((uint64_t) test_a+0x3000, 0b111);
+    change_page_map((uint64_t) test_a+0x3000, 0b111);
 
     change_page_map((uint64_t) syscall_test, 0b111);
     change_page_map((uint64_t) syscall_test+0x1000, 0b111);
@@ -194,7 +195,8 @@ int syscall5(uint64_t num) {
     return 0;
 }
 
-int syscall6() {
+int syscall6(uint64_t num) {
+    yield_thread();
     return 0;
 }
 
@@ -222,6 +224,13 @@ int syscall_test() {
     // return 0;
     int ret;
     uint64_t num = 5;
+    asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
+    return ret;
+}
+
+int syscall_yield() {
+    int ret;
+    uint64_t num = 6;
     asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
     return ret;
 }

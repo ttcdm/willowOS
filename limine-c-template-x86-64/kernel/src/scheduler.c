@@ -503,7 +503,7 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 	*sp -= 1;
 	**sp = (uint64_t) enable_preemption;
 	// *sp = ((uint64_t) *sp) & ~0xf;
-	*sp -= 6;
+	*sp -= 15;
 	// *sp += 2;
 	// *sp -= 5;
 	// *sp += 4;

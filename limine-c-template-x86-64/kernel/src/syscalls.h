@@ -8,6 +8,7 @@
 #include <kutils.h>
 #include <paging.h>
 #include <vmm.h>
+#include <scheduler.h>
 
 extern void* user_code;
 
@@ -35,7 +36,7 @@ int syscall2(void);
 int syscall3(void);
 int syscall4(size_t num, char* str);
 int syscall5(uint64_t num);
-int syscall6(void);
+int syscall6(uint64_t num);
 int syscall7(void);
 int syscall8(void);
 int syscall9(void);
@@ -43,3 +44,4 @@ int syscall9(void);
 
 int syscall_log(char* str);
 int syscall_test(void);
+int syscall_yield(void);

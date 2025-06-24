@@ -101,7 +101,7 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(14, test_a);
 
     for (int i = 0; i < 15; i++) {
-        hot_exec_elf(i, test_a);
+        // hot_exec_elf(i, test_a);
     }
     hot_create_and_push_thread(17, gen2);
     hot_exec_elf(16, test_a);
@@ -116,11 +116,12 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     asm volatile ("cli");
     volatile thread_context* t = get_current_thread();
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
-        //HERE REMOVE ME VVV
-        kprintf_interruptable("\npid: %d\n", t->pid);
         for (size_t i = 0; i < 5; i++) {
             change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4096), 0b111);
         }
+
+        
+        kprintf_interruptable("\npid: %d\n", t->pid);
         jump_to_user(t->elf_entry, (((uint64_t*) t->stack_base)));
     }
     else {
