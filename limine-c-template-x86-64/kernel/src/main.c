@@ -188,8 +188,8 @@ struct limine_memmap_entry** usable_memmaps_1_ptr;//HERE we use linked lists now
 struct usable_memmaps_region memmap_arr[32];//HERE. might run into issues with statically declaring the amount of memmaps
 
 struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there is.remember that it's plural
-    int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+    uint64_t usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
         //if (memmap_request.response->entries[i]->type == 0) {
         //    usable_memmaps_number++;
         //}
@@ -199,7 +199,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
     //not sure if i should put this as global
     struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
     usable_memmaps_number = 0;//reset to 0
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {/*
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {/*
         if (memmap_request.response->entries[i]->type == 0) {
             usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
             usable_memmaps_number++;
@@ -211,7 +211,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
     usable_memmaps_1_ptr = &usable_memmaps[1];//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
 
 
-    for (int i = 0; i < usable_memmaps_number; i++) {
+    for (uint64_t i = 0; i < usable_memmaps_number; i++) {
         char strr[32];
         uint64_to_string(usable_memmaps[i]->base, strr);
         // kprint(strr);
@@ -230,7 +230,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 	memmap_arr[0].length = usable_memmaps[0]->length;
 	memmap_arr[0].type = usable_memmaps[0]->type;
     //memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
-    for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
+    for (uint64_t i = 0; i < memmap_arr[0].length / 4096; i++) {
         memmap_arr[0].frame_bitmap[i] = 0x00;
 	}
 
@@ -241,7 +241,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
 	struct usable_memmaps_region* current = &memmap_arr[0];
-    for (int i = 1; i < usable_memmaps_number; i++) {
+    for (uint64_t i = 1; i < usable_memmaps_number; i++) {
 
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
@@ -253,8 +253,8 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
         // next_bitmap_start += usable_memmap->frame_bitmap_length + 1;
 
         //memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
-        for (int i = 0; i < usable_memmap->length / 4096; i++) {
-            usable_memmap->frame_bitmap[i] = 0x00;
+        for (uint64_t j = 0; j < usable_memmap->length / 4096; j++) {//HERE not sure if i'm supposed to use i or j
+            usable_memmap->frame_bitmap[j] = 0x00;
         }
         usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//HERE we use 2 as the terminating character/value; hopefully there's no off by 1 error
 		usable_memmap->next = NULL;
@@ -402,10 +402,10 @@ uint64_t get_rsdp_physical_address() {
 void kmain(void) {
 
     /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
-    uint32_t RED = 0xff0000;
-    uint32_t GREEN = 0x00ff00;
-    uint32_t BLUE = 0x0000ff;
-    uint32_t WHITE = 0xffffff;
+    // uint32_t RED = 0xff0000;
+    // uint32_t GREEN = 0x00ff00;
+    // uint32_t BLUE = 0x0000ff;
+    // uint32_t WHITE = 0xffffff;
     uint32_t BLACK = 0x000000;
 
     // Ensure the bootloader actually understands our base revision (see spec).
@@ -441,7 +441,7 @@ void kmain(void) {
 
     struct usable_memmaps_region* current_memmap = memmap;
     
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
         if (current_memmap->type == 0) {
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
@@ -473,7 +473,8 @@ void kmain(void) {
     setup_tss(&tss, gdt_table);
     load_tss();
 
-    uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    // uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    init_heap();
 
     test_memory();//make sure this gets called right after init_heap()
 
@@ -527,6 +528,7 @@ void kmain(void) {
     void* b = kmalloc_byte(4096);
     kfree(a);
     kmalloc_byte(4097);
+    kfree(b);
 
     init_syscalls();//we call init_syscalls() first because it maps test_a and usermode_stack_base
 
@@ -586,13 +588,13 @@ void start_ap() {//remember to not call any non processor specific init function
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
     // pic_disable();//there's only one pic for the entire system i think so no need to call again
     init_ap_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     // *lapic_svr &= ~0x100;//disable lapic
     // *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     test_memory();//make sure this gets called right after init_heap()
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     kprint("lapic id: ");
     kprintln_uint64((*lapic_id)>>24);
     //kprintln("ap initialized!\n");

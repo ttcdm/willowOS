@@ -2,7 +2,7 @@
 #include <tmpfs.h>//i put this here instead of inside vfs.h because it was causing definition or redefinition? issues
 #include <loader.h>
 
-void init_vfs(struct limine_module_request* module_request) {
+void init_vfs(volatile struct limine_module_request* module_request) {
     vfs_t* tmpfs = init_tmpfs();
 
     kprintf("\n\n");

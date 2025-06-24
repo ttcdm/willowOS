@@ -27,11 +27,11 @@ volatile uint64_t lapic_timer_converted[NUM_CORES];
 volatile uint32_t sleep_locks[NUM_CORES];
 
 void kpass(size_t ms) {
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    // volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
     *lapic_divider = 0b0011;
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
     *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
@@ -42,10 +42,10 @@ void kpass(size_t ms) {
 }
 
 void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
     *lapic_divider = (uint32_t) divider;
     *lapic_lvt_timer = ((uint32_t) 0b00000000000000000000) | ((uint32_t) (vector));
     if (ms_or_ticks == 0) {
@@ -57,10 +57,10 @@ void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_tick
 }
 
 void lapic_periodic(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
     *lapic_divider = (uint32_t) divider;
     *lapic_lvt_timer = ((uint32_t) 0b00100000000000000000) | ((uint32_t) (vector));
     if (ms_or_ticks == 0) {
@@ -220,21 +220,21 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
 
     map_page((uint64_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     //*lapic_svr &= ~0x100;//disable lapic
     *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
     kprintln("local apic enabled");
 
-    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
-    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
-    volatile uint32_t*  lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t*  lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
-    volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    // volatile uint32_t* lapic_lint0 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x350));
+    // volatile uint32_t* lapic_lint1 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x360));
+    volatile uint32_t*  lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t*  lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t*  lapic_current_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x390));
+    volatile uint32_t*  lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
@@ -254,7 +254,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
-        if (a = i) {
+        if (a == i) {//HERE PLEASE REMEMBER TO USE DOUBLE EQUALS INSTEAD OF SINGLE EQUALS
             a = i / ((i * a) + 1);
         }
     }
@@ -288,7 +288,7 @@ void init_mp(struct limine_mp_request* mp_request) {
     kprint("bsp lapic id: ");
     kprintln_uint64(mp_request->response->bsp_lapic_id);
     // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ap_start_address, (uint64_t) ap_start_address + hhdm_offset, 0b11);
-    for (int i = 0; i < mp_request->response->cpu_count; i++) {
+    for (uint64_t i = 0; i < mp_request->response->cpu_count; i++) {
         struct limine_mp_info** a = mp_request->response->cpus;
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
@@ -325,20 +325,20 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
 
     map_page((uint64_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     //*lapic_svr &= ~0x100;//disable lapic
     *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
 
-    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
-    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    // volatile uint32_t* lapic_lint0 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x350));
+    // volatile uint32_t* lapic_lint1 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x360));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_current_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x390));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
     
     //hpet_init();
     hpet_reset();
@@ -351,7 +351,7 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
-        if (a = i) {
+        if (a == i) {//HERE PLEASE REMEMBER TO USE DOUBLE EQUALS INSTEAD OF SINGLE EQUALS
             a = i / ((i * a) + 1);
         }
     }

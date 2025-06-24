@@ -67,7 +67,7 @@ void irq_restore(bool *status);
 extern const char scanmap_set1[128];
 extern const char scanmap_set1_upper[128];
 
-char* scancode_to_string(uint8_t scancode);
+void* scancode_to_string(uint8_t scancode);//RETURNS NULL AND NOT A STRING
 
 uint8_t get_key();//chatgpt generated. try to rewrite in the future if possible
 

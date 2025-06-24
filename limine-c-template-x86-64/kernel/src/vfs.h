@@ -78,7 +78,7 @@ struct vfs_fd {
 };
 
 
-void init_vfs(struct limine_module_request* module_request);
+void init_vfs(volatile struct limine_module_request* module_request);
 
 void vnode_mount_vfs(vnode_t* parent_vnode, vfs_t* vfs);
 

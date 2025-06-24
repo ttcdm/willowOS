@@ -169,7 +169,7 @@ int syscall1(int id, int arg1) {int ret; asm volatile("syscall" : "=a"(ret): "D"
 */
 
 int syscall0() {//open
-
+    return 0;
 }
 
 int syscall1() {//close
@@ -178,11 +178,11 @@ int syscall1() {//close
 }
 
 int syscall2() {//read
-
+    return 0;
 }
 
 int syscall3() {//write
-
+    return 0;
 }
 
 int syscall4(size_t num, char* str) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
@@ -195,19 +195,19 @@ int syscall5(uint64_t num) {
 }
 
 int syscall6() {
-
+    return 0;
 }
 
 int syscall7() {
-
+    return 0;
 }
 
 int syscall8() {
-
+    return 0;
 }
 
 int syscall9() {
-
+    return 0;
 }
 
 int syscall_log(char* str) {

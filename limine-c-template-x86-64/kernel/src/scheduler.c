@@ -16,6 +16,7 @@ void gen0() {
 	scheduler_return();
 	while (1){
 		int a = 0;
+		a++; a--;
 		// kprint("hi");
 		// for (int i = 0; i < 30; i++) kprintf("hi");
 		// kprintf("hi");
@@ -35,11 +36,13 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	volatile thread_context* a = block_thread(1);
+	a->start_time--; a->start_time++;//to make gcc happy about unused variable
 	// while (1);
 	// return;
 	// scheduler_return();
 	for (int j = 0; j < 500; j++) {
 		int a = 0;
+		a++; a--;
 		// kprint("bye");
 		kprintf("bye");
 		// yield_thread();
@@ -76,7 +79,7 @@ volatile thread_context* running_thread;
 
 void init_scheduler() {
 
-	size_t num_threads = 1;
+	// size_t num_threads = 1;
 
 	// volatile thread_context* current_thread;
 
@@ -131,7 +134,9 @@ void init_scheduler() {
 
 }
 
-thread_context* pop_front(thread_context* thread) {
+volatile thread_context* pop_front(volatile thread_context* thread) {
+	// thread->start_time++; thread->start_time--;//to make gcc happy about unused parameter
+
 	volatile thread_context* head = ready_queue_head;
 	if (ready_queue_head->next_thread == NULL) {
 		kprintf_interruptable("no more threads\n");
@@ -141,7 +146,9 @@ thread_context* pop_front(thread_context* thread) {
 	return head;//i think this works?? hopefully it just copies the memory over instead of having it get changed because ready_queue_head got changed the next line
 }
 
-void push_back(thread_context* ready_queue, thread_context* thread) {
+void push_back(volatile thread_context* ready_queue, volatile thread_context* thread) {
+	// ready_queue->start_time++; ready_queue->start_time--;//to make gcc happy about unused parameter
+
 	ready_queue_end->next_thread = thread;
 	ready_queue_second_last = ready_queue_end;
 	// current_actual = &ready_queue_end;
@@ -173,7 +180,7 @@ void hot_reschedule() {//HERE must use this to call reschedule instead of just r
 	asm volatile ("sti");
 }
 
-thread_context* get_current_thread() {
+volatile thread_context* get_current_thread() {
 	// return ready_queue_head;
 	// return *current_actual;
 	return running_thread;
@@ -335,7 +342,7 @@ void reschedule() {
 	}
 
 	// }
-	end:
+	// end:
 	// enable_preemption();
 }
 
@@ -349,11 +356,11 @@ void scheduler_return() {//basically pthread_exit
 	// kprintf("\nexited thread\n");
 	// kprintf("\nexited thread\n");
 	// lapic_oneshot(0, 64, 0b0011, 1);
-	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	// volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+	volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 	*lapic_eoi = 0;
 
-	thread_context* current_thread = get_current_thread();
+	volatile thread_context* current_thread = get_current_thread();
 
 	volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
 	//add lock thing here
@@ -447,7 +454,7 @@ void scheduler_return() {//basically pthread_exit
 
 }
 
-thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
+volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 	asm volatile ("cli");
 	//add lock thing here
 	disable_preemption();
@@ -506,7 +513,7 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 
 
 bool first_thread = 1;
-void push_thread(thread_context* thread) {
+void push_thread(volatile thread_context* thread) {
 	if (first_thread) {
 		// thread_context* temp = create_thread(0xDEADBEEFCAFEBABE, gen0);
 		running_thread = thread;
@@ -522,7 +529,7 @@ void push_thread(thread_context* thread) {
 	}
 }
 
-thread_context* block_thread(uint64_t pid) {
+volatile thread_context* block_thread(uint64_t pid) {
 	asm volatile ("cli");
 	volatile thread_context* current_thread = ready_queue_head;
 	while (current_thread) {
@@ -549,7 +556,7 @@ thread_context* block_thread(uint64_t pid) {
 	return NULL;//might run into issues with it being a null pointer
 }
 
-void unblock_thread(thread_context* thread) {
+void unblock_thread(volatile thread_context* thread) {
 	asm volatile ("cli");
 	if (thread->status[3] == 1) {
 		thread->status[3] = 0;
@@ -574,7 +581,7 @@ void yield_thread() {
 	// asm volatile ("sti");//technically no need for sti because switch_thread() inside reschedule already sti's and it eventually gets back here i think
 }
 
-thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use the return value since it automatically gets unblocked but it's just there in case we need it
+volatile thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use the return value since it automatically gets unblocked but it's just there in case we need it
 	// thread_context* thread = block_thread(pid);
 	//i don't want to copy the code over but thread blocking should be uninterruptable but it does sti at the end which we can't have here because this should also be uninterruptable
 	asm volatile ("cli");
@@ -607,7 +614,7 @@ thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't have to use 
 	return NULL;//might run into issues with it being a null pointer
 }
 
-thread_context* get_thread_by_pid(uint64_t pid) {
+volatile thread_context* get_thread_by_pid(uint64_t pid) {
 	asm volatile ("cli");
 	volatile thread_context* current_thread = ready_queue_head;
 	while (current_thread) {

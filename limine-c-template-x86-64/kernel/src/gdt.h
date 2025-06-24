@@ -106,7 +106,7 @@ extern struct TSS tss;
 
 void load_gdt(struct GDTPtr* gdtr, uint64_t* gdt_table);
 void load_tss();
-void output_gdt_entries(uint64_t* gdt_table, size_t entry_count);
+// void output_gdt_entries(uint64_t* gdt_table, size_t entry_count);
 void fault_handler();
 void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr);
 void load_idt();

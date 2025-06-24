@@ -73,11 +73,11 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
     // Encode the low 32 bits
     descriptor |= (limit & 0xFFFF);             // Lower 16 bits of limit
     descriptor |= (base & 0xFFFF) << 16;        // Lower 16 bits of base
-    descriptor |= (uint64_t) (((base >> 16) & 0xFF) << 32);  // Middle 8 bits of base
+    descriptor |= ((uint64_t)((base >> 16) & 0xFF)) << 32;  // Middle 8 bits of base
     descriptor |= ((uint64_t)access) << 40;     // Access byte
 
     // Encode the high 32 bits
-    descriptor |= ((limit >> 16) & 0xF) << 48;  // Upper 4 bits of limit
+    descriptor |= ((uint64_t) ((limit >> 16) & 0xF)) << 48;  // Upper 4 bits of limit
     descriptor |= ((uint64_t)(flags & 0xF)) << 52; // Flags (granularity, size)
     descriptor |= ((uint64_t)(base >> 24) & 0xFF) << 56; // Upper 8 bits of base
 
@@ -143,17 +143,17 @@ void load_tss() {//chatgpt generated
     asm volatile("ltr %%ax" : : "a"(0x28)); // 0x28: Selector for TSS descriptor (GDT entry 5)
 }
 
-void output_gdt_entries(uint64_t* gdt_table, size_t entry_count) {//chatgpt generated
-    char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
-    /*
-    for (size_t i = 0; i < entry_count; i++) {
-        uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
-        flanterm_write(ft_ctx, "GDT Entry ", 10);
-        flanterm_write(ft_ctx, buffer, 18); // Write the hex value
-        flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
-    }
-    */
-}
+// void output_gdt_entries(uint64_t* gdt_table, size_t entry_count) {//chatgpt generated
+//     // char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
+//     /*
+//     for (size_t i = 0; i < entry_count; i++) {
+//         uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
+//         flanterm_write(ft_ctx, "GDT Entry ", 10);
+//         flanterm_write(ft_ctx, buffer, 18); // Write the hex value
+//         flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
+//     }
+//     */
+// }
 
 
 // A simple fault handler (will halt the CPU for now)

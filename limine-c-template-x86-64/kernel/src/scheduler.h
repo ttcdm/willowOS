@@ -41,22 +41,22 @@ typedef struct thread_context_declared {
 
 //extern thread_context* current_thread;
 
-volatile extern thread_context* ready_queue;
-volatile extern thread_context* ready_queue_head;
-volatile extern thread_context* ready_queue_end;
-volatile extern thread_context* ready_queue_second_last;
-// volatile extern thread_context** current_actual;
-volatile extern thread_context* running_thread;
+extern volatile thread_context* ready_queue;
+extern volatile thread_context* ready_queue_head;
+extern volatile thread_context* ready_queue_end;
+extern volatile thread_context* ready_queue_second_last;
+// extern volatile thread_context** current_actual;
+extern volatile thread_context* running_thread;
 void init_scheduler(void);
 
-thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
-void push_thread(thread_context* thread);
-thread_context* block_thread(uint64_t pid);//might run into issues if we recycle the pids later on. also not sure if i should search by thread context or pid
+volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
+void push_thread(volatile thread_context* thread);
+volatile thread_context* block_thread(uint64_t pid);//might run into issues if we recycle the pids later on. also not sure if i should search by thread context or pid
 //thread_context* block_by_pid(uint64_t* pid);
-void unblock_thread(thread_context* thread);
-thread_context* sleep_thread(uint64_t pid, uint64_t ms);
+void unblock_thread(volatile thread_context* thread);
+volatile thread_context* sleep_thread(uint64_t pid, uint64_t ms);
 void yield_thread();//not sure if you're supposed to yield current thread or yield a thread of your choosing
-thread_context* get_thread_by_pid(uint64_t pid);
+volatile thread_context* get_thread_by_pid(uint64_t pid);
 void switch_thread(uint64_t** old_rsp, uint64_t* new_rsp);
 void start_thread(unsigned long **sp, void *entry);
 
@@ -67,15 +67,15 @@ extern void pop_all_regs();
 
 void scheduler_return();
 
-thread_context* pop_front(thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
-void push_back(thread_context* ready_queue, thread_context* thread); // Pushes thread to the queue
+volatile thread_context* pop_front(volatile thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
+void push_back(volatile thread_context* ready_queue, volatile thread_context* thread); // Pushes thread to the queue
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
 
 void hot_exec_elf(uint64_t pid, void* elf_entry);
 
 void hot_reschedule();
 
-thread_context* get_current_thread(); // Returns the running thread
+volatile thread_context* get_current_thread(); // Returns the running thread
 void reschedule();
 
 void enable_preemption();

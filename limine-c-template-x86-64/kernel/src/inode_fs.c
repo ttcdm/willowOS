@@ -30,43 +30,47 @@ inode_t* create_file(inode_t* directory_inode, char* name, uint64_t size) {
     file_inode->header.io_block_size = 4096;
     file_inode->header.allocated_blocks = 1024;
 
+    directory_inode->next_free_entry++; directory_inode->next_free_entry--;//to make gcc happy about unused variable
 
+    //INCOMPLETE
+
+    return file_inode;
 }
 
 
 
 void open_file() {
-
+    return;
 }
 
 void read_file() {
-
+    return;
 }
 
 void write_file() {
-
+    return;
 }
 
 void append_file() {
-
+    return;
 }
 
 void close_file() {
-
+    return;
 }
 
 void delete_file() {
-
+    return;
 }
 
 void list_files() {
-
+    return;
 }
 
 void list_open_files() {//it was in the paper but idk if it's necessary
-
+    return;
 }
 
 void unmount() {//it was also in the paper but idk if it's necessary
-
+    return;
 }

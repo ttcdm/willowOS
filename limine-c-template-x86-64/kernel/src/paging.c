@@ -15,7 +15,7 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
     struct usable_memmaps_region* current = &memmap_arr[0];
     // while (current->next != NULL) {
     while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
-        for (int i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
+        for (uint64_t i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
             if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
                 current->frame_bitmap[i] = 0x01;
                 last_alloced_frame = i;//idek if this is even supposed to be here atp
@@ -35,15 +35,15 @@ uint8_t** memmap_bitmap;
 uint64_t alloc_frame_better(void) {
     kprintf("%d", usable_memmaps_amount);
     
-    for (int i = 0; i < usable_memmaps_amount; i++) {
-        struct limine_memmap_entry* current_memmap = usable_memmaps_pointer[i];
+    for (uint64_t i = 0; i < usable_memmaps_amount; i++) {
+        // struct limine_memmap_entry* current_memmap = usable_memmaps_pointer[i];
     }
 
 
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
-        for (int i = 0; i < current->length / 4096; i++) {
-            for (int j = 0; j < 8; j++) {
+        for (uint64_t i = 0; i < current->length / 4096; i++) {
+            for (uint64_t j = 0; j < 8; j++) {
                 if (((current->frame_bitmap[i] << (8-j)) >> j) == 0x00) {
                 }
             }
@@ -63,7 +63,7 @@ uint64_t alloc_frame_better(void) {
 
 
 void free_frame(uint64_t phys_address) {//pretty sure this works. may have to align input to 4kib??
-    uint8_t index;
+    // uint8_t index;
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
@@ -108,7 +108,7 @@ uint64_t pml4_address_virt_glob;
 uint64_t cr3_global;
 void init_paging() {
     // memmap_bitmap = usable_memmaps_pointer[0]->base;
-    for (int i = 0; i < usable_memmaps_amount; i++) {
+    for (uint64_t i = 0; i < usable_memmaps_amount; i++) {
         if (usable_memmaps_pointer[i]->type == 0) {
             // memmap_bitmap = usable_memmaps_pointer[i]->base + hhdm_offset;
             break;
@@ -142,7 +142,7 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
     uint64_t pt_index = (virt_address >> 12) & 0x1FF;
-    uint64_t offset = virt_address & 0xFFF;
+    // uint64_t offset = virt_address & 0xFFF;
 
     page_struct* pml4 = (void*)pml4_address;
     uint64_t pml4_entry = pml4->entries[pml4_index];
@@ -179,7 +179,7 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
     uint64_t pt_index = (virt_address >> 12) & 0x1FF;
-    uint64_t offset = virt_address & 0xFFF;
+    // uint64_t offset = virt_address & 0xFFF;
 
     page_struct* pml4 = (void*)pml4_address;
     uint64_t pml4_entry = pml4->entries[pml4_index];
@@ -203,7 +203,7 @@ void change_page_map(uint64_t virt_address, uint64_t permissions) {
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
     uint64_t pt_index = (virt_address >> 12) & 0x1FF;
-    uint64_t offset = virt_address & 0xFFF;
+    // uint64_t offset = virt_address & 0xFFF;
 
     page_struct* pml4 = (void*)pml4_address;
     uint64_t pml4_entry = pml4->entries[pml4_index];

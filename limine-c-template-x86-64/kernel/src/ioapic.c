@@ -54,14 +54,16 @@ void init_ioapic(void) {
     volatile uint32_t* keyboard_redtbl_high = (uint32_t*) (ioapic_iowin);
     *keyboard_redtbl_high = (keyboard_redtbl.destination << 24);//we shift left because msb is on the left hand side
     
-    uint8_t status = inb(0x64);
+    // uint8_t status = inb(0x64);
+
+    inb(0x64);//to ack i think
 
     // uint64_t* a = find_ioapic();
     // kprintf("%x", a);
 
 }
 
-void *find_ioapic(void) {
+void* find_ioapic(void) {//RETURNS NULL
     // uint64_t* aa = kmalloc_byte(4096);
     // uacpi_setup_early_table_access(aa, 4096);
     // struct MADT *madt = (struct MADT *)uacpi_get_table("APIC", 0);
@@ -79,6 +81,10 @@ void *find_ioapic(void) {
     //     ptr += hdr->length;
     // }
 
+    int a = 0;
+    a++;
     // return NULL; // not found
+
+    return NULL;
 }
 
