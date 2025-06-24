@@ -76,6 +76,8 @@ void init_syscalls() {
     // wrmsr(MSR_STAR, 0x001B000800000000ULL);
     // wrmsr(MSR_STAR, ((uint64_t)KERNEL_CS << 32) | ((uint64_t)USER_CS << 48));
     wrmsr(MSR_STAR, (uint64_t)((uint64_t)0x10 << 48) | (uint64_t)((uint64_t)0x8 << 32));
+
+    wrmsr(MSR_SFMASK, 0x202);//HERE to basically cli as syscall happens instead of having to manually cli
     // wrmsr(MSR_SFMASK, (1 << 9));  // mask IF
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
@@ -108,8 +110,8 @@ void init_syscalls() {
     // map_page((uint64_t*)pml4_address_virt_glob, test_a, (uint64_t) test_a, 0b111);
 
     change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
-    // change_page_map((uint64_t) test_a+0x1000, 0b111);
-    // change_page_map((uint64_t) test_a+0x2000, 0b111);
+    change_page_map((uint64_t) test_a+0x1000, 0b111);
+    change_page_map((uint64_t) test_a+0x2000, 0b111);
     // change_page_map((uint64_t) test_a+0x3000, 0b111);
 
     // change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
@@ -210,7 +212,7 @@ int syscall_log(char* str) {
 }
 
 int syscall_test() {
-    return 0;
+    // return 0;
     int ret;
     uint64_t num = 5;
     asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");

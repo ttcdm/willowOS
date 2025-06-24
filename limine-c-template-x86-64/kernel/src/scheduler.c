@@ -55,7 +55,7 @@ void gen2() {
 	aaa += 2;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
-	if (aaa == 2) hot_exec_elf(4, test_a);
+	if (aaa == 2) hot_exec_elf(102, test_a);
 	hot_reschedule();
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }

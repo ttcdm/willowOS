@@ -53,7 +53,7 @@ syscall_handler:
 
     push rbx
     push rbp
-    push r12 
+    push r12
     push r13
     push r14
     push r15

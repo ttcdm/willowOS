@@ -100,11 +100,11 @@ void init_loader(vfs_fd_t* file) {
     
     // hot_create_and_push_thread(14, test_a);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 15; i++) {
         // hot_exec_elf(i, test_a);
     }
-    hot_create_and_push_thread(3, gen2);
-    // hot_exec_elf(11, test_a);
+    // hot_create_and_push_thread(17, gen2);
+    hot_exec_elf(16, test_a);
 
     while (1) reschedule();
     // reschedule();
@@ -121,7 +121,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
         for (size_t i = 0; i < 5; i++) {
             change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4096), 0b111);
         }
-        jump_to_user(t->elf_entry, (void*) (((uint64_t*) t->stack_base) - 40));
+        jump_to_user(t->elf_entry, (((uint64_t*) t->stack_base)));
     }
     else {
         kprintf_interruptable("no valid elf entry to execute");
