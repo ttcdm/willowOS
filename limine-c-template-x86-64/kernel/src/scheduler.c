@@ -279,7 +279,7 @@ void reschedule() {
     }
 
 	// enable_preemption();
-	// change_tss(&tss, next_thread->stack_base);
+	change_tss(&tss, next_thread->stack_base);
 	// change_tss(&tss, current_thread->stack_base);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);

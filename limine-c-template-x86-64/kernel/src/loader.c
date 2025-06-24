@@ -101,9 +101,9 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(14, test_a);
 
     for (int i = 0; i < 15; i++) {
-        // hot_exec_elf(i, test_a);
+        hot_exec_elf(i, test_a);
     }
-    // hot_create_and_push_thread(17, gen2);
+    hot_create_and_push_thread(17, gen2);
     hot_exec_elf(16, test_a);
 
     while (1) reschedule();
