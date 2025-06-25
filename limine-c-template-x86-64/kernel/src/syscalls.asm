@@ -39,6 +39,8 @@ jump_to_user:
     mov [gs:0], rsp
 
     swapgs
+    ; sti
+    ; call rdi
     o64 sysret
 
 ;put syscall_handler into LSTAR msr before calling syscall
@@ -50,6 +52,7 @@ syscall_handler:
     mov [gs:0], rsp
     mov rsp, [gs:8]
     ; push_regs
+    cli
 
     push rbx
     push rbp

@@ -238,6 +238,7 @@ void reschedule() {
 		running_thread->last_run_time = tsc_read_ns();
 
 		// change_tss(&tss, current_thread->current_rsp);
+
 		change_tss(&tss, current_thread->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -286,7 +287,9 @@ void reschedule() {
     }
 
 	// enable_preemption();
+
 	change_tss(&tss, next_thread->stack_base);
+
 	// change_tss(&tss, current_thread->stack_base);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
@@ -460,7 +463,10 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	disable_preemption();
 	// kmalloc_byte(4096);
 
+	kmalloc_byte_interruptable(THREAD_STACK_SIZE);
 	volatile uint64_t* thread_base = kmalloc_byte_interruptable(THREAD_STACK_SIZE) + THREAD_STACK_SIZE;//16kb
+	kmalloc_byte_interruptable(THREAD_STACK_SIZE);
+
 
 	// kmalloc_byte(4096);
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS

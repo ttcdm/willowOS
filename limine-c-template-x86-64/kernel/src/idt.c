@@ -101,6 +101,8 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
 
     *lapic_eoi = 0;
 
+    // change_tss(&tss, current_thread->next_thread->stack_base);
+    
     reschedule();
 }
 

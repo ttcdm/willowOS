@@ -470,6 +470,11 @@ void kmain(void) {
 
     idt_init();//not chatgpt'ed version
     // struct TSS tss __attribute__((aligned(16)));
+
+    //HERE somethign about using the global tss vs the local tss causes smth to break
+
+    // struct TSS* tss_0 = (struct TSS*) (alloc_frame() + hhdm_offset);
+    // setup_tss(tss_0, gdt_table);
     setup_tss(&tss, gdt_table);
     load_tss();
 
