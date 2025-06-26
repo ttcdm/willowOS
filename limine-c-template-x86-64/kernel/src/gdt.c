@@ -88,6 +88,24 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index) {//chatgpt generated
+
+    // uint64_t low = 0;
+    // low |= (limit & 0xFFFF);                        // Bits 0–15: limit (low)
+    // low |= (base & 0xFFFFFF) << 16;                 // Bits 16–39: base (low 24 bits)
+    // low |= (uint64_t)0x89 << 40;                    // Bits 40–47: access byte (Present | TSS type)
+
+    // low |= ((uint64_t)(limit >> 16) & 0xF) << 48;   // Bits 48–51: limit (high 4 bits)
+    // low |= ((uint64_t)0x0) << 52;                   // Bits 52–55: flags (0x0 = no granularity, no 32-bit segment)
+    // // optional: use 0x4 or 0x8 if you want AVL or 64-bit segment flag
+
+    // low |= ((uint64_t)(base >> 24) & 0xFF) << 56;   // Bits 56–63: base (next 8 bits)
+
+    // uint64_t high = (base >> 32) & 0xFFFFFFFFULL;   // Upper 32 bits of base address
+
+    // gdt_table[index] = low;
+    // gdt_table[index + 1] = high;
+
+
     uint64_t low = 0;
     low |= (limit & 0xFFFF);                // Lower 16 bits of limit
     low |= (base & 0xFFFFFF) << 16;         // Lower 24 bits of base
@@ -222,6 +240,6 @@ void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
 
 }
 
-void change_tss(struct TSS* tss, uint64_t rsp) {//technically i don't need to pass it in since it's global
-    tss->rsp[0] = rsp;
+void change_tss(struct TSS* tss, uint64_t* rsp) {//technically i don't need to pass it in since it's global
+    tss->rsp[0] = (uint64_t) rsp;
 }

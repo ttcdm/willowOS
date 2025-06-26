@@ -15,6 +15,7 @@ extern void* user_code;
 void init_syscalls(void);
 
 void test_a(void);
+void test_b(void);
 
 // void jump_to_user(void (*entry)(void));
 void jump_to_user(void* entry, void* rsp);

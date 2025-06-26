@@ -49,6 +49,8 @@ cli
     ; push r15
 
     push rax
+
+    push rax
     push rbx
     push rcx
     push rdx
@@ -86,6 +88,8 @@ cli
     pop rdx
     pop rcx
     pop rbx
+    pop rax
+    
     pop rax
 
     ; pop r15

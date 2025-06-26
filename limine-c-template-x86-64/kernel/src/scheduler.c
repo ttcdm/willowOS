@@ -56,10 +56,16 @@ int aaa = 0;
 void gen2() {
 	// kprintf_interruptable("hi");
 	aaa += 2;
+	aaa = 0;
+	int c;
+	c++;
+	if (c == 1) c = 0;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
 	if (aaa == 2) hot_exec_elf(102, test_a);
 	hot_reschedule();
+
+	// while (1) {test_b();}
 
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
@@ -239,7 +245,8 @@ void reschedule() {
 
 		// change_tss(&tss, current_thread->current_rsp);
 
-		change_tss(&tss, current_thread->stack_base);
+		// change_tss(tss, (uint64_t*) ((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE);
+		change_tss(tss, current_thread->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
@@ -288,7 +295,7 @@ void reschedule() {
 
 	// enable_preemption();
 
-	change_tss(&tss, next_thread->stack_base);
+	// change_tss(tss, next_thread->stack_base - (20*8));
 
 	// change_tss(&tss, current_thread->stack_base);
 	// kprintf("%d\n%d\n", ready_queue_second_last->pid, next_thread->pid);
@@ -337,7 +344,8 @@ void reschedule() {
 		// kprintf_interruptable("HIHIHI");
 		ready_queue_second_last->last_run_time = tsc_read_ns();
 		
-		change_tss(&tss, next_thread->stack_base);
+		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
+		change_tss(tss, next_thread->stack_base);
 
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -368,7 +376,9 @@ void scheduler_return() {//basically pthread_exit
 	volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
 	//add lock thing here
 	// disable_preemption();
-	kfree_interruptable(temp->stack_base);
+
+	//HERE remember to free temp->stackbase+THREAD_STACK_SIZE since stack base is at the very top and we allocated from the bottom
+	kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 	kfree_interruptable((uint64_t*) temp);
 	// enable_preemption();
 	// ready_queue_second_last = ready_queue_end;//don't use this because ready_queue_end may not be what we think it is or something
@@ -425,7 +435,7 @@ void scheduler_return() {//basically pthread_exit
 			// while (1);
 			ready_queue_second_last->last_run_time = tsc_read_ns();
 
-			change_tss(&tss, next_thread->stack_base);
+			change_tss(tss, next_thread->stack_base);
 
 			switch_thread(&a, create_thread(0xDEADBEEFCAFEBABE, idle_thread)->current_rsp);
 		}
@@ -443,7 +453,7 @@ void scheduler_return() {//basically pthread_exit
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
 		running_thread = next_thread;
 
-		change_tss(&tss, next_thread->stack_base);
+		change_tss(tss, next_thread->stack_base);
 		// change_tss(&tss, ready_queue_second_last->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -463,9 +473,9 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	disable_preemption();
 	// kmalloc_byte(4096);
 
-	kmalloc_byte_interruptable(THREAD_STACK_SIZE);
-	volatile uint64_t* thread_base = kmalloc_byte_interruptable(THREAD_STACK_SIZE) + THREAD_STACK_SIZE;//16kb
-	kmalloc_byte_interruptable(THREAD_STACK_SIZE);
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE);
+	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE);
 
 
 	// kmalloc_byte(4096);
@@ -495,6 +505,8 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->current_rsp = thread_rsp;
 	// map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t)thread_entry, (uint64_t)thread_entry, 0b11);
 	start_thread(&new_thread->current_rsp, thread_entry);
+	// new_thread->stack_base -= 4;
+	// new_thread->stack_base -= 20;
 	kprintf_interruptable("created thread %d\n", pid);
 	return new_thread;
 }
@@ -509,7 +521,7 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 	*sp -= 1;
 	**sp = (uint64_t) enable_preemption;
 	// *sp = ((uint64_t) *sp) & ~0xf;
-	*sp -= 15;
+	*sp -= 16;
 	// *sp += 2;
 	// *sp -= 5;
 	// *sp += 4;

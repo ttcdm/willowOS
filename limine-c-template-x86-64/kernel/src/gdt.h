@@ -98,9 +98,9 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index);
 
-void change_tss();
+void change_tss(struct TSS* tss, uint64_t* rsp);
 
-extern struct TSS tss;
+extern struct TSS* tss;
 
 
 
