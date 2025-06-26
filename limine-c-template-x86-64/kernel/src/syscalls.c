@@ -24,6 +24,7 @@ void test_b() {
 }
 
 void test_a() {
+    // syscall_test();
     uint64_t syscall_num = 1;
 
 
@@ -37,7 +38,7 @@ void test_a() {
     }
 
     while (1) {
-        // syscall_log("hi from test_a");
+        syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
         test_b();
@@ -79,7 +80,7 @@ void init_syscalls() {
     wrmsr(MSR_STAR, (uint64_t)((uint64_t)0x10 << 48) | (uint64_t)((uint64_t)0x8 << 32));
 
     wrmsr(MSR_SFMASK, 0x202);//HERE to basically cli as syscall happens instead of having to manually cli
-    wrmsr(MSR_SFMASK, (1 << 9));  // mask IF
+    // wrmsr(MSR_SFMASK, (1 << 9));  // mask IF
     // wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SCE);
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | 1); // Set EFER.SCE = 1
 
@@ -192,6 +193,9 @@ int syscall4(size_t num, char* str) {//log; remember to always have the syscall 
 }
 
 int syscall5(uint64_t num) {
+    // asm volatile ("cli");
+    // change_tss(tss, get_current_thread()->stack_base);
+    // asm volatile ("sti");
     return 0;
 }
 

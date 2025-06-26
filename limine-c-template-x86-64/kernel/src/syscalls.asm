@@ -54,6 +54,8 @@ syscall_handler:
     ; push_regs
     cli
 
+    push rax
+
     push rbx
     push rbp
     push r12
@@ -116,7 +118,7 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    
+    pop rax    
     
 
     mov rsp, [gs:0]

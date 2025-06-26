@@ -95,13 +95,14 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(2, gen2);
     // hot_create_and_push_thread(4, gen2);
     // hot_create_and_push_thread(10, gen2);
-    // hot_exec_elf(11, test_a);
+    hot_exec_elf(11, test_a);
     // test_a();
     
     // hot_create_and_push_thread(14, test_a);
 
     for (int i = 0; i < 15; i++) {
-        hot_exec_elf(i, test_a);
+        // hot_exec_elf(i, test_a);
+        // hot_create_and_push_thread(i, test_a);
     }
     // hot_create_and_push_thread(17, gen2);
     hot_exec_elf(16, test_a);
@@ -122,7 +123,9 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
 
         
         kprintf_interruptable("\npid: %d\n", t->pid);
-        jump_to_user(t->elf_entry, (((uint64_t*) t->stack_base)));
+        // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
+        jump_to_user(t->elf_entry, t->stack_base);
+
     }
     else {
         kprintf_interruptable("no valid elf entry to execute");

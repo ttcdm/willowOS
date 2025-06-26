@@ -277,7 +277,7 @@ struct flanterm_context* ft_ctx;
 mutex_t ft_ctx_mutex;
 
 uint64_t gdt_table[7];
-struct TSS tss __attribute__((aligned(16)));
+struct TSS* tss __attribute__((aligned(16)));
 
 bool smp_init;
 uint64_t smp_ticket;
@@ -325,7 +325,9 @@ void kprintln_uint64(uint64_t num) {
 }
 
 void kprintf(char* fmt, ...) {
-    asm volatile ("cli");
+    asm volatile ("cli");//HERE REMEMBER TO TAKE THIS OFF
+    bool irq_status;
+    irq_disable_save(&irq_status);
     va_list args;
     va_start(args, fmt);
     va_list args_copy;
@@ -342,7 +344,8 @@ void kprintf(char* fmt, ...) {
     // kfree((uint64_t*) str);
     va_end(args);
     va_end(args_copy);
-    asm volatile ("sti");
+    irq_restore(&irq_status);
+    asm volatile ("sti");//HERE REMEMBER TO TAKE THIS OFF
 }
 void kprintf_interruptable(char* fmt, ...) {
     // asm volatile ("cli");
@@ -473,9 +476,9 @@ void kmain(void) {
 
     //HERE somethign about using the global tss vs the local tss causes smth to break
 
-    // struct TSS* tss_0 = (struct TSS*) (alloc_frame() + hhdm_offset);
+    tss = (struct TSS*) (alloc_frame() + hhdm_offset);
     // setup_tss(tss_0, gdt_table);
-    setup_tss(&tss, gdt_table);
+    setup_tss(tss, gdt_table);
     load_tss();
 
     // uint64_t heap_start_virt = init_heap();//must call to initialize heap
