@@ -29,6 +29,19 @@ syscall_array:
 
 
 section .text
+[global swap_to_user_gs]
+swap_to_user_gs:
+    swapgs
+    ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
+    mov [gs:0], rsp
+    mov rsp, [gs:8]
+
+[global swap_to_kernel_gs]
+swap_to_kernel_gs:
+    mov rsp, [gs:0]
+    mov [gs:8], rsp
+
+
 [global jump_to_user]
 jump_to_user:
     cli
@@ -54,7 +67,7 @@ syscall_handler:
     ; push_regs
     cli
 
-    push rax
+    ; push rax
 
     push rbx
     push rbp
@@ -118,7 +131,7 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    pop rax    
+    ; pop rax    
     
 
     mov rsp, [gs:0]

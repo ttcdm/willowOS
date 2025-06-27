@@ -21,6 +21,10 @@ void test_b(void);
 void jump_to_user(void* entry, void* rsp);
 // void jump_to_user();
 
+void swap_to_user_gs(void);
+void swap_to_kernel_gs(void);
+void swap_to_user_or_kernel_gs(void);
+
 
 void syscall_handler(uint64_t num);
 

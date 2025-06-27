@@ -53,6 +53,16 @@ void test_a() {
     
 }
 
+void swap_to_user_or_kernel_gs(void) {
+    uint16_t cs;
+    __asm__ volatile ("mov %%cs, %0" : "=r"(cs));
+    uint8_t cpl = cs & 0x3;
+
+    if (cpl == 3) {
+        swap_to_kernel_gs();
+    }
+}
+
 
 void init_syscalls() {
 
