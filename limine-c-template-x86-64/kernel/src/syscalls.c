@@ -53,13 +53,15 @@ void test_a() {
     
 }
 
-void swap_to_user_or_kernel_gs(void) {
-    uint16_t cs;
-    __asm__ volatile ("mov %%cs, %0" : "=r"(cs));
-    uint8_t cpl = cs & 0x3;
+void swap_to_user_or_kernel_gs(uint64_t cs, bool to_or_from_kernel) {//1 for to kernel and 0 for from kernel
+    return;
+    // uint16_t cs;
+    // __asm__ volatile ("mov %%cs, %0" : "=r"(cs));
+    uint64_t cpl = cs & 0x3;
 
     if (cpl == 3) {
-        swap_to_kernel_gs();
+        if (to_or_from_kernel) swap_to_kernel_gs();
+        else swap_to_user_gs();
     }
 }
 
@@ -132,6 +134,9 @@ void init_syscalls() {
     change_page_map((uint64_t) syscall_test, 0b111);
     change_page_map((uint64_t) syscall_test+0x1000, 0b111);
     change_page_map((uint64_t) syscall_test+0x2000, 0b111);
+
+    change_page_map((uint64_t) test_b, 0b111);
+
 
     // change_page_map((uint64_t) usermode_stack_base, 0b111);//HERE ALWAYS REMEMBER TO CHANGE THE PAGE MAP FOR EVERYTHING. PLEASE DON'T MAKE THE SAME MISTAKE
     //HERE we're only mapping the current page so it's gonna break if it goes out the current page

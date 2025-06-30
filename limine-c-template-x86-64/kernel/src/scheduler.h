@@ -32,7 +32,7 @@ typedef struct thread_context_declared {
 	uint64_t misaligned_by;
 	uint64_t* current_rsp;
 	uint64_t current_misaligned_by;
-	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING.//running flag isn't used for now. also this should probably be bool but oh well
+	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING, USERSPACE?.//running flag isn't used for now. also this should probably be bool but oh well
 	// void (*elf_entry)(void);
 	void* elf_entry;
 	struct thread_context_declared* next_thread;

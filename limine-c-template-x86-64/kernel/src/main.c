@@ -489,7 +489,9 @@ void kmain(void) {
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
 
-
+    uint64_t ist0 = alloc_frame();
+    
+    map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ist0, 0x11000000+0x1000-1, 0b111);
 
     pic_disable();//we disable the pic and set up the local apic (lapic)
 

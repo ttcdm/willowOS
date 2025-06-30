@@ -1,3 +1,7 @@
+extern swap_to_user_gs
+
+
+
 [global push_all_regs];to avoid possible conflict with push_reg macro
 push_all_regs:
     push rax
@@ -70,7 +74,7 @@ cli
 
     ; mov rax, rsp
     mov [rdi], rsp
-    mov rsp, rsi
+    mov rsp, rsi    
 
     ;call pop_all_regs
 
@@ -98,6 +102,10 @@ cli
     ; pop r12
     ; pop rbp
     ; pop rbx
+
+    ; call swap_to_user_gs
+
+    ; call swap_to_user_or_kernel_gs
 
 sti
     ret

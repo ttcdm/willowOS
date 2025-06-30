@@ -31,15 +31,17 @@ syscall_array:
 section .text
 [global swap_to_user_gs]
 swap_to_user_gs:
+ret
+    mov [gs:8], rsp
+    mov rsp, [gs:0]
     swapgs
-    ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
-    mov [gs:0], rsp
-    mov rsp, [gs:8]
 
 [global swap_to_kernel_gs]
 swap_to_kernel_gs:
-    mov rsp, [gs:0]
-    mov [gs:8], rsp
+ret
+    swapgs
+    mov [gs:0], rsp
+    mov rsp, [gs:8]
 
 
 [global jump_to_user]
@@ -47,8 +49,15 @@ jump_to_user:
     cli
     mov rcx, rdi
     mov r11, 0x202
+    ; swapgs
     mov [gs:8], rsp
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+    ; sub rsp, 16
+    ; and rsp, 0xf
+    ; mov rax, 0x2
+    ; mov [gs:0], rax
+
+    
     mov [gs:0], rsp
 
     swapgs
@@ -131,7 +140,7 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    ; pop rax    
+    ; pop rax
     
 
     mov rsp, [gs:0]

@@ -246,7 +246,13 @@ void reschedule() {
 		// change_tss(&tss, current_thread->current_rsp);
 
 		// change_tss(tss, (uint64_t*) ((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE);
+
 		change_tss(tss, current_thread->stack_base);
+		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
+
+		if (current_thread->status[4] == 1) {
+			swap_to_user_gs();
+		}
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		switch_thread(&a, current_thread->current_rsp);
@@ -345,7 +351,14 @@ void reschedule() {
 		ready_queue_second_last->last_run_time = tsc_read_ns();
 		
 		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
+
+
+		// change_tss(tss, (uint64_t*) (((uint64_t) next_thread->stack_base)-THREAD_STACK_SIZE));
 		change_tss(tss, next_thread->stack_base);
+
+		if (current_thread->status[4] == 1) {
+			swap_to_user_gs();
+		}
 
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -454,6 +467,7 @@ void scheduler_return() {//basically pthread_exit
 		running_thread = next_thread;
 
 		change_tss(tss, next_thread->stack_base);
+		// change_tss(tss, (uint64_t*) (((uint64_t) next_thread->stack_base)-THREAD_STACK_SIZE));
 		// change_tss(&tss, ready_queue_second_last->stack_base);
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
@@ -499,6 +513,8 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->next_thread = NULL;
 
 	new_thread->elf_entry = NULL;
+
+	new_thread->status[4] = 0;
 
 	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC
     volatile uint64_t* thread_rsp = (uint64_t*) ((uint64_t) new_thread->stack_base);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think

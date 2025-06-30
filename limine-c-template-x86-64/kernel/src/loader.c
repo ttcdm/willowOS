@@ -92,6 +92,11 @@ void init_loader(vfs_fd_t* file) {
     // hot_exec_elf(5, (void*) ehdr->e_entry);
 
 
+    // uint64_t* ist = kmalloc_byte(0x1000);
+
+    // memset((void*) ist, 0, 0x1000);
+
+
     // hot_create_and_push_thread(2, gen2);
     // hot_create_and_push_thread(4, gen2);
     // hot_create_and_push_thread(10, gen2);
@@ -105,7 +110,10 @@ void init_loader(vfs_fd_t* file) {
         // hot_create_and_push_thread(i, test_a);
     }
     // hot_create_and_push_thread(17, gen2);
-    hot_exec_elf(16, test_a);
+    // hot_exec_elf(16, test_a);
+
+    hot_create_and_push_thread(19, test_a);
+    // hot_create_and_push_thread(20, test_a);
 
     while (1) reschedule();
     // reschedule();
@@ -116,15 +124,18 @@ void init_loader(vfs_fd_t* file) {
 void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
     asm volatile ("cli");
     volatile thread_context* t = get_current_thread();
+    // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
-        for (size_t i = 0; i < 5; i++) {
-            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
+        for (size_t i = 0; i < 5+4; i++) {
+            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE - THREAD_STACK_SIZE) + (i*4000), 0b111);
         }
+
+        t->status[4] = 1;
 
         
         kprintf_interruptable("\npid: %d\n", t->pid);
-        // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
-        jump_to_user(t->elf_entry, t->stack_base);
+        jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
+        // jump_to_user(t->elf_entry, t->stack_base);
 
     }
     else {

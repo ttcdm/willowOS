@@ -234,7 +234,7 @@ void setup_gdt(uint64_t* gdt_table) {//chatgpt generated
 void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
     memset(tss, 0, sizeof(tss));
     tss->rsp[0] = 0x1000000; // Kernel stack pointer for privilege level 0//80000
-    tss->ist[0] = 0x1100000; // Example IST stack pointer/90000
+    tss->ist[1] = 0x11000000; // Example IST stack pointer/90000
     tss->iomap_base = sizeof(tss); // End of TSS structure
     create_tss_descriptor((uint64_t)tss, sizeof(*tss), gdt_table, 5);//for gdt_5
 

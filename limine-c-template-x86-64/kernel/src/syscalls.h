@@ -23,7 +23,7 @@ void jump_to_user(void* entry, void* rsp);
 
 void swap_to_user_gs(void);
 void swap_to_kernel_gs(void);
-void swap_to_user_or_kernel_gs(void);
+void swap_to_user_or_kernel_gs(uint64_t cs, bool to_or_from_kernel);
 
 
 void syscall_handler(uint64_t num);
