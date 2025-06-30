@@ -89,7 +89,7 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(7, gen2);
     // // hot_exec_elf(2, test_a);
 
-    // hot_exec_elf(5, (void*) ehdr->e_entry);
+    hot_exec_elf(57, (void*) ehdr->e_entry);
 
 
     // uint64_t* ist = kmalloc_byte(0x1000);
@@ -97,22 +97,22 @@ void init_loader(vfs_fd_t* file) {
     // memset((void*) ist, 0, 0x1000);
 
 
-    // hot_create_and_push_thread(2, gen2);
-    // hot_create_and_push_thread(4, gen2);
-    // hot_create_and_push_thread(10, gen2);
-    hot_exec_elf(11, test_a);
+    hot_create_and_push_thread(103, gen2);
+    hot_create_and_push_thread(104, gen2);
+    hot_create_and_push_thread(1010, gen2);
+    // hot_exec_elf(11, test_a);
     // test_a();
     
     // hot_create_and_push_thread(14, test_a);
 
     for (int i = 0; i < 15; i++) {
-        // hot_exec_elf(i, test_a);
+        hot_exec_elf(i, test_a);
         // hot_create_and_push_thread(i, test_a);
     }
-    // hot_create_and_push_thread(17, gen2);
+    hot_create_and_push_thread(17, gen2);
     // hot_exec_elf(16, test_a);
 
-    hot_create_and_push_thread(19, test_a);
+    // hot_create_and_push_thread(19, test_a);
     // hot_create_and_push_thread(20, test_a);
 
     while (1) reschedule();
@@ -127,7 +127,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
         for (size_t i = 0; i < 5+4; i++) {
-            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE - THREAD_STACK_SIZE) + (i*4000), 0b111);
+            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
         }
 
         t->status[4] = 1;

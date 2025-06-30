@@ -62,8 +62,8 @@ void gen2() {
 	if (c == 1) c = 0;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
-	if (aaa == 2) hot_exec_elf(102, test_a);
-	hot_reschedule();
+	if (aaa == 2) hot_exec_elf(running_thread->pid+100, test_a);
+	// hot_reschedule();
 
 	// while (1) {test_b();}
 

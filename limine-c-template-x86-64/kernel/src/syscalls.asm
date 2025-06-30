@@ -51,7 +51,7 @@ jump_to_user:
     mov r11, 0x202
     ; swapgs
     mov [gs:8], rsp
-    mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+    ; mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
     ; sub rsp, 16
     ; and rsp, 0xf
     ; mov rax, 0x2
@@ -60,7 +60,7 @@ jump_to_user:
     
     mov [gs:0], rsp
 
-    swapgs
+    ; swapgs
     ; sti
     ; call rdi
     o64 sysret
@@ -69,10 +69,10 @@ jump_to_user:
 [global syscall_handler]
 syscall_handler:
     cli
-    swapgs
+    ; swapgs
     ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
     mov [gs:0], rsp
-    mov rsp, [gs:8]
+    ; mov rsp, [gs:8]
     ; push_regs
     cli
 
@@ -143,8 +143,8 @@ syscall_handler:
     ; pop rax
     
 
-    mov rsp, [gs:0]
-    swapgs
+    ; mov rsp, [gs:0]
+    ; swapgs
     o64 sysret
 
 ; [global push_syscall_args]
