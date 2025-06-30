@@ -50,16 +50,17 @@ jump_to_user:
     mov rcx, rdi
     mov r11, 0x202
     ; swapgs
-    mov [gs:8], rsp
+
+    ; mov [gs:8], rsp
     ; mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+
     ; sub rsp, 16
     ; and rsp, 0xf
     ; mov rax, 0x2
     ; mov [gs:0], rax
 
     
-    mov [gs:0], rsp
-
+    ; mov [gs:0], rsp
     ; swapgs
     ; sti
     ; call rdi
@@ -70,8 +71,8 @@ jump_to_user:
 syscall_handler:
     cli
     ; swapgs
-    ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
-    mov [gs:0], rsp
+    ; ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
+    ; mov [gs:0], rsp
     ; mov rsp, [gs:8]
     ; push_regs
     cli

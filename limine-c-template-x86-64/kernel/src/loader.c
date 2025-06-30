@@ -97,9 +97,9 @@ void init_loader(vfs_fd_t* file) {
     // memset((void*) ist, 0, 0x1000);
 
 
-    hot_create_and_push_thread(103, gen2);
-    hot_create_and_push_thread(104, gen2);
-    hot_create_and_push_thread(1010, gen2);
+    // hot_create_and_push_thread(103, gen2);
+    // hot_create_and_push_thread(104, gen2);
+    // hot_create_and_push_thread(1010, gen2);
     // hot_exec_elf(11, test_a);
     // test_a();
     
