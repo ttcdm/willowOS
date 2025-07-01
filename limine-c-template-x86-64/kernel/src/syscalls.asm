@@ -52,7 +52,7 @@ jump_to_user:
     ; swapgs
 
     ; mov [gs:8], rsp
-    ; mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+    mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
 
     ; sub rsp, 16
     ; and rsp, 0xf

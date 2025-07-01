@@ -13,6 +13,7 @@ void init_loader(vfs_fd_t* file) {
 
     Elf64_Ehdr* ehdr = file->data;
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
+        break;
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
             uint64_t segment_start;
@@ -89,7 +90,7 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(7, gen2);
     // // hot_exec_elf(2, test_a);
 
-    hot_exec_elf(57, (void*) ehdr->e_entry);
+    // hot_exec_elf(57, (void*) ehdr->e_entry);
 
 
     // uint64_t* ist = kmalloc_byte(0x1000);
@@ -97,9 +98,9 @@ void init_loader(vfs_fd_t* file) {
     // memset((void*) ist, 0, 0x1000);
 
 
-    // hot_create_and_push_thread(103, gen2);
-    // hot_create_and_push_thread(104, gen2);
-    // hot_create_and_push_thread(1010, gen2);
+    hot_create_and_push_thread(103, gen2);
+    hot_create_and_push_thread(104, gen2);
+    hot_create_and_push_thread(1010, gen2);
     // hot_exec_elf(11, test_a);
     // test_a();
     
@@ -134,8 +135,8 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
 
         
         kprintf_interruptable("\npid: %d\n", t->pid);
-        jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
-        // jump_to_user(t->elf_entry, t->stack_base);
+        // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
+        jump_to_user(t->elf_entry, t->stack_base);
 
     }
     else {
