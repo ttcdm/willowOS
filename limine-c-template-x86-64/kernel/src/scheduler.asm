@@ -52,7 +52,7 @@ cli
     ; push r14
     ; push r15
 
-    push rax
+    ; push rax
 
     push rax
     push rbx
@@ -74,7 +74,7 @@ cli
 
     ; mov rax, rsp
     mov [rdi], rsp
-    mov rsp, rsi    
+    mov rsp, rsi
 
     ;call pop_all_regs
 
@@ -94,7 +94,7 @@ cli
     pop rbx
     pop rax
     
-    pop rax
+    ; pop rax
 
     ; pop r15
     ; pop r14

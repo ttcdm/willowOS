@@ -58,63 +58,21 @@ void init_loader(vfs_fd_t* file) {
 
     }
 
-    // asm volatile ("jmp %0" : : "r" (ehdr->e_entry));
-
-    // push_thread(create_thread(100, (void*) ehdr->e_entry));//HERE remember to change the pid
-    // push_thread(create_thread(0, gen2));
-
-
-    //remember to wrap with cli and sti or change hot_push...
-    // thread_context* t = create_thread(100, userspace_run_elf);
-    // thread_context* t = create_thread(100, (void*) ehdr->e_entry);
-    // t->elf_entry = (void*) ehdr->e_entry;
-    // push_thread(t);
-
-    // reschedule();
-
-    // jump_to_user((void*) ehdr->e_entry);
-    // jump_to_user(test_a);
-
-
-    // push_thread(create_thread(3, gen2));
-    // hot_exec_elf(12, test_a);
-    // hot_create_and_push_thread(3, gen2);
-    // hot_create_and_push_thread(5, gen2);
-    // //we can't create two threads of the same elf because we don't swap out cr3 currently
-    
-    // hot_exec_elf(0, (void*) ehdr->e_entry);//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
-    
-    // // hot_create_and_push_thread(1, (void*) ehdr->e_entry);
-    // hot_exec_elf(1, test_a);
-    // hot_create_and_push_thread(6, gen2);
-    // hot_create_and_push_thread(7, gen2);
-    // // hot_exec_elf(2, test_a);
-
     // hot_exec_elf(57, (void*) ehdr->e_entry);
 
 
-    // uint64_t* ist = kmalloc_byte(0x1000);
-
-    // memset((void*) ist, 0, 0x1000);
-
-
-    hot_create_and_push_thread(103, gen2);
-    hot_create_and_push_thread(104, gen2);
-    hot_create_and_push_thread(1010, gen2);
+    // hot_create_and_push_thread(103, gen2);
+    // hot_create_and_push_thread(104, gen2);
+    // hot_create_and_push_thread(1010, gen2);
     // hot_exec_elf(11, test_a);
-    // test_a();
-    
-    // hot_create_and_push_thread(14, test_a);
 
     for (int i = 0; i < 15; i++) {
         hot_exec_elf(i, test_a);
-        // hot_create_and_push_thread(i, test_a);
+        // hot_create_and_push_thread(i, gen2);
     }
-    hot_create_and_push_thread(17, gen2);
+    // hot_create_and_push_thread(17, gen2);
     // hot_exec_elf(16, test_a);
 
-    // hot_create_and_push_thread(19, test_a);
-    // hot_create_and_push_thread(20, test_a);
 
     while (1) reschedule();
     // reschedule();
@@ -127,7 +85,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     volatile thread_context* t = get_current_thread();
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
-        for (size_t i = 0; i < 5+4; i++) {
+        for (size_t i = 0; i < 5; i++) {
             change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
         }
 

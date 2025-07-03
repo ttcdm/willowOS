@@ -59,8 +59,6 @@ void apic_tick_handler(struct interrupt_frame* frame) {//65
 
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
-
     kprintln("apic tick set up");
 }
 
@@ -69,7 +67,6 @@ void sleep_handler(struct interrupt_frame* frame) {//66
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
     sleep_locks[(*lapic_id)>>24] = 0;
 
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
 
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
@@ -77,8 +74,6 @@ void sleep_handler(struct interrupt_frame* frame) {//66
 void thread_handler(struct interrupt_frame* frame) {//67. not sure how i'm gonna use interrupt frame yet because the pushing/popping order might be messed up
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
-
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
 
     *lapic_eoi = 0;
 }
@@ -88,8 +83,6 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     asm volatile ("cli");
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
-
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
 
     kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
@@ -115,8 +108,6 @@ void thread_sleep_handler(struct interrupt_frame* frame) {//80. every 16 is a hi
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
-
     *lapic_eoi = 0;
     uint64_t tsc_time = tsc_read_ns();//could also be put inside the while loop but idk how to feel about calling the function so many times. i mean i guess there's a precision benefit but ehhh
     volatile thread_context* current_thread = ready_queue_head;
@@ -141,8 +132,6 @@ void ps2_keyboard_handler(struct interrupt_frame* frame) {
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
-
     uint64_t scancode = inb(0x60);//MUST READ TO CLEAR OUTPUT BUFFER TO ALLOW NEXT OUTPUT (keystroke) for interrupt
     is_lshift(scancode);
     print_kb(scancode);
@@ -151,14 +140,12 @@ void ps2_keyboard_handler(struct interrupt_frame* frame) {
 
 
 void page_fault_handler(struct interrupt_frame* frame) {//not sure if i'm catching these correctly since they aren't a separate interrupt descriptor thing inside idt.asm. they just kinda rewrite it?? i also don't have a dedicated idt set descriptor line for them so idk
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
-    
+
     kprintln("page fault occurred");
     while (1) {asm volatile ("cli; hlt");};
 }
 
 void gpf_handler(struct interrupt_frame* frame) {
-    int a = frame->rax; a++; a--;//to make gcc happy about unused variable
 
 	kprintln("general protection fault occurred. halting...");
 	while (1) asm volatile("cli; hlt");

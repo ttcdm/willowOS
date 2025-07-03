@@ -49,35 +49,16 @@ jump_to_user:
     cli
     mov rcx, rdi
     mov r11, 0x202
-    ; swapgs
-
-    ; mov [gs:8], rsp
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
 
-    ; sub rsp, 16
-    ; and rsp, 0xf
-    ; mov rax, 0x2
-    ; mov [gs:0], rax
-
-    
-    ; mov [gs:0], rsp
-    ; swapgs
-    ; sti
-    ; call rdi
     o64 sysret
 
 ;put syscall_handler into LSTAR msr before calling syscall
 [global syscall_handler]
 syscall_handler:
     cli
-    ; swapgs
-    ; ;gs[0:8] is user rsp and gs[8:16] is kernel rsp
-    ; mov [gs:0], rsp
-    ; mov rsp, [gs:8]
-    ; push_regs
-    cli
 
-    ; push rax
+    push rax
 
     push rbx
     push rbp
@@ -86,8 +67,6 @@ syscall_handler:
     push r14
     push r15
 
-    ; pushfq
-    ; pop r11
     push r11
     push rcx
 
@@ -106,9 +85,6 @@ syscall_handler:
     push r13
     push r14
     push r15
-
-    ; mov rdi, rax
-    ; call syscall_switcher
 
     ;i used nyaux's syscall handler as inspiration
     call [syscall_array + rdi * 8]
@@ -141,36 +117,6 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    ; pop rax
-    
+    pop rax
 
-    ; mov rsp, [gs:0]
-    ; swapgs
     o64 sysret
-
-; [global push_syscall_args]
-; push_syscall_args:
-;     push rdi
-;     push rsi
-;     push rdx
-;     ; push rcx
-;     push r10
-;     push r8
-;     push r9
-
-; [global pop_syscall_args]
-; pop_syscall_args:
-;     pop r9
-;     pop r8
-;     ; pop rcx
-;     pop r10
-;     pop rdx
-;     pop rsi
-;     pop rdi
-
-
-; [global syscall_asm]
-; syscall_asm:; remember that the first arg is always the syscall number
-;     call push_syscall_args
-;     mov rdi, rax
-;     syscall
