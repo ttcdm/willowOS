@@ -38,7 +38,7 @@ void test_a() {
     }
 
     while (1) {
-        syscall_log("hi from test_a");
+        // syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
         test_b();

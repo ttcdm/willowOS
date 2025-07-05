@@ -32,9 +32,14 @@ run-debug: $(IMAGE_NAME).iso
 		-D ./qemu-log \
 		-d int,cpu_reset \
 		-M q35 \
-		-smp 4 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
+		-icount shift=auto,rr=record,rrfile=replay.bin \
+		-drive file=./disk.qcow2,if=none,snapshot=on,id=img-direct \
+		-drive driver=blkreplay,if=none,image=img-direct,id=img-blkreplay \
+		-device ide-hd,drive=img-blkreplay \
+		-netdev user,id=net1 -device rtl8139,netdev=net1 \
+		-object filter-replay,id=replay,netdev=net1
 		$(QEMUFLAGS)
 
 

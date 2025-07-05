@@ -11,52 +11,52 @@ void init_loader(vfs_fd_t* file) {
 
     //we should probably copy out or save cr3 before we actually run anything for the first time
 
-    Elf64_Ehdr* ehdr = file->data;
-    for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
-        break;
-        Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
-        if (phdr->p_type == 1)  {//PT_LOAD
-            uint64_t segment_start;
-            if (phdr->p_memsz < 4096) {
-                segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    // Elf64_Ehdr* ehdr = file->data;
+    // for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
+    //     break;
+    //     Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
+    //     if (phdr->p_type == 1)  {//PT_LOAD
+    //         uint64_t segment_start;
+    //         if (phdr->p_memsz < 4096) {
+    //             segment_start = alloc_frame();
+    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
-            }
-            else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
-                segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
+    //         }
+    //         else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
+    //             segment_start = alloc_frame();
+    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+    //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
-                for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
-                    uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+    //             for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
+    //                 uint64_t next_frame = alloc_frame();
+    //                 map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
-                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
-                }
-            }
-            else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
-                segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    //                 change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+    //             }
+    //         }
+    //         else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
+    //             segment_start = alloc_frame();
+    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+    //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
-                for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
-                    uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+    //             for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
+    //                 uint64_t next_frame = alloc_frame();
+    //                 map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
 
-                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
-                }
-            }
+    //                 change_page_map((uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+    //             }
+    //         }
 
-            //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
-            //HERE remember to reread the docs and calculate the offsets correctly
-            memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
+    //         //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
+    //         //HERE remember to reread the docs and calculate the offsets correctly
+    //         memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
 
-        }
+    //     }
 
-    }
+    // }
 
     // hot_exec_elf(57, (void*) ehdr->e_entry);
 
@@ -68,6 +68,7 @@ void init_loader(vfs_fd_t* file) {
 
     for (int i = 0; i < 15; i++) {
         hot_exec_elf(i, test_a);
+        // hot_create_and_push_thread(i, test_a);
         // hot_create_and_push_thread(i, gen2);
     }
     // hot_create_and_push_thread(17, gen2);

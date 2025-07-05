@@ -193,6 +193,7 @@ void reschedule() {
 		// change_tss(&tss, current_thread->current_rsp);
 		// change_tss(tss, (uint64_t*) ((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE);
 		change_tss(tss, current_thread->stack_base);
+		// change_tss(tss, current_thread->current_rsp);
 		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
 
 		if (current_thread->status[4] == 1) {
@@ -231,6 +232,7 @@ void reschedule() {
 		while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 			next_thread = pop_front(ready_queue);
 			assert(next_thread);
+			kprintf_interruptable("\current thread blocked, switching from thread %d\n", next_thread->pid);
 		}
     }
 
@@ -252,6 +254,7 @@ void reschedule() {
 		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
 		// change_tss(tss, (uint64_t*) (((uint64_t) next_thread->stack_base)-THREAD_STACK_SIZE));
 		change_tss(tss, next_thread->stack_base);
+		// change_tss(tss, next_thread->current_rsp);
 
 		if (current_thread->status[4] == 1) {
 			swap_to_user_gs();
@@ -327,8 +330,13 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	asm volatile ("cli");
 	//add lock thing here
 	disable_preemption();
+
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*2);
+	kmalloc_byte_interruptable(4096);
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*2);
+
 
 	new_thread->start_time = tsc_read_ns();
 	new_thread->last_start_time = 0;
