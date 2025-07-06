@@ -66,13 +66,13 @@ void init_loader(vfs_fd_t* file) {
     // hot_create_and_push_thread(1010, gen2);
     // hot_exec_elf(11, test_a);
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 15; i++) {
         hot_exec_elf(i, test_a);
         // hot_create_and_push_thread(i, test_a);
         // hot_create_and_push_thread(i, gen2);
     }
     for (int i = 100; i < 200; i++) {
-        hot_create_and_push_thread(i, gen2);
+        // hot_create_and_push_thread(i, gen2);
     }
     // hot_create_and_push_thread(17, gen2);
     // hot_exec_elf(16, test_a);

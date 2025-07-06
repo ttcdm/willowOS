@@ -43,7 +43,8 @@
             "stddef.h": "c",
             "complex.h": "c",
             "apic.h": "c",
-            "ranges": "c"
+            "ranges": "c",
+            "ke.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

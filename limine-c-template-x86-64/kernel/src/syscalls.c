@@ -51,6 +51,7 @@ void test_a() {
         i++;
         if (i == 1) i = 0;
         // kprint("hi");
+        return;
     }
 
     
@@ -102,6 +103,12 @@ void init_syscalls() {
 
     change_page_map((uint64_t) test_b, 0b111);
 
+    // change_page_map((uint64_t) scheduler_return, 0b111);
+    // change_page_map((uint64_t) scheduler_return+0x1000, 0b111);
+    // change_page_map((uint64_t) scheduler_return+0x2000, 0b111);
+    // change_page_map((uint64_t) scheduler_return+0x3000, 0b111);
+
+
 }
 
 /*help from jw
@@ -151,11 +158,13 @@ int syscall8() {
     return 0;
 }
 
-int syscall9() {
-    return 0;
+__attribute__((noreturn))
+int syscall9(uint64_t num) {
+    scheduler_return();
+    // return 0;
 }
 
-int syscall_log(char* str) {
+int syscall_log(char* str) {//4
     int ret;
     size_t num = 4;
     // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
@@ -163,7 +172,7 @@ int syscall_log(char* str) {
     return ret;
 }
 
-int syscall_test() {
+int syscall_test() {//5
     // return 0;
     int ret;
     uint64_t num = 5;
@@ -171,9 +180,16 @@ int syscall_test() {
     return ret;
 }
 
-int syscall_yield() {
+int syscall_yield() {//6
     int ret;
     uint64_t num = 6;
+    asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
+    return ret;
+}
+
+int syscall_user_thread_exit() {//9
+    int ret;
+    uint64_t num = 9;
     asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
     return ret;
 }

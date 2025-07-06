@@ -44,7 +44,7 @@ int syscall5(uint64_t num);
 int syscall6(uint64_t num);
 int syscall7(void);
 int syscall8(void);
-int syscall9(void);
+int syscall9(uint64_t num);
 
 
 int syscall_log(char* str);

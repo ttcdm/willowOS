@@ -1,5 +1,6 @@
 extern test_a
 extern syscall_switcher
+extern syscall_user_thread_exit
 
 extern syscall0
 extern syscall1
@@ -51,8 +52,12 @@ jump_to_user:
     mov r11, 0x202
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
     sub rsp, 4096
+    sub rsp, 1
+    mov qword [rsp], syscall_user_thread_exit
 
     o64 sysret
+
+
 
 ;put syscall_handler into LSTAR msr before calling syscall
 [global syscall_handler]
