@@ -50,6 +50,7 @@ jump_to_user:
     mov rcx, rdi
     mov r11, 0x202
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
+    sub rsp, 4096
 
     o64 sysret
 

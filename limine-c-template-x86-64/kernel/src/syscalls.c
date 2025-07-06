@@ -16,9 +16,13 @@
 
 void test_b() {
     int i = 0;
-    int a = 0;
-    int b = 0;
-    int c = 0;
+    int a = 2;
+    int b = 1;
+    int c = 3;
+    c = a + b + i;
+    if (c == 3) {
+        b = 5;
+    }
     return;
 
 }
@@ -38,7 +42,7 @@ void test_a() {
     }
 
     while (1) {
-        // syscall_log("hi from test_a");
+        syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
         test_b();

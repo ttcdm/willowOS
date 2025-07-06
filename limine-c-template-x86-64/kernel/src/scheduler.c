@@ -56,14 +56,14 @@ int aaa = 0;
 void gen2() {
 	// kprintf_interruptable("hi");
 	aaa += 2;
-	aaa = 0;
+	aaa = 2;
 	int c;
 	c++;
 	if (c == 1) c = 0;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
-	// if (aaa == 2) hot_exec_elf(running_thread->pid+100, test_a);
-	// hot_reschedule();
+	if (aaa == 2) hot_exec_elf(running_thread->pid+1000, test_a);
+	hot_reschedule();
 
 	// while (1) {test_b();}
 
@@ -331,17 +331,17 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	//add lock thing here
 	disable_preemption();
 
-	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*2);
-	kmalloc_byte_interruptable(4096);
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
-	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*2);
+	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 
 
-	new_thread->start_time = tsc_read_ns();
+	new_thread->start_time;// = tsc_read_ns();
 	new_thread->last_start_time = 0;
 	new_thread->total_run_time = 0;
-	new_thread->last_run_time = tsc_read_ns();
+	new_thread->last_run_time;// = tsc_read_ns();
 	new_thread->quantum_ns = 10000000;//10ms
 	new_thread->pid = pid;
 	new_thread->thread_entry = thread_entry;
