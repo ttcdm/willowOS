@@ -82,7 +82,6 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     // disable_preemption();
     asm volatile ("cli");
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
-    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 
     kprintf_interruptable("\nthread interrupted\n");
     volatile thread_context* current_thread = get_current_thread();
@@ -91,8 +90,6 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     if (current_thread->status[3] == 0) {
         push_back(ready_queue, current_thread);//&ready_queue
     }
-
-    *lapic_eoi = 0;
 
     // if (frame->cs & 0x3 == 3) {
     //     change_tss(tss, current_thread->next_thread->stack_base-2);

@@ -93,8 +93,20 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             vfs_fd_t* exec_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "a.out", 0);
             exec_file->vnode_ops->vnode_wr(exec_fd, exec_ptr, b_size, 0);
 
-            init_loader(exec_fd);
+            // init_loader(exec_fd);
+
+
             
+            
+            for (int i = 0; i < 15; i++) {
+                hot_exec_elf(i, exec_fd);
+                // hot_exec_elf(i+15, test_a);
+            }
+            for (int i = 100; i < 200; i++) {
+                // hot_create_and_push_thread(i, gen2);
+            }
+
+            while (1) reschedule();
             
 
         }

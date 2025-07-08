@@ -110,18 +110,50 @@ void push_back(volatile thread_context* ready_queue, volatile thread_context* th
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
+uint64_t create_new_userspace_page_table() {//returns the physical address
+	//REMEMBER TO FREE THE FRAME
+	uint64_t* cr3 = (uint64_t*) (alloc_frame() + hhdm_offset);
+
+	for (int i = 0; i < 512; i++) {
+		cr3[i] = 0;
+	}
+
+	for (int i = 256; i < 512; i++) {
+		cr3[i] = ((uint64_t*)(pml4_address_virt_glob))[i];
+	}
+	
+	// //HERE MAKE SURE CR3 IS 4KIB ALIGNED
+	// asm volatile ("mov %0, %%cr3" :: "r"((uint64_t) new_thread->cr3 - hhdm_offset));// we don't switch here
+
+	return ((uint64_t) cr3) - hhdm_offset;
+}
+
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 	asm volatile ("cli");
-	push_thread(create_thread(pid, thread_entry));
+	volatile thread_context* t = create_thread(pid, thread_entry);
+	uint64_t new_cr3 = create_new_userspace_page_table();
+	t->cr3 = (uint64_t*) new_cr3;
+	push_thread(t);
 	asm volatile ("sti");
 }
 
-void hot_exec_elf(uint64_t pid, void* elf_entry) {
+void hot_exec_elf(uint64_t pid, void* file) {
 	asm volatile ("cli");
+
+	//HERE
+	//one workaround is we pass in the elf entry into create thread, and we run load elf but with different args i guess after
+	//we can also just not create a new page table inside create_thread() and instead do all of that here with a function call and assign cr3 inside create_thread to it
+	
+	uint64_t current_cr3 = (uint64_t) get_cr3();
+	uint64_t new_cr3 = create_new_userspace_page_table();
+	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3));
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
-    t->elf_entry = elf_entry;
+    t->elf_entry = load_elf(file);
+	t->cr3 = (uint64_t*) new_cr3;
     push_thread(t);
     // reschedule();//not sure if i should add reschedule here
+	
+	asm volatile ("mov %0, %%cr3" :: "r"(current_cr3));
 	asm volatile ("sti");
 }
 
@@ -168,6 +200,12 @@ void reschedule() {
 	// lapic_oneshot(0, 72, 0b0011, 1);
 	// disable_preemption();
 	asm volatile ("cli");
+	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
+
+	//we clear the eoi here because i don't wanna wrap it with a cr3 switch
+    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
+	*lapic_eoi = 0;
+
 	volatile thread_context* current_thread;
 	
 	if (first == 0) {//i could probably simplify this..
@@ -201,6 +239,7 @@ void reschedule() {
 		}
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) current_thread->cr3) - hhdm_offset));
 		switch_thread(&a, current_thread->current_rsp);
 		// kfree_interruptable(thread_context* a));
 		// kfree_interruptable(a);
@@ -261,6 +300,7 @@ void reschedule() {
 		}
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
 		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
 	}
 
@@ -271,8 +311,6 @@ void scheduler_return() {//basically pthread_exit
 	// disable_preemption();
 	asm volatile ("cli");
 
-	volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
-	*lapic_eoi = 0;
 
 	volatile thread_context* current_thread = get_current_thread();
 
@@ -283,6 +321,7 @@ void scheduler_return() {//basically pthread_exit
 	//HERE remember to free temp->stackbase+THREAD_STACK_SIZE since stack base is at the very top and we allocated from the bottom
 	kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 	kfree_interruptable((uint64_t*) temp);
+	free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 	ready_queue_second_last = current_thread;
 	volatile thread_context* next_thread = pop_front(ready_queue);
 	if (!next_thread) {
@@ -297,6 +336,11 @@ void scheduler_return() {//basically pthread_exit
 	uint64_t* a;
 	temp_pid = next_thread->pid;
 
+	
+	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
+	volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
+	*lapic_eoi = 0;
+
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 		next_thread = pop_front(ready_queue);
 		if (temp_pid == next_thread->pid) {
@@ -305,6 +349,8 @@ void scheduler_return() {//basically pthread_exit
 			ready_queue_second_last->last_run_time = tsc_read_ns();
 
 			change_tss(tss, next_thread->stack_base);
+
+			asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
 
 			switch_thread(&a, create_thread(0xDEADBEEFCAFEBABE, idle_thread)->current_rsp);
 		}
@@ -321,7 +367,10 @@ void scheduler_return() {//basically pthread_exit
 		// change_tss(tss, (uint64_t*) (((uint64_t) next_thread->stack_base)-THREAD_STACK_SIZE));
 		// change_tss(&tss, ready_queue_second_last->stack_base);
 
+		
+
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
 		switch_thread(&a, next_thread->current_rsp);
 	}
 }
@@ -354,9 +403,10 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->next_thread = NULL;
 
 	new_thread->elf_entry = NULL;
-
 	new_thread->status[4] = 0;
 
+
+	// while (1);
 	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC
     volatile uint64_t* thread_rsp = (uint64_t*) ((uint64_t) new_thread->stack_base);//i'm not actually sure if kmalloc is supposed to return an address that's been casted to a pointer. either way, this reverts it so it should be okay for now i think
 	new_thread->current_rsp = thread_rsp;

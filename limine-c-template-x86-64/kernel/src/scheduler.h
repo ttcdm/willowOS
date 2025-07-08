@@ -15,7 +15,7 @@
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
-#define THREAD_QUANTUM 1//not sure if quantum is the right word
+#define THREAD_QUANTUM 30//not sure if quantum is the right word
 
 typedef struct thread_context_declared {
 	uint64_t start_time;
@@ -35,6 +35,8 @@ typedef struct thread_context_declared {
 	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING, USERSPACE?.//running flag isn't used for now. also this should probably be bool but oh well
 	// void (*elf_entry)(void);
 	void* elf_entry;
+	// uint64_t cr3[512];
+	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED
 	struct thread_context_declared* next_thread;
 
 } thread_context;
@@ -71,7 +73,7 @@ volatile thread_context* pop_front(volatile thread_context* thread); // Removes 
 void push_back(volatile thread_context* ready_queue, volatile thread_context* thread); // Pushes thread to the queue
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
 
-void hot_exec_elf(uint64_t pid, void* elf_entry);
+void hot_exec_elf(uint64_t pid, void* file);
 
 void hot_reschedule();
 

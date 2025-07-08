@@ -56,8 +56,10 @@ void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this wor
 }
 
 void uacpi_kernel_unmap(void *addr, uacpi_size len) {
-    uint64_t* a = (uint64_t*) addr; uint64_t b = len; a++; b++;//to make gcc happy about unused parameters
     kprintf("\x1b[31mUACPI: unmap not implemented yet\x1b[0m\n");
+    assert(addr != NULL);
+    // unmap_page((uint64_t*) pml4_address_virt_glob, (uint64_t) addr);
+    //HERE there may be an issue with not unmmaping because we might be writing to stuff we don't wanna write to
     return;
 }
 

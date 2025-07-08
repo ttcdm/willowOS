@@ -15,6 +15,8 @@
 
 void init_loader(vfs_fd_t* file);
 
+void* load_elf(vfs_fd_t* file);
+
 void userspace_run_elf();
 
 
