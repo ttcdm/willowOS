@@ -123,15 +123,15 @@ void init_paging() {
     cr3_global = (uint64_t)get_cr3();//get_cr3() somehow returns the wrong value after this so i just set it as a variable
     kprintln_uint64(cr3_global);
 
-    uint64_t* page = (void*)alloc_frame() + hhdm_offset;
+    uint64_t* page = (void*) (alloc_frame() + hhdm_offset);
     // alloc_frame();//HERE not sure how much space i actually need for this. maybe call alloc_frame again for more space i guess
-    uint64_t* cr3 = (void*)get_cr3() + hhdm_offset;
+    uint64_t* cr3 = (void*) ((uint64_t) get_cr3() + hhdm_offset);
     for (int i = 0; i < 512; i++) {
         page[i] = cr3[i];//not 100% sure what's going on honestly
     }
 
 
-    uint64_t pml4_address_phys = (uint64_t) page - hhdm_offset;
+    uint64_t pml4_address_phys = ((uint64_t) page) - hhdm_offset;
     pml4_address_virt_glob = (uint64_t) page;
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_phys));
     kprintln("successfully initialized pml4");

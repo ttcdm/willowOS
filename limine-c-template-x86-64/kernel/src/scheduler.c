@@ -62,8 +62,8 @@ void gen2() {
 	if (c == 1) c = 0;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
-	if (aaa == 2) hot_exec_elf(running_thread->pid+1000, test_a);
-	hot_reschedule();
+	// if (aaa == 2) hot_exec_elf(running_thread->pid+1000, test_a);
+	// hot_reschedule();
 
 	// while (1) {test_b();}
 
@@ -125,7 +125,7 @@ uint64_t create_new_userspace_page_table() {//returns the physical address
 	// //HERE MAKE SURE CR3 IS 4KIB ALIGNED
 	// asm volatile ("mov %0, %%cr3" :: "r"((uint64_t) new_thread->cr3 - hhdm_offset));// we don't switch here
 
-	return ((uint64_t) cr3) - hhdm_offset;
+	return ((uint64_t) cr3);
 }
 
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
@@ -138,7 +138,9 @@ void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 }
 
 void hot_exec_elf(uint64_t pid, void* file) {
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 
 	//HERE
 	//one workaround is we pass in the elf entry into create thread, and we run load elf but with different args i guess after
@@ -146,15 +148,17 @@ void hot_exec_elf(uint64_t pid, void* file) {
 	
 	uint64_t current_cr3 = (uint64_t) get_cr3();
 	uint64_t new_cr3 = create_new_userspace_page_table();
+	new_cr3 -= hhdm_offset;
 	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3));
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
     t->elf_entry = load_elf(file);
-	t->cr3 = (uint64_t*) new_cr3;
+	t->cr3 = (uint64_t*) (new_cr3 + hhdm_offset);
     push_thread(t);
     // reschedule();//not sure if i should add reschedule here
 	
 	asm volatile ("mov %0, %%cr3" :: "r"(current_cr3));
-	asm volatile ("sti");
+	// asm volatile ("sti");
+	irq_restore(&irq);
 }
 
 void hot_reschedule() {//HERE must use this to call reschedule instead of just reschedule() itself inside a thread because if you create a thread inside a thread and you don't call reschedule() right after it, it gets preempted and some stuff doesn't get pushed back and the logic breaks, so you must either do both in "atomically", i.e., without getting preempted or just have this after which takes care of it i think
@@ -237,6 +241,7 @@ void reschedule() {
 		if (current_thread->status[4] == 1) {
 			swap_to_user_gs();
 		}
+
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) current_thread->cr3) - hhdm_offset));
