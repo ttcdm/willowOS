@@ -87,21 +87,21 @@ void init_syscalls() {
 
     uint64_t gs_base = (uint64_t) kmalloc_byte(4096);//not sure how many bytes it actually needs and whether it goes up or down
     uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(4096);//HERE check if it's ok for these to be so far apart and not 8 bytes apart
-    change_page_map(gs_base, 0b111);
-    change_page_map(kernel_gs_base, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, gs_base, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, kernel_gs_base, 0b111);
     wrmsr(0xC0000101, gs_base);
     wrmsr(0xC0000102, kernel_gs_base);
 
-    change_page_map((uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
-    change_page_map((uint64_t) test_a+0x1000, 0b111);
-    change_page_map((uint64_t) test_a+0x2000, 0b111);
-    change_page_map((uint64_t) test_a+0x3000, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_a, 0b111);//make sure to map the entire function. this only maps a page and we're assuming that the function is smaller than that
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_a+0x1000, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_a+0x2000, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_a+0x3000, 0b111);
 
-    change_page_map((uint64_t) syscall_test, 0b111);
-    change_page_map((uint64_t) syscall_test+0x1000, 0b111);
-    change_page_map((uint64_t) syscall_test+0x2000, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) syscall_test, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) syscall_test+0x1000, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) syscall_test+0x2000, 0b111);
 
-    change_page_map((uint64_t) test_b, 0b111);
+    change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_b, 0b111);
 
     // change_page_map((uint64_t) scheduler_return, 0b111);
     // change_page_map((uint64_t) scheduler_return+0x1000, 0b111);

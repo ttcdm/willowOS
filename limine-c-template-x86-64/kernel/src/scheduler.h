@@ -36,7 +36,7 @@ typedef struct thread_context_declared {
 	// void (*elf_entry)(void);
 	void* elf_entry;
 	// uint64_t cr3[512];
-	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED
+	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
 	struct thread_context_declared* next_thread;
 
 } thread_context;

@@ -19,32 +19,32 @@ void init_loader(vfs_fd_t* file) {
     //         uint64_t segment_start;
     //         if (phdr->p_memsz < 4096) {
     //             segment_start = alloc_frame();
-    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
     //         }
     //         else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
     //             segment_start = alloc_frame();
-    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
     //             for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
     //                 uint64_t next_frame = alloc_frame();
-    //                 map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+    //                 map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
     //                 change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
     //             }
     //         }
     //         else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
     //             segment_start = alloc_frame();
-    //             map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+    //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
     //             for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
     //                 uint64_t next_frame = alloc_frame();
-    //                 map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+    //                 map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
 
     //                 change_page_map((uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
     //             }
@@ -84,7 +84,7 @@ void init_loader(vfs_fd_t* file) {
 
 }
 
-void* load_elf(vfs_fd_t* file) {
+void* load_elf(vfs_fd_t* file, uint64_t cr3) {
 
     //HERE REMEMBER TO FREE THE PHYSICAL FRAMES WHEN YOU'RE DONE
 
@@ -96,34 +96,34 @@ void* load_elf(vfs_fd_t* file) {
             uint64_t segment_start;
             if (phdr->p_memsz < 4096) {
                 segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
+                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
 
                 for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
                     uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+                    map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
-                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+                    change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
                 }
             }
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
                 segment_start = alloc_frame();
-                map_page((uint64_t*) pml4_address_virt_glob, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
+                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                change_page_map((uint64_t) phdr->p_vaddr, 0b111);
+                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
 
                 for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
                     uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) pml4_address_virt_glob, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+                    map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
 
-                    change_page_map((uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+                    change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
                 }
             }
 
@@ -144,7 +144,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
         for (size_t i = 0; i < 5; i++) {
-            change_page_map((((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
+            change_page_map(t->cr3, (((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
         }
 
         t->status[4] = 1;

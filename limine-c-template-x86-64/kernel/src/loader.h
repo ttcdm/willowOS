@@ -15,7 +15,8 @@
 
 void init_loader(vfs_fd_t* file);
 
-void* load_elf(vfs_fd_t* file);
+//virt_address of cr3
+void* load_elf(vfs_fd_t* file, uint64_t cr3);
 
 void userspace_run_elf();
 

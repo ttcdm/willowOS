@@ -99,9 +99,9 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             
             
             for (int i = 0; i < 5; i++) {
-                // hot_exec_elf(i, exec_fd);
+                hot_exec_elf(i, exec_fd);
                 // hot_exec_elf(i+15, test_a);
-                hot_create_and_push_thread(i, gen2);
+                // hot_create_and_push_thread(i, gen2);
             }
             for (int i = 100; i < 200; i++) {
                 // hot_create_and_push_thread(i, gen2);

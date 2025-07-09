@@ -196,8 +196,9 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 }
 
-void change_page_map(uint64_t virt_address, uint64_t permissions) {
-    uint64_t* pml4_address = (uint64_t*) pml4_address_virt_glob;
+void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions) {
+    // uint64_t* pml4_address = (uint64_t*) pml4_address_virt_glob;
+    uint64_t* pml4_address = cr3;
 
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;

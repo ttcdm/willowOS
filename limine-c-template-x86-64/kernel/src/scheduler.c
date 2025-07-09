@@ -110,7 +110,7 @@ void push_back(volatile thread_context* ready_queue, volatile thread_context* th
 	ready_queue_end = ready_queue_end->next_thread;
 }
 
-uint64_t create_new_userspace_page_table() {//returns the physical address
+uint64_t create_new_userspace_page_table() {//returns the virtual address
 	//REMEMBER TO FREE THE FRAME
 	uint64_t* cr3 = (uint64_t*) (alloc_frame() + hhdm_offset);
 
@@ -148,17 +148,18 @@ void hot_exec_elf(uint64_t pid, void* file) {
 	
 	uint64_t current_cr3 = (uint64_t) get_cr3();
 	uint64_t new_cr3 = create_new_userspace_page_table();
-	new_cr3 -= hhdm_offset;
-	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3));
+	// new_cr3 -= hhdm_offset;
+	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3 - hhdm_offset));
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
-    t->elf_entry = load_elf(file);
-	t->cr3 = (uint64_t*) (new_cr3 + hhdm_offset);
+    t->elf_entry = load_elf(file, new_cr3);
+	t->cr3 = (uint64_t*) (new_cr3);
     push_thread(t);
+	asm volatile ("mov %0, %%cr3" :: "r"(current_cr3));
     // reschedule();//not sure if i should add reschedule here
 	
-	asm volatile ("mov %0, %%cr3" :: "r"(current_cr3));
-	// asm volatile ("sti");
+	
 	irq_restore(&irq);
+	// asm volatile ("sti");
 }
 
 void hot_reschedule() {//HERE must use this to call reschedule instead of just reschedule() itself inside a thread because if you create a thread inside a thread and you don't call reschedule() right after it, it gets preempted and some stuff doesn't get pushed back and the logic breaks, so you must either do both in "atomically", i.e., without getting preempted or just have this after which takes care of it i think
