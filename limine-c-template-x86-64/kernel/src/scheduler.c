@@ -137,7 +137,7 @@ void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 	asm volatile ("sti");
 }
 
-void hot_exec_elf(uint64_t pid, void* file) {
+void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of free_elf functions as well to free all the physical frames
 	// asm volatile ("cli");
 	bool irq;
 	irq_disable_save(&irq);

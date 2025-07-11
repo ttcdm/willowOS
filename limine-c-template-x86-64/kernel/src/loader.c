@@ -13,7 +13,6 @@ void init_loader(vfs_fd_t* file) {
 
     // Elf64_Ehdr* ehdr = file->data;
     // for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
-    //     break;
     //     Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
     //     if (phdr->p_type == 1)  {//PT_LOAD
     //         uint64_t segment_start;
@@ -90,7 +89,6 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
 
     Elf64_Ehdr* ehdr = file->data;
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
-        break;
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
             uint64_t segment_start;
