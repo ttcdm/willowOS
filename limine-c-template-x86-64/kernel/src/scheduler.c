@@ -62,8 +62,8 @@ void gen2() {
 	if (c == 1) c = 0;
 	// if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	// reschedule();
-	// if (aaa == 2) hot_exec_elf(running_thread->pid+1000, test_a);
-	// hot_reschedule();
+	if (aaa == 2) hot_create_and_push_user_thread(running_thread->pid+1000, test_a);
+	hot_reschedule();
 
 	// while (1) {test_b();}
 
@@ -160,6 +160,18 @@ void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of
 	
 	irq_restore(&irq);
 	// asm volatile ("sti");
+}
+
+void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void)) {
+	bool irq;
+	irq_disable_save(&irq);
+
+	volatile thread_context* t = create_thread(pid, userspace_run_elf);
+	uint64_t new_cr3 = create_new_userspace_page_table();
+	t->elf_entry = thread_entry;
+	t->cr3 = (uint64_t*) new_cr3;
+	push_thread(t);
+	irq_restore(&irq);
 }
 
 void hot_reschedule() {//HERE must use this to call reschedule instead of just reschedule() itself inside a thread because if you create a thread inside a thread and you don't call reschedule() right after it, it gets preempted and some stuff doesn't get pushed back and the logic breaks, so you must either do both in "atomically", i.e., without getting preempted or just have this after which takes care of it i think

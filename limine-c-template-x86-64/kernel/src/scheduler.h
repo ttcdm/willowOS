@@ -72,8 +72,8 @@ void scheduler_return();
 volatile thread_context* pop_front(volatile thread_context* thread); // Removes the thread from the front and returns its pointer, or null if empty
 void push_back(volatile thread_context* ready_queue, volatile thread_context* thread); // Pushes thread to the queue
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void));
-
 void hot_exec_elf(uint64_t pid, void* file);
+void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void));
 
 void hot_reschedule();
 
