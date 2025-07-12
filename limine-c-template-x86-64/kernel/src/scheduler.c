@@ -57,13 +57,9 @@ void gen2() {
 	// kprintf_interruptable("hi");
 	aaa += 2;
 	// aaa = 2;
-	// aaa = 2;
 	int c;
 	c++;
 	if (c == 1) c = 0;
-	if (aaa == 2) hot_create_and_push_thread(5, gen2);
-	//no need to call reschedule nor hot_reschedule after because of race condition and you just set the lapic timer instead
-	// if (aaa == 2) hot_create_and_push_user_thread(running_thread->pid+1000, test_a);
 	if (aaa == 2) hot_create_and_push_thread(5, gen2);
 	//no need to call reschedule nor hot_reschedule after because of race condition and you just set the lapic timer instead
 	// if (aaa == 2) hot_create_and_push_user_thread(running_thread->pid+1000, test_a);
@@ -282,7 +278,6 @@ void reschedule() {
 	if (next_thread->pid == running_thread->pid) {//HERE FIX ME
 		// kprintf("1 thread left");
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//idk maybe disregard the stuff after this sentence; i think reschedule() does return so we can call it after creating a thread so we can leave this off i think. i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
-		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//idk maybe disregard the stuff after this sentence; i think reschedule() does return so we can call it after creating a thread so we can leave this off i think. i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
 
 		// kprintf_interruptable("byebye");
@@ -366,8 +361,6 @@ void scheduler_return() {//basically pthread_exit
 	*lapic_eoi = 0;
 
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
-		kprintf_interruptable("\nhi\n");
-		break;
 		next_thread = pop_front(ready_queue);
 		if (temp_pid == next_thread->pid) {
 			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
