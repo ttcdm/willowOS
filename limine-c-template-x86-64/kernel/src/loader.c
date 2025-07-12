@@ -148,7 +148,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
         t->status[4] = 1;
 
         
-        kprintf_interruptable("\npid: %d\n", t->pid);
+        // kprintf_interruptable("\npid: %d\n", t->pid);
         // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
         jump_to_user(t->elf_entry, t->stack_base);
 
