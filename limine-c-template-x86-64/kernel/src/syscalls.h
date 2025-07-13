@@ -58,3 +58,17 @@ int syscall15(uint64_t num);
 int syscall_log(char* str);
 int syscall_test(void);
 int syscall_yield(void);
+
+
+struct timespec {//apparently this is fine for type replacements
+    uint32_t tv_sec;
+    int32_t tv_nsec;
+};
+
+
+//mlibc syscalls
+int sys_futex_wait(int *pointer, int expected, const struct timespec *time);
+int sys_futex_wake(int *pointer);
+
+int sys_anon_allocate(size_t size, void **pointer);
+int sys_anon_free(void *pointer, size_t size);

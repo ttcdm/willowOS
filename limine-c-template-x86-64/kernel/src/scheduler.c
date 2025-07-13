@@ -66,7 +66,7 @@ void gen2() {
 
 	// while (1) {test_b();}
 
-	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
+	while (1) {}//kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
 }
 
 void idle_thread() {

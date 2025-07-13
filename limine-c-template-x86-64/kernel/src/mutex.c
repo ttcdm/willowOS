@@ -44,7 +44,7 @@ uint64_t global_futex_array_size;
 
 
 
-int futex_enqueue(int* pointer, thread_context* thread) {
+int futex_enqueue(int* pointer, thread_context* thread) {//HERE use hash table instead
     bool irq;
     irq_disable_save(&irq);
     futex_queue_t* queue = NULL;

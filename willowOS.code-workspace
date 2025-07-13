@@ -44,7 +44,12 @@
             "complex.h": "c",
             "apic.h": "c",
             "ranges": "c",
-            "ke.h": "c"
+            "ke.h": "c",
+            "time.h": "c",
+            "struct_timespec.h": "c",
+            "types.h": "c",
+            "time_t.h": "c",
+            "endian.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

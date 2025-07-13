@@ -163,7 +163,7 @@ int syscall8(uint64_t num) {
 }
 
 __attribute__((noreturn))
-int syscall9(uint64_t num) {
+int syscall9(uint64_t num) {//userspace to kernelspace return for threads
     scheduler_return();
     // return 0;
 }
@@ -173,7 +173,7 @@ int syscall10(uint64_t num) {
 }
 
 int syscall11(uint64_t num, int* pointer, int expected) {//futex wait
-    mutex_t m = {.locked = 0, .object = pointer};
+    // mutex_t m = {.locked = 0, .object = pointer};
     //create a queue for the mutex? also mutex may have to be on any given value rather than an int
     
     bool irq;
@@ -181,10 +181,12 @@ int syscall11(uint64_t num, int* pointer, int expected) {//futex wait
     thread_context* thread = get_current_thread();
 
     if (!__sync_bool_compare_and_swap(&thread->status[3], *pointer, expected)) {
+        kprintf_interruptable("futex wait: EEAGAIN");
         irq_restore(&irq);
         return 11;//EAGAIN??
     }
     else {
+        pointer = (int*) virt_to_phys((uint64_t) pointer, (uint64_t) thread->cr3);//HERE remember to not cast incorrectly and accidentally truncate something
         futex_enqueue(pointer, thread);
     }
     irq_restore(&irq);
@@ -195,7 +197,7 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
     // unblock_thread(get_current_thread());//try to change unblock thread to use pids instead maybe or the futex queue to use the thread contexts instead
     bool irq;
     irq_disable_save(&irq);
-    
+
     for (int i = 0; i < sizeof(global_futex_array) / sizeof(futex_queue_t*); i++) {
         if (((futex_queue_t*) global_futex_array[i])->pointer == pointer) {
             futex_queue_t* queue = global_futex_array[i];
@@ -260,9 +262,14 @@ int sys_futex_wait(int *pointer, int expected, const struct timespec *time) {
     int ret;
     uint64_t num = 11;
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(expected): "memory");
+    return ret;
 }
 int sys_futex_wake(int *pointer) {
     int ret;
     uint64_t num = 12;
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(pointer) : "memory");
+    return ret;
 }
+
+int sys_anon_allocate(size_t size, void **pointer);
+int sys_anon_free(void *pointer, size_t size);
