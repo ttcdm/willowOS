@@ -114,22 +114,26 @@ void init_syscalls() {
 /*help from jw
 int syscall0(int id) {int ret; asm volatile("syscall" : "=a"(ret): "D"(id) : "memory"); return ret;}
 int syscall1(int id, int arg1) {int ret; asm volatile("syscall" : "=a"(ret): "D"(id), "S"(arg1) : "memory"); return ret;} ...
+
+asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(a), "c"(b), "r8"(c), "r9"(d) : "memory");//i think this is right
 */
 
-int syscall0() {//open
+
+
+int syscall0(uint64_t num) {//open
     return 0;
 }
 
-int syscall1() {//close
+int syscall1(uint64_t num) {//close
     kprintf("syscall1\n");
     while (1);
 }
 
-int syscall2() {//read
+int syscall2(uint64_t num) {//read
     return 0;
 }
 
-int syscall3() {//write
+int syscall3(uint64_t num) {//write
     return 0;
 }
 
@@ -150,11 +154,11 @@ int syscall6(uint64_t num) {
     return 0;
 }
 
-int syscall7() {
+int syscall7(uint64_t num) {
     return 0;
 }
 
-int syscall8() {
+int syscall8(uint64_t num) {
     return 0;
 }
 
@@ -163,6 +167,41 @@ int syscall9(uint64_t num) {
     scheduler_return();
     // return 0;
 }
+
+
+int syscall9(uint64_t num) {
+    return 0;
+}
+
+int syscall10(uint64_t num) {
+    return 0;
+}
+
+int syscall11(uint64_t num, int* pointer, int expected) {
+    mutex_t* m = (mutex_t*) pointer;
+    //create a queue for the mutex? also mutex may have to be on any given value rather than an int
+    
+    block_thread(get_current_thread()->pid);
+    return 0;
+}
+
+int syscall12(uint64_t num, int* pointer) {
+    unblock_thread(get_current_thread());//try to change unblock thread to use pids instead maybe or the futex queue to use the thread contexts instead
+    return 0;
+}
+
+int syscall13(uint64_t num) {
+    return 0;
+}
+
+int syscall14(uint64_t num) {
+    return 0;
+}
+
+int syscall15(uint64_t num) {
+    return 0;
+}
+
 
 int syscall_log(char* str) {//4
     int ret;
@@ -192,4 +231,16 @@ int syscall_user_thread_exit() {//9
     uint64_t num = 9;
     asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
     return ret;
+}
+
+int sys_futex_wait(int *pointer, int expected, const struct timespec *time) {
+    //we ignore time arg for now
+    int ret;
+    uint64_t num = 11;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(expected): "memory");
+}
+int sys_futex_wake(int *pointer) {
+    int ret;
+    uint64_t num = 12;
+    asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(pointer) : "memory");
 }

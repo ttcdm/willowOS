@@ -12,6 +12,12 @@ extern syscall6
 extern syscall7
 extern syscall8
 extern syscall9
+extern syscall10
+extern syscall11
+extern syscall12
+extern syscall13
+extern syscall14
+extern syscall15
 
 section .data
 syscall_array:
@@ -25,6 +31,12 @@ syscall_array:
     dq syscall7
     dq syscall8
     dq syscall9
+    dq syscall10
+    dq syscall11
+    dq syscall12
+    dq syscall13
+    dq syscall14
+    dq syscall15
 
 ; .length: dq ($ - syscall_array) / 8;number of elements in the syscall array
 

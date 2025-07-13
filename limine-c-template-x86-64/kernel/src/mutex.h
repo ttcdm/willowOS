@@ -19,3 +19,9 @@ typedef struct mutex {
 
 bool acquire_mutex(mutex_t* mutex);
 bool release_mutex(mutex_t* mutex);
+
+typedef struct futex_queue {
+    uint64_t* pids;
+    uint64_t size;
+    uint64_t max_size;//we allocate 64 bytes (8 threads for max size and we realloc if we need more)
+} futex_queue_t;
