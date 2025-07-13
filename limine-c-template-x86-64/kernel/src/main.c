@@ -539,6 +539,8 @@ void kmain(void) {
     kmalloc_byte(4097);
     kfree(b);
 
+    init_futex();
+
     init_syscalls();//we call init_syscalls() first because it maps test_a and usermode_stack_base
 
     init_vfs(&module_request);

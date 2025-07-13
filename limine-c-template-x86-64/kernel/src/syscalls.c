@@ -168,25 +168,47 @@ int syscall9(uint64_t num) {
     // return 0;
 }
 
-
-int syscall9(uint64_t num) {
-    return 0;
-}
-
 int syscall10(uint64_t num) {
     return 0;
 }
 
-int syscall11(uint64_t num, int* pointer, int expected) {
-    mutex_t* m = (mutex_t*) pointer;
+int syscall11(uint64_t num, int* pointer, int expected) {//futex wait
+    mutex_t m = {.locked = 0, .object = pointer};
     //create a queue for the mutex? also mutex may have to be on any given value rather than an int
     
-    block_thread(get_current_thread()->pid);
+    bool irq;
+    irq_disable_save(&irq);
+    thread_context* thread = get_current_thread();
+
+    if (!__sync_bool_compare_and_swap(&thread->status[3], *pointer, expected)) {
+        irq_restore(&irq);
+        return 11;//EAGAIN??
+    }
+    else {
+        futex_enqueue(pointer, thread);
+    }
+    irq_restore(&irq);
     return 0;
 }
 
-int syscall12(uint64_t num, int* pointer) {
-    unblock_thread(get_current_thread());//try to change unblock thread to use pids instead maybe or the futex queue to use the thread contexts instead
+int syscall12(uint64_t num, int* pointer) {//futex wake
+    // unblock_thread(get_current_thread());//try to change unblock thread to use pids instead maybe or the futex queue to use the thread contexts instead
+    bool irq;
+    irq_disable_save(&irq);
+    
+    for (int i = 0; i < sizeof(global_futex_array) / sizeof(futex_queue_t*); i++) {
+        if (((futex_queue_t*) global_futex_array[i])->pointer == pointer) {
+            futex_queue_t* queue = global_futex_array[i];
+            for (int j = 0; j < queue->size; j++) {//i hope there isn't an off by one error here
+                queue->threads[i]->status[3] = 0;
+            }
+            kfree_interruptable((uint64_t*) queue->threads);
+            kfree_interruptable((uint64_t*) queue);
+            global_futex_array[i] == NULL;
+        }
+    }
+
+    irq_restore(&irq);
     return 0;
 }
 

@@ -39,20 +39,48 @@ bool release_mutex(mutex_t* mutex) {
 // }
 
 
+futex_queue_t** global_futex_array;
+uint64_t global_futex_array_size;
 
-int futex_enqueue(futex_queue_t* queue, uint64_t pid) {
+
+
+int futex_enqueue(int* pointer, thread_context* thread) {
     bool irq;
     irq_disable_save(&irq);
+    futex_queue_t* queue = NULL;
+    for (int i = 0; i < sizeof(global_futex_array) / sizeof(futex_queue_t*); i++) {
+        if (((futex_queue_t*) global_futex_array[i])->pointer == pointer) {
+            if (i = global_futex_array_size - 1) {
+                global_futex_array = (futex_queue_t**) krealloc_byte((uint64_t*) global_futex_array, global_futex_array_size + 128);//i think this should work. hopefully realloc doesn't break anything
+            }
+            queue = (futex_queue_t*) global_futex_array[i];
+            break;
+        }
+    }
+
+    if (queue == NULL) {
+        queue = (futex_queue_t*) kmalloc_byte_interruptable(sizeof(futex_queue_t));
+        queue->pointer = pointer;
+        queue->size = 0;
+        queue->max_size = 64;
+        queue->threads = (thread_context**) kmalloc_byte_interruptable(queue->max_size * sizeof(uint64_t*));
+        global_futex_array[0] = (futex_queue_t*) queue;
+    }
 
     if (queue->size == queue->max_size) {
         queue->max_size += 64;
-        queue->pids = krealloc_byte(queue->pids, queue->max_size * sizeof(uint64_t));
+        queue->threads = (thread_context**) krealloc_byte((uint64_t*) queue->threads, queue->max_size * sizeof(uint64_t*));//krealloc uses irq save disable so no need to worry about sti'ing when you're not supposed to
     }
     
-    queue->pids[queue->size] = pid;//not size+1 because index 0 is 1st element
+    queue->threads[queue->size] = thread;//not size+1 because index 0 is 1st element
     queue->size++;
 
 
     irq_restore(&irq);
     return 0;
+}
+
+void init_futex() {
+    global_futex_array = (futex_queue_t**) kmalloc_byte(128 * sizeof(int*));
+    global_futex_array_size = 128;
 }

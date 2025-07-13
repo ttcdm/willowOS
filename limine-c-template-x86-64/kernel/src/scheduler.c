@@ -403,11 +403,8 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	//add lock thing here
 	disable_preemption();
 
-	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
-	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
-	// kmalloc_byte_interruptable(THREAD_STACK_SIZE*5);
 
 
 	new_thread->start_time;// = tsc_read_ns();
@@ -471,14 +468,18 @@ void push_thread(volatile thread_context* thread) {
 }
 
 volatile thread_context* block_thread(uint64_t pid) {
-	asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
+	// asm volatile ("cli");
 	volatile thread_context* current_thread = ready_queue_head;
 	while (current_thread) {
-		asm volatile ("cli");
+		irq_disable_save(&irq);
+		// asm volatile ("cli");
 		if (current_thread->pid == pid) {
 			if (current_thread->status[3] == 1) {
 				kprintf_interruptable("\nthread %d is already blocked\n", pid);
-				asm volatile ("sti");
+				// asm volatile ("sti");
+				irq_restore(&irq);
 				return NULL;
 			}
 			current_thread->status[3] = 1;
@@ -487,18 +488,22 @@ volatile thread_context* block_thread(uint64_t pid) {
 			if (pid == get_current_thread()->pid) {
 				asm volatile ("int $72");//not sure if it should do this before returning if it's trying to block itself, but i'm not sure if it matters either
 			}
-			asm volatile ("sti");
+			// asm volatile ("sti");
+			irq_restore(&irq);
 			return current_thread;
 		}
 		current_thread = current_thread->next_thread;
 	}
 	kprintf_interruptable("\nthread %d not found\n", pid);
-	asm volatile ("sti");
+	// asm volatile ("sti");
+	irq_restore(&irq);
 	return NULL;//might run into issues with it being a null pointer
 }
 
 void unblock_thread(volatile thread_context* thread) {
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	if (thread->status[3] == 1) {
 		thread->status[3] = 0;
 		push_back(ready_queue, thread);//not sure if it's supposed to run immediately or just put it back onto the queue
@@ -507,11 +512,14 @@ void unblock_thread(volatile thread_context* thread) {
 	else {
 		kprintf_interruptable("\nthread %d is not blocked\n", thread->pid);
 	}
-	asm volatile ("sti");
+	// asm volatile ("sti");
+	irq_restore(&irq);
 }
 
 void yield_thread() {
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	volatile thread_context* current_thread = get_current_thread();
 	kprintf_interruptable("\nyielding thread %d\n", current_thread->pid);
 	push_back(ready_queue, current_thread);//maybe add a check for if it's blocked
@@ -553,7 +561,9 @@ volatile thread_context* sleep_thread(uint64_t pid, uint64_t ms) {//we don't hav
 }
 
 volatile thread_context* get_thread_by_pid(uint64_t pid) {
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	volatile thread_context* current_thread = ready_queue_head;
 	while (current_thread) {
 		if (current_thread->pid == pid) {
@@ -562,12 +572,15 @@ volatile thread_context* get_thread_by_pid(uint64_t pid) {
 		current_thread = current_thread->next_thread;
 	}
 	kprintf_interruptable("\nthread %d not found\n", pid);
-	asm volatile ("sti");
+	// asm volatile ("sti");
+	irq_restore(&irq);
 	return NULL;
 }
 
 void print_queue() {
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	volatile thread_context* current_thread = ready_queue_head;
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
@@ -576,5 +589,6 @@ void print_queue() {
 		current_thread = current_thread->next_thread;
 	}
 	kprintf_interruptable("|||\n");
-	asm volatile ("sti");
+	// asm volatile ("sti");
+	irq_restore(&irq);
 }
