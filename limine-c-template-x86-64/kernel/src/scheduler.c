@@ -82,6 +82,9 @@ volatile thread_context* ready_queue_second_last;
 // volatile thread_context** current_actual;
 volatile thread_context* running_thread;
 
+bool first_thread = 1;//for push_thread()
+
+
 void init_scheduler() {
 	push_thread(create_thread(1500, gen2));
 	// push_thread(create_thread(3, gen1));
@@ -95,7 +98,25 @@ volatile thread_context* pop_front(volatile thread_context* thread) {
 
 	volatile thread_context* head = ready_queue_head;
 	if (ready_queue_head->next_thread == NULL) {
-		kprintf_interruptable("no more threads\n");
+		kprintf_interruptable("\nnpop_front(): no more threads to schedule. switching to idle\n");
+		// while (1);
+		// ready_queue_second_last->last_run_time = tsc_read_ns();
+
+		first_thread = 1;
+		hot_create_and_push_thread(0xDEADBEEFCAFEBABE, idle_thread);
+
+		thread_context* next_thread = pop_front(ready_queue);//not 100% sure if pop_front() will return the created thread from hot_create...()
+
+		if (next_thread->pid != 0xDEADBEEFCAFEBABE) {
+			kprintf_interruptable("\nthread %d not found\n", next_thread->pid);
+			while (1) asm volatile ("cli; hlt");
+		}
+
+		uint64_t* a;
+		change_tss(tss, next_thread->stack_base);
+		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//still set a timer because a thread still may somehow get pushed idk?? not sure if it really matters
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
+		switch_thread(&a, next_thread->current_rsp);
 		return NULL;
 	}
 	ready_queue_head = ready_queue_head->next_thread;
@@ -355,6 +376,10 @@ void scheduler_return() {//basically pthread_exit
 		while (1) {asm volatile ("cli; hlt");}
 	}
 
+
+	if (next_thread->pid == temp->pid) {
+		goto kill_and_switch_to_idle;
+	}
 	// ready_queue_second_last->status[3] = 1;//same thing as below
 
 
@@ -368,6 +393,9 @@ void scheduler_return() {//basically pthread_exit
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 		next_thread = pop_front(ready_queue);
 		if (temp_pid == next_thread->pid) {
+
+			kill_and_switch_to_idle:
+
 
 			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 			free_frame(((uint64_t)temp->cr3) - hhdm_offset);
@@ -472,7 +500,6 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 }
 
 
-bool first_thread = 1;
 void push_thread(volatile thread_context* thread) {
 	if (first_thread) {
 		// thread_context* temp = create_thread(0xDEADBEEFCAFEBABE, gen0);
