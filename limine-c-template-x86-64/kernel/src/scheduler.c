@@ -289,6 +289,11 @@ void reschedule() {
 		while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 			next_thread = pop_front(ready_queue);
 			assert(next_thread);
+			if (next_thread->pid == 0xDEADBEEFCAFEBABE) {
+				kprintf_interruptable("idle thread...");
+				lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);
+				return;
+			}
 			kprintf_interruptable("\current thread blocked, switching from thread %d\n", next_thread->pid);
 		}
     }
@@ -333,29 +338,29 @@ void scheduler_return() {//basically pthread_exit
 
 	volatile thread_context* current_thread = get_current_thread();
 
-	volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
+	// volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
+	volatile thread_context* temp = current_thread;
+	uint64_t temp_pid = temp->pid;
+	// ready_queue_second_last->status[3] = 1;
+	// temp->status[3] = 1;
 	//add lock thing here
 	// disable_preemption();
 
-	//HERE remember to free temp->stackbase+THREAD_STACK_SIZE since stack base is at the very top and we allocated from the bottom
-	kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
-	kfree_interruptable((uint64_t*) temp);
-	free_frame(((uint64_t)temp->cr3) - hhdm_offset);
-	ready_queue_second_last = current_thread;
+	//HERE disregard the stuff after this sentence; i think because before i was using the top? (or bottom?) and now it's the other way around. remember to free temp->stackbase+THREAD_STACK_SIZE since stack base is at the very top and we allocated from the bottom
+
+	// ready_queue_second_last = current_thread;
 	volatile thread_context* next_thread = pop_front(ready_queue);
 	if (!next_thread) {
 		kprintf_interruptable("no more threads");
 		while (1) {asm volatile ("cli; hlt");}
 	}
 
-	ready_queue_second_last->status[3] = 1;//same thing as below
+	// ready_queue_second_last->status[3] = 1;//same thing as below
 
 
-	uint64_t temp_pid = ready_queue_second_last->pid;
+	// uint64_t temp_pid = ready_queue_second_last->pid;
 	uint64_t* a;
-	temp_pid = next_thread->pid;
 
-	
 	// asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 	volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 	*lapic_eoi = 0;
@@ -363,9 +368,14 @@ void scheduler_return() {//basically pthread_exit
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
 		next_thread = pop_front(ready_queue);
 		if (temp_pid == next_thread->pid) {
+
+			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
+			free_frame(((uint64_t)temp->cr3) - hhdm_offset);
+			kfree_interruptable((uint64_t*) temp);
+
 			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
 			// while (1);
-			ready_queue_second_last->last_run_time = tsc_read_ns();
+			// ready_queue_second_last->last_run_time = tsc_read_ns();
 
 			hot_create_and_push_thread(0xDEADBEEFCAFEBABE, idle_thread);
 
@@ -381,13 +391,24 @@ void scheduler_return() {//basically pthread_exit
 			asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
 			switch_thread(&a, next_thread->current_rsp);
 		}
+		else {
+			push_thread(next_thread);//i hope this doesn't break anything since we're just popping the threads off and we should put the threads back on but idk if that affects ready_queue_second_last in a way i'm not supposed to
+		}
 		assert(next_thread);
 	}
 	if (next_thread->status[3] == 0) {
-		ready_queue_second_last = current_thread;
-		ready_queue_second_last->status[3] = 1;//HERE the logic is weird so we just block the finished thread and let the scheduler handle it. it's not the best fix imo but it works for now. i just hope that it actually gets removed from the queue itself
-		ready_queue_second_last->last_run_time = tsc_read_ns();
-		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", ready_queue_second_last->pid, next_thread->pid);
+	// if (temp_pid == next_thread->pid) {
+		// ready_queue_second_last = current_thread;
+		// ready_queue_second_last->status[3] = 1;//HERE the logic is weird so we just block the finished thread and let the scheduler handle it. it's not the best fix imo but it works for now. i just hope that it actually gets removed from the queue itself
+		// ready_queue_second_last->last_run_time = tsc_read_ns();
+		
+		
+		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
+		free_frame(((uint64_t)temp->cr3) - hhdm_offset);
+		temp->next_thread = NULL;
+		kfree_interruptable((uint64_t*) temp);
+		
+		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", temp_pid, next_thread->pid);
 		running_thread = next_thread;
 
 		change_tss(tss, next_thread->stack_base);
