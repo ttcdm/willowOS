@@ -66,7 +66,7 @@ void gen2() {
 
 	// while (1) {test_b();}
 
-	while (1) {}//kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); }
+	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); yield_thread(); }
 }
 
 void idle_thread() {
@@ -82,6 +82,8 @@ volatile thread_context* ready_queue_second_last;
 // volatile thread_context** current_actual;
 volatile thread_context* running_thread;
 
+uint64_t num_threads;
+
 bool first_thread = 1;//for push_thread()
 
 
@@ -93,41 +95,30 @@ void init_scheduler() {
 	while (1) reschedule();
 }
 
-volatile thread_context* pop_front(volatile thread_context* thread) {
-	// thread->start_time++; thread->start_time--;//to make gcc happy about unused parameter
 
-	volatile thread_context* head = ready_queue_head;
-	if (ready_queue_head->next_thread == NULL) {
-		kprintf_interruptable("\nnpop_front(): no more threads to schedule. switching to idle\n");
-		// while (1);
-		// ready_queue_second_last->last_run_time = tsc_read_ns();
+thread_context* insert_thread(thread_context* left_thread, thread_context* new_thread, thread_context* right_thread) {//left and right has no meaning for specific directions. it's just threads that are adjacent to each other
+	//insert between two threads
+	//we "consume" threads left to right
+	assert(left_thread);
+	assert(new_thread);
+	assert(right_thread);
+	//hopefully there's no ordering issue
+	left_thread->next_thread = new_thread;
+	
+	right_thread->prev_thread = new_thread;
+	
+	new_thread->next_thread = right_thread;
+	new_thread->prev_thread = left_thread;
 
-		first_thread = 1;
-		hot_create_and_push_thread(0xDEADBEEFCAFEBABE, idle_thread);
-
-		thread_context* next_thread = pop_front(ready_queue);//not 100% sure if pop_front() will return the created thread from hot_create...()
-
-		if (next_thread->pid != 0xDEADBEEFCAFEBABE) {
-			kprintf_interruptable("\nthread %d not found\n", next_thread->pid);
-			while (1) asm volatile ("cli; hlt");
-		}
-
-		uint64_t* a;
-		change_tss(tss, next_thread->stack_base);
-		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//still set a timer because a thread still may somehow get pushed idk?? not sure if it really matters
-		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
-		switch_thread(&a, next_thread->current_rsp);
-		return NULL;
-	}
-	ready_queue_head = ready_queue_head->next_thread;
-	return head;//i think this works?? hopefully it just copies the memory over instead of having it get changed because ready_queue_head got changed the next line
+	return new_thread;
 }
 
-void push_back(volatile thread_context* ready_queue, volatile thread_context* thread) {
-	ready_queue_end->next_thread = thread;
-	ready_queue_second_last = ready_queue_end;
-	// current_actual = &ready_queue_end;
-	ready_queue_end = ready_queue_end->next_thread;
+thread_context* discard_thread(thread_context* thread) {
+	//stitches back together the doubly linked list
+	thread->prev_thread->next_thread = thread->next_thread;
+	thread->next_thread->prev_thread = thread->prev_thread;
+
+	return thread;
 }
 
 uint64_t create_new_userspace_page_table() {//returns the virtual address
@@ -137,7 +128,6 @@ uint64_t create_new_userspace_page_table() {//returns the virtual address
 	for (int i = 0; i < 512; i++) {
 		cr3[i] = 0;
 	}
-
 	for (int i = 256; i < 512; i++) {
 		cr3[i] = ((uint64_t*)(pml4_address_virt_glob))[i];
 	}
@@ -149,12 +139,14 @@ uint64_t create_new_userspace_page_table() {//returns the virtual address
 }
 
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
-	asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	volatile thread_context* t = create_thread(pid, thread_entry);
 	uint64_t new_cr3 = create_new_userspace_page_table();
 	t->cr3 = (uint64_t*) new_cr3;
 	push_thread(t);
-	asm volatile ("sti");
+	num_threads++;
+	irq_restore(&irq);
 }
 
 void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of free_elf functions as well to free all the physical frames
@@ -174,6 +166,7 @@ void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of
     t->elf_entry = load_elf(file, new_cr3);
 	t->cr3 = (uint64_t*) (new_cr3);
     push_thread(t);
+	num_threads++;
 	asm volatile ("mov %0, %%cr3" :: "r"(current_cr3));
     // reschedule();//not sure if i should add reschedule here
 	
@@ -191,43 +184,27 @@ void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void)) {
 	t->elf_entry = thread_entry;
 	t->cr3 = (uint64_t*) new_cr3;
 	push_thread(t);
+	num_threads++;
 	irq_restore(&irq);
 }
 
 void hot_reschedule() {//HERE must use this to call reschedule instead of just reschedule() itself inside a thread because if you create a thread inside a thread and you don't call reschedule() right after it, it gets preempted and some stuff doesn't get pushed back and the logic breaks, so you must either do both in "atomically", i.e., without getting preempted or just have this after which takes care of it i think
-	asm volatile ("cli");
+	// asm volatile ("cli");
+	bool irq;
+	irq_disable_save(&irq);
 	volatile thread_context* current_thread = get_current_thread();
-	if (current_thread->status[3] == 0) {
-		push_back(ready_queue, current_thread);
-    }
 	reschedule();
-	asm volatile ("sti");
+	irq_restore(&irq);
 }
 
 volatile thread_context* get_current_thread() {
-	// return ready_queue_head;
-	// return *current_actual;
 	return running_thread;
 }
 
-void disable_preemption()
-{	
-	// kprintf("\0");
-	// for (int i = 0; i < 100000; i++) {
-	// 	asm volatile ("nop");
-	// }
-// 	volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-// *lapic_timer |= (1 << 16); // Set the mask bit
+void disable_preemption() {	
 	asm volatile ("cli");
-	// volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-	// volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-	// *lapic_eoi = 0;
-
 }
-void enable_preemption()
-{
-	// volatile uint32_t* lapic_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-	// *lapic_timer &= ~(1 << 16); // Clear the mask bit
+void enable_preemption() {
 	asm volatile ("sti");
 }
 
@@ -238,6 +215,7 @@ void reschedule() {
 	// disable_preemption();
 	asm volatile ("cli");
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
+	print_queue();
 
 	//we clear the eoi here because i don't wanna wrap it with a cr3 switch
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
@@ -247,29 +225,16 @@ void reschedule() {
 	
 	if (first == 0) {//i could probably simplify this..
 		first = 1;
-		current_thread = pop_front(ready_queue);
-		// current_thread = get_current_thread();
-		// assert(current_thread);
-		uint64_t* a;// = kmalloc_byte(256);//placeholder
-		// assert(current_thread);
-		// uint64_t* a;// = kmalloc_byte(256);//placeholder
+		current_thread = running_thread;
+
+		uint64_t* a;
 		if (!current_thread) {
 			kprintf_interruptable("no more threads");
 			while (1) {asm volatile ("cli; hlt");}
 			// goto end;
 		}
-
-		push_back(ready_queue, current_thread);//&ready_queue
-		// change_tss(&tss, current_thread->stack_base);
-		// enable_preemption();
-		running_thread = current_thread;
 		running_thread->last_run_time = tsc_read_ns();
-
-		// change_tss(&tss, current_thread->current_rsp);
-		// change_tss(tss, (uint64_t*) ((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE);
 		change_tss(tss, current_thread->stack_base);
-		// change_tss(tss, current_thread->current_rsp);
-		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
 
 		if (current_thread->status[4] == 1) {
 			swap_to_user_gs();
@@ -277,38 +242,35 @@ void reschedule() {
 
 
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
-		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) current_thread->cr3) - hhdm_offset));
-		switch_thread(&a, current_thread->current_rsp);
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) running_thread->cr3) - hhdm_offset));
+		switch_thread(&a, running_thread->current_rsp);
 		// kfree_interruptable(thread_context* a));
 		// kfree_interruptable(a);
 		// enable_preemption();
 		return;
 	}
-	else {
-		current_thread = get_current_thread();
-		// *current_actual = (*current_actual)->next_thread;
-	}
 
-	volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
-	// assert(next_thread);
+	// volatile thread_context* next_thread = pop_front(ready_queue);//&ready_queue
+	current_thread = running_thread;
+	running_thread = running_thread->next_thread;
+	volatile thread_context* next_thread = running_thread;
+	assert(next_thread);
 	if (!next_thread) {
 		kprintf_interruptable("error no more threads");
 		while (1) {asm volatile ("cli; hlt");}
-	// assert(next_thread);
 	}
-	if (next_thread->pid == running_thread->pid) {//HERE FIX ME
+	if (next_thread->pid == next_thread->prev_thread->pid) {//HERE FIX ME
 		// kprintf("1 thread left");
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//idk maybe disregard the stuff after this sentence; i think reschedule() does return so we can call it after creating a thread so we can leave this off i think. i'm not sure if i should leave this on or not. if i leave it off i leave it up to the newly created thread or the user to call reschedule, but then it also means that it can't return back to it because reschedule never returns or something idk, so leaving it on would force the isr to reschedule instead of the function so it doesn't break anything i guess?? but i'm also not 100% sure that reschedule returns or not, as yield_thread() calls it and idk if it returns??? i don't think i actually need this. because if i do end up adding another thread when there's only 1 left, next_thread will be different. HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		// asm volatile ("sti");//need to reenable it because we don't have switch thread which reenables it
-
 		// kprintf_interruptable("byebye");
-		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) running_thread->cr3) - hhdm_offset));//ALWAYS REMEMBER TO SWAP THE CORRECT CR3 BACK IN
+		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));//ALWAYS REMEMBER TO SWAP THE CORRECT CR3 BACK IN
 		return;//don't switch just return
 	}
 
 	if (next_thread->status[3] == 1) {
 		while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
-			next_thread = pop_front(ready_queue);
+			running_thread = running_thread->next_thread;
 			assert(next_thread);
 			if (next_thread->pid == 0xDEADBEEFCAFEBABE) {
 				kprintf_interruptable("idle thread...");
@@ -318,34 +280,23 @@ void reschedule() {
 			kprintf_interruptable("\current thread blocked, switching from thread %d\n", next_thread->pid);
 		}
     }
-
-	if (next_thread->status[3] == 1) {
-		kprintf_interruptable("\nAAAAAA %d AAAAA\n", next_thread->pid);
-		while (1);
-	}
 	
 	if (next_thread->status[3] == 0) {
-
-		ready_queue_second_last = current_thread;
-		if (running_thread->pid == next_thread->pid) {
+		if (next_thread->pid == next_thread->prev_thread->pid) {
 			return;
 		}
-		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", ready_queue_second_last->pid, next_thread->pid);
-		running_thread = next_thread;
-		ready_queue_second_last->last_run_time = tsc_read_ns();
-	
-		// change_tss(tss, (uint64_t*) (((uint64_t) current_thread->stack_base)-THREAD_STACK_SIZE));
-		// change_tss(tss, (uint64_t*) (((uint64_t) next_thread->stack_base)-THREAD_STACK_SIZE));
+		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", current_thread->pid, next_thread->pid);
+		current_thread->last_run_time = tsc_read_ns();
 		change_tss(tss, next_thread->stack_base);
-		// change_tss(tss, next_thread->current_rsp);
 
 		if (current_thread->status[4] == 1) {
-			swap_to_user_gs();
+			// swap_to_user_gs();
 		}
 
+		// running_thread = running_thread->next_thread;
 		lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//HERE REMEMBER TO USE 0b0011 INSTEAD OF 16
 		asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
-		switch_thread(&ready_queue_second_last->current_rsp, next_thread->current_rsp);
+		switch_thread(&running_thread->prev_thread->current_rsp, running_thread->current_rsp);
 	}
 
 }
@@ -359,6 +310,11 @@ void scheduler_return() {//basically pthread_exit
 
 	volatile thread_context* current_thread = get_current_thread();
 
+	current_thread = running_thread;
+	running_thread = running_thread->next_thread;
+	
+	thread_context* next_thread = running_thread;
+
 	// volatile thread_context* temp = ready_queue_second_last;//HERE not sure if i'm supposed to do double pointer or just copy it
 	volatile thread_context* temp = current_thread;
 	uint64_t temp_pid = temp->pid;
@@ -370,14 +326,13 @@ void scheduler_return() {//basically pthread_exit
 	//HERE disregard the stuff after this sentence; i think because before i was using the top? (or bottom?) and now it's the other way around. remember to free temp->stackbase+THREAD_STACK_SIZE since stack base is at the very top and we allocated from the bottom
 
 	// ready_queue_second_last = current_thread;
-	volatile thread_context* next_thread = pop_front(ready_queue);
+	assert(next_thread);
 	if (!next_thread) {
 		kprintf_interruptable("no more threads");
 		while (1) {asm volatile ("cli; hlt");}
 	}
 
-
-	if (next_thread->pid == temp->pid) {
+	if (next_thread->pid == temp->pid) {//for if there's only 1 thread left
 		goto kill_and_switch_to_idle;
 	}
 	// ready_queue_second_last->status[3] = 1;//same thing as below
@@ -391,10 +346,15 @@ void scheduler_return() {//basically pthread_exit
 	*lapic_eoi = 0;
 
 	while (next_thread->status[3] == 1) {//prevents the next thread from being blocked.
-		next_thread = pop_front(ready_queue);
+		next_thread = next_thread->next_thread;
 		if (temp_pid == next_thread->pid) {
 
 			kill_and_switch_to_idle:
+
+			discard_thread(temp);
+			num_threads--;
+
+			kprintf_interruptable("\n%d\n", num_threads);
 
 
 			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
@@ -402,42 +362,40 @@ void scheduler_return() {//basically pthread_exit
 			kfree_interruptable((uint64_t*) temp);
 
 			kprintf_interruptable("\nno more threads to schedule. switching to idle\n");
-			// while (1);
-			// ready_queue_second_last->last_run_time = tsc_read_ns();
 
 			hot_create_and_push_thread(0xDEADBEEFCAFEBABE, idle_thread);
 
-			next_thread = pop_front(ready_queue);//not 100% sure if pop_front() will return the created thread from hot_create...()
 
-			if (next_thread->pid != 0xDEADBEEFCAFEBABE) {
+			/*we do next_thread->next_thread because next_thread is the thread we were originally gonna switch to,
+			  but since it's itself, it means that there's no more threads and we gotta switch to the idle thread.
+			  when we create a new thread, we put it in front of us, and since next_thread is the thread we're on
+			  since we've gone full circle around the queue, the idle thread will be next_thread's next_thread
+			*/
+			if (running_thread->next_thread->pid != 0xDEADBEEFCAFEBABE) {
 				kprintf_interruptable("\nthread %d not found\n", next_thread->pid);
 				while (1) asm volatile ("cli; hlt");
 			}
 
-			change_tss(tss, next_thread->stack_base);
+			change_tss(tss, running_thread->next_thread->stack_base);
 			lapic_oneshot(THREAD_QUANTUM, 72, 0b0011, 0);//still set a timer because a thread still may somehow get pushed idk?? not sure if it really matters
-			asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) next_thread->cr3) - hhdm_offset));
-			switch_thread(&a, next_thread->current_rsp);
-		}
-		else {
-			push_thread(next_thread);//i hope this doesn't break anything since we're just popping the threads off and we should put the threads back on but idk if that affects ready_queue_second_last in a way i'm not supposed to
+			asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) running_thread->next_thread->cr3) - hhdm_offset));
+			switch_thread(&a, running_thread->next_thread->current_rsp);
 		}
 		assert(next_thread);
 	}
 	if (next_thread->status[3] == 0) {
-	// if (temp_pid == next_thread->pid) {
-		// ready_queue_second_last = current_thread;
-		// ready_queue_second_last->status[3] = 1;//HERE the logic is weird so we just block the finished thread and let the scheduler handle it. it's not the best fix imo but it works for now. i just hope that it actually gets removed from the queue itself
-		// ready_queue_second_last->last_run_time = tsc_read_ns();
-		
-		
+
+		kprintf_interruptable("\n%d\n", next_thread->pid);
+		// while (1) {asm volatile ("cli; hlt");}
+
+		discard_thread(temp);
+		num_threads--;
 		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 		free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 		temp->next_thread = NULL;
 		kfree_interruptable((uint64_t*) temp);
 		
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", temp_pid, next_thread->pid);
-		running_thread = next_thread;
 
 		change_tss(tss, next_thread->stack_base);
 
@@ -448,9 +406,8 @@ void scheduler_return() {//basically pthread_exit
 }
 
 volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
-	asm volatile ("cli");
-	//add lock thing here
-	disable_preemption();
+	bool irq;
+	irq_disable_save(&irq);
 
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
@@ -470,6 +427,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	// new_thread->rip = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
+	new_thread->prev_thread = NULL;
 
 	new_thread->elf_entry = NULL;
 	new_thread->status[4] = 0;
@@ -484,6 +442,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	// new_thread->stack_base -= 4;
 	// new_thread->stack_base -= 20;
 	kprintf_interruptable("created thread %d\n", pid);
+	irq_restore(&irq);
 	return new_thread;
 }
 
@@ -501,17 +460,15 @@ void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then sche
 
 
 void push_thread(volatile thread_context* thread) {
-	if (first_thread) {
-		// thread_context* temp = create_thread(0xDEADBEEFCAFEBABE, gen0);
+	if (first_thread || (num_threads == 0)) {////hopefully num_threads is correct
 		running_thread = thread;
-		ready_queue_head = thread;
-		ready_queue_second_last = ready_queue_end;
-		ready_queue_end = ready_queue_head;
-		push_back(ready_queue, thread);
+		running_thread->next_thread = running_thread;
+		running_thread->prev_thread = running_thread;
 		first_thread = 0;
 	}
 	else {
-		push_back(ready_queue, thread);
+		//i don't think we can push it behind running_thread because if we save rsp to running_thread->prev_thread, we'd be saving to this instead of the intended thread, and using another variable might also get weird
+		insert_thread(running_thread, thread, running_thread->next_thread);
 	}
 }
 
@@ -519,8 +476,8 @@ volatile thread_context* block_thread(uint64_t pid) {
 	bool irq;
 	irq_disable_save(&irq);
 	// asm volatile ("cli");
-	volatile thread_context* current_thread = ready_queue_head;
-	while (current_thread) {
+	volatile thread_context* current_thread = running_thread;
+	for (int i = 0; i < num_threads+1; i++) {//+1 in case there's an off by 1 error i guess
 		irq_disable_save(&irq);
 		// asm volatile ("cli");
 		if (current_thread->pid == pid) {
@@ -531,6 +488,7 @@ volatile thread_context* block_thread(uint64_t pid) {
 				return NULL;
 			}
 			current_thread->status[3] = 1;
+			//discard thread into blocked queue
 			kprintf_interruptable("\nblocked thread %d\n", pid);
 			// while (1);
 			if (pid == get_current_thread()->pid) {
@@ -554,7 +512,7 @@ void unblock_thread(volatile thread_context* thread) {
 	irq_disable_save(&irq);
 	if (thread->status[3] == 1) {
 		thread->status[3] = 0;
-		push_back(ready_queue, thread);//not sure if it's supposed to run immediately or just put it back onto the queue
+		//insert thread
 		kprintf_interruptable("\nunblocked thread %d\n", thread->pid);
 	}
 	else {
@@ -565,12 +523,10 @@ void unblock_thread(volatile thread_context* thread) {
 }
 
 void yield_thread() {
-	// asm volatile ("cli");
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = get_current_thread();
 	kprintf_interruptable("\nyielding thread %d\n", current_thread->pid);
-	push_back(ready_queue, current_thread);//maybe add a check for if it's blocked
 	reschedule();
 	// asm volatile ("sti");//technically no need for sti because switch_thread() inside reschedule already sti's and it eventually gets back here i think
 }
@@ -612,8 +568,8 @@ volatile thread_context* get_thread_by_pid(uint64_t pid) {
 	// asm volatile ("cli");
 	bool irq;
 	irq_disable_save(&irq);
-	volatile thread_context* current_thread = ready_queue_head;
-	while (current_thread) {
+	volatile thread_context* current_thread = running_thread;
+	for (int i = 0; i < num_threads+1; i++) {
 		if (current_thread->pid == pid) {
 			return current_thread;
 		}
@@ -626,17 +582,16 @@ volatile thread_context* get_thread_by_pid(uint64_t pid) {
 }
 
 void print_queue() {
-	// asm volatile ("cli");
 	bool irq;
 	irq_disable_save(&irq);
-	volatile thread_context* current_thread = ready_queue_head;
+	volatile thread_context* current_thread = running_thread;
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < num_threads+1; i++) {
+		if (i == num_threads) kprintf_interruptable("||| ");
 		kprintf_interruptable("%d ", current_thread->pid);
 		current_thread = current_thread->next_thread;
 	}
 	kprintf_interruptable("|||\n");
-	// asm volatile ("sti");
 	irq_restore(&irq);
 }

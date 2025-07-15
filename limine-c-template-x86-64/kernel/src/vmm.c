@@ -82,7 +82,6 @@ uint64_t init_heap() {
 
 // uint64_t index = 0;
 uint64_t* kmalloc(uint64_t size) {
-    // asm volatile ("cli");
     if (size == 0) {
         kprintln("allocated 0 bytes. returning NULL");
         return NULL;//might page fault if you try to dereference this
@@ -142,7 +141,6 @@ uint64_t* kmalloc(uint64_t size) {
 }
 
 void kfree(uint64_t* virt_address) {
-    // asm volatile ("cli");
     bool irq;
     irq_disable_save(&irq);
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
@@ -164,12 +162,12 @@ void kfree(uint64_t* virt_address) {
     #ifdef VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
     #endif
-    // asm volatile ("sti");
     irq_restore(&irq);
 }
 
 void kfree_interruptable(uint64_t* virt_address) {
-    // asm volatile ("cli");
+    bool irq;
+	irq_disable_save(&irq);
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
     for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
@@ -186,7 +184,7 @@ void kfree_interruptable(uint64_t* virt_address) {
     // kprint_uint64(alloc_length_node);
     // kprint(" starting index: ");
     // kprintln_uint64(index);
-    // asm volatile ("sti");
+    irq_restore(&irq);
     #ifdef VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
     #endif
@@ -209,28 +207,26 @@ void print_heap(uint64_t length) {
 }
 
 uint64_t* kmalloc_byte(uint64_t size) {//we do cli and sti here instead of inside kmalloc. kmalloc alloc's 64 bytes per unit and this is one byte per unit. pretty sure this covers all cases
-    // asm volatile ("cli");
     bool irq;
     irq_disable_save(&irq);
     if (size == 0) {
-        // asm volatile ("sti");//HERE should be after return kmalloc(0); also add in irq_disable_save and irq_restore. should also add this to kprintf
+        //HERE should be after return kmalloc(0); also add in irq_disable_save and irq_restore. should also add this to kprintf
         irq_restore(&irq);
         return kmalloc(0);
         //asm volatile ("sti");//mishakov said that it was ok that sti and return wasn't atomic together
     }
     if (size <= 64) {
-        // asm volatile ("sti");
         irq_restore(&irq);
         return kmalloc(1);
     }
     else {
         if (size % 64 == 0) {
-            // asm volatile ("sti");
+
             irq_restore(&irq);
             return kmalloc(size / 64);
         }
         else {
-            // asm volatile ("sti");
+
             irq_restore(&irq);
             return kmalloc((size / 64) + 1);
         }
@@ -255,8 +251,6 @@ uint64_t* kmalloc_byte_interruptable(uint64_t size) {//kmalloc alloc's 64 bytes 
 }
 
 uint64_t* krealloc_byte(uint64_t* virt_address, uint64_t size) {//should work; HAS IRQ DISABLE SAVE
-    // asm volatile("cli");
-
     bool irq;
     irq_disable_save(&irq);
 
@@ -290,10 +284,8 @@ uint64_t* krealloc_byte(uint64_t* virt_address, uint64_t size) {//should work; H
     }
 
     kfree(virt_address);//not sure if we should free the old ptr in case other things depend on it but oh well
-    
-    // asm volatile ("sti");
-    irq_restore(&irq);
 
+    irq_restore(&irq);
     return ret;
 
 }

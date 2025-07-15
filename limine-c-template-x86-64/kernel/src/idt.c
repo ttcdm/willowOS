@@ -88,7 +88,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     // current_thread->frame[0] = 1;//signaled for rescheduling
 
     if (current_thread->status[3] == 0) {
-        push_back(ready_queue, current_thread);//&ready_queue
+        // push_back(ready_queue, current_thread);//&ready_queue
     }
 
     // if (frame->cs & 0x3 == 3) {

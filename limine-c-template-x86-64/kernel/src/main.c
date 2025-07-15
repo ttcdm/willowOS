@@ -325,7 +325,6 @@ void kprintln_uint64(uint64_t num) {
 }
 
 void kprintf(char* fmt, ...) {
-    asm volatile ("cli");//HERE REMEMBER TO TAKE THIS OFF
     bool irq_status;
     irq_disable_save(&irq_status);
     va_list args;
@@ -345,7 +344,6 @@ void kprintf(char* fmt, ...) {
     va_end(args);
     va_end(args_copy);
     irq_restore(&irq_status);
-    asm volatile ("sti");//HERE REMEMBER TO TAKE THIS OFF
 }
 void kprintf_interruptable(char* fmt, ...) {
     // asm volatile ("cli");
