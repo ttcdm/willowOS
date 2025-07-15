@@ -1,5 +1,6 @@
 #include <scheduler.h>
 #include <loader.h>
+#include <mutex.h>
 
 //HERE ONLY USE "THREAD SAFE" FUNCTIONS. DO NOT USE FUNCTIONS THAT STI DURING SECTIONS THAT ARE CLI'D
 
@@ -83,6 +84,10 @@ volatile thread_context* ready_queue_second_last;
 volatile thread_context* running_thread;
 
 uint64_t num_threads;
+
+// //declared inside mutex.h
+// bool GLOBAL_SCHED_OBJECT;
+// mutex_t GLOBAL_SCHED_QUEUE_LOCK;
 
 bool first_thread = 1;//for push_thread()
 
@@ -365,12 +370,6 @@ void scheduler_return() {//basically pthread_exit
 
 			hot_create_and_push_thread(0xDEADBEEFCAFEBABE, idle_thread);
 
-
-			/*we do next_thread->next_thread because next_thread is the thread we were originally gonna switch to,
-			  but since it's itself, it means that there's no more threads and we gotta switch to the idle thread.
-			  when we create a new thread, we put it in front of us, and since next_thread is the thread we're on
-			  since we've gone full circle around the queue, the idle thread will be next_thread's next_thread
-			*/
 			if (running_thread->next_thread->pid != 0xDEADBEEFCAFEBABE) {
 				kprintf_interruptable("\nthread %d not found\n", next_thread->pid);
 				while (1) asm volatile ("cli; hlt");

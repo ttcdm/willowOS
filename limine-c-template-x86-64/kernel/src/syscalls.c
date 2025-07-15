@@ -137,15 +137,11 @@ int syscall3(uint64_t num) {//write
     return 0;
 }
 
-int syscall4(size_t num, char* str) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
-    kprintf("%s\n", str);//no checks against non null terminated strings
+int syscall4(size_t num) {
     return 0;
 }
 
 int syscall5(uint64_t num) {
-    // asm volatile ("cli");
-    // change_tss(tss, get_current_thread()->stack_base);
-    // asm volatile ("sti");
     return 0;
 }
 
@@ -214,34 +210,43 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
     return 0;
 }
 
-int syscall13(uint64_t num) {
+int syscall13(uint64_t num, size_t size, void **pointer) {
+    *pointer = (void*) kmalloc_byte(size);
     return 0;
 }
 
-int syscall14(uint64_t num) {
+int syscall14(uint64_t num, void *pointer) {
+    kfree((uint64_t*) pointer);
     return 0;
 }
 
-int syscall15(uint64_t num) {
+int syscall15(uint64_t num, char* str) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
+    kprintf("%s\n", str);//no checks against non null terminated strings
     return 0;
 }
 
 
-int syscall_log(char* str) {//4
+
+
+
+
+
+int syscall_log(char* str) {//15
     int ret;
-    size_t num = 4;
+    size_t num = 15;
     // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(str) : "memory");
     return ret;
 }
 
-int syscall_test() {//5
-    // return 0;
-    int ret;
-    uint64_t num = 5;
-    asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
-    return ret;
+
+
+
+int syscall_test() {
 }
+
+
+
 
 int syscall_yield() {//6
     int ret;
@@ -257,19 +262,35 @@ int syscall_user_thread_exit() {//9
     return ret;
 }
 
-int sys_futex_wait(int *pointer, int expected, const struct timespec *time) {
+
+
+
+int sys_futex_wait(int *pointer, int expected, const struct timespec *time) {//11
     //we ignore time arg for now
     int ret;
     uint64_t num = 11;
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(expected): "memory");
     return ret;
 }
-int sys_futex_wake(int *pointer) {
+int sys_futex_wake(int *pointer) {//12
     int ret;
     uint64_t num = 12;
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(pointer) : "memory");
     return ret;
 }
 
-int sys_anon_allocate(size_t size, void **pointer);
-int sys_anon_free(void *pointer, size_t size);
+
+
+int sys_anon_allocate(size_t size, void **pointer) {//13
+    int ret;
+    uint64_t num = 13;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(size), "d"(pointer): "memory");
+    return ret;
+}
+int sys_anon_free(void *pointer, size_t size) {//14
+    //i think we can disregard size for now
+    int ret;
+    uint64_t num = 14;
+    asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(pointer) : "memory");
+    return ret;
+}

@@ -541,6 +541,10 @@ void kmain(void) {
 
     init_syscalls();//we call init_syscalls() first because it maps test_a and usermode_stack_base
 
+    // //global scheduler queue lock
+    // GLOBAL_SCHED_QUEUE_LOCK.locked = 0;
+    // GLOBAL_SCHED_QUEUE_LOCK.object = GLOBAL_SCHED_OBJECT;
+
     init_vfs(&module_request);
 
     // init_scheduler();

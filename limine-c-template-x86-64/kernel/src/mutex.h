@@ -21,6 +21,10 @@ typedef struct mutex {
 bool acquire_mutex(mutex_t* mutex);
 bool release_mutex(mutex_t* mutex);
 
+// //need to put this here because of circular includes or something
+// extern bool GLOBAL_SCHED_OBJECT;
+// extern mutex_t GLOBAL_SCHED_QUEUE_LOCK;
+
 typedef struct futex_queue {
     int* pointer;
     thread_context** threads;
