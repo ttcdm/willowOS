@@ -138,6 +138,8 @@ void init_paging() {
 }
 
 void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
+    bool irq;
+    irq_disable_save(&irq);
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
@@ -172,9 +174,12 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     uint64_t* pt_entry = &pt->entries[pt_index];
     *pt_entry = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+    irq_restore(&irq);
 }
 
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
+    bool irq;
+    irq_disable_save(&irq);
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
     uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
@@ -194,9 +199,12 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
     pt->entries[pt_index] = (uint64_t) NULL;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+    irq_restore(&irq);
 }
 
 void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions) {
+    bool irq;
+    irq_disable_save(&irq);
     // uint64_t* pml4_address = (uint64_t*) pml4_address_virt_glob;
     uint64_t* pml4_address = cr3;
 
@@ -226,6 +234,7 @@ void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions)
     *pt_entry |= permissions;
 
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+    irq_restore(&irq);
 }
 
 uint64_t virt_to_phys(uint64_t virt_address, uint64_t cr3) {//REMEMBER TO USE THE CORRECT CR3

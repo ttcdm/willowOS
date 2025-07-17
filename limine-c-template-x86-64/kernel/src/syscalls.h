@@ -44,7 +44,7 @@ int syscall4(size_t num);
 int syscall5(uint64_t num);
 int syscall6(uint64_t num);
 int syscall7(uint64_t num);
-int syscall8(uint64_t num);
+int syscall8(uint64_t num, void *pointer, size_t size);
 int syscall9(uint64_t num);
 int syscall10(uint64_t num);
 int syscall11(uint64_t num, int* pointer, int expected);
@@ -72,3 +72,6 @@ int sys_futex_wake(int *pointer);
 
 int sys_anon_allocate(size_t size, void **pointer);
 int sys_anon_free(void *pointer, size_t size);
+
+int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, uint64_t offset, void **window);//we're using 8 bytes as a replacement for off_t. hopefully it's fine
+int sys_vm_unmap(void *pointer, size_t size);

@@ -137,7 +137,7 @@ int syscall3(uint64_t num) {//write
     return 0;
 }
 
-int syscall4(size_t num) {
+int syscall4(size_t num) {//seek
     return 0;
 }
 
@@ -150,11 +150,38 @@ int syscall6(uint64_t num) {
     return 0;
 }
 
-int syscall7(uint64_t num) {
+int syscall7(uint64_t num) {//vm map
     return 0;
 }
 
-int syscall8(uint64_t num) {
+int syscall8(uint64_t num, void *pointer, size_t size) {//vm unmap
+    assert(pointer);
+    bool irq;
+    irq_disable_save(&irq);
+    uint64_t* cr3 = (uint64_t*) (get_cr3() + hhdm_offset);
+    irq_restore(&irq);
+    assert(cr3);
+    uint64_t num_pages;
+    //convert size to number of pages. i should probably put this into a function since it's a somewhat common operation
+    if (size == 0) {
+        num_pages = 0;
+    }
+    if (size <= 0x1000) {
+        num_pages = 1;
+    }
+    else {
+        if (size % 0x1000 == 0) {
+            num_pages = size / 0x1000;
+        }
+        else {
+            num_pages = (size / 0x1000) + 1;
+        }
+    }
+
+    for (uint64_t i = 0; i < num_pages; i++) {
+        unmap_page(cr3, ((uint64_t) pointer) + (i * 0x1000));
+    }
+    
     return 0;
 }
 
@@ -293,4 +320,15 @@ int sys_anon_free(void *pointer, size_t size) {//14
     uint64_t num = 14;
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(pointer) : "memory");
     return ret;
+}
+
+
+int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, uint64_t offset, void **window) {
+    int ret;
+    uint64_t num = 7;
+}
+int sys_vm_unmap(void *pointer, size_t size) {
+    int ret;
+    uint64_t num = 8;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(size): "memory");
 }
