@@ -73,5 +73,5 @@ int sys_futex_wake(int *pointer);
 int sys_anon_allocate(size_t size, void **pointer);
 int sys_anon_free(void *pointer, size_t size);
 
-int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, uint64_t offset, void **window);//we're using 8 bytes as a replacement for off_t. hopefully it's fine
+int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window);//we're using 8 byte signed int as a replacement for off_t. hopefully it's fine
 int sys_vm_unmap(void *pointer, size_t size);

@@ -323,7 +323,7 @@ int sys_anon_free(void *pointer, size_t size) {//14
 }
 
 
-int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, uint64_t offset, void **window) {
+int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {
     int ret;
     uint64_t num = 7;
 }

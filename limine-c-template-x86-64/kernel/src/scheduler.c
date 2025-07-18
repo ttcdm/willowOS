@@ -308,7 +308,7 @@ void reschedule() {
 
 void scheduler_return() {//basically pthread_exit
 	//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
-	// disable_preemption();
+	//if this whole thing is uninterruptable it's actually a pretty long process so maybe we should have several sections where it's interruptable so we still maintain normal thread scheduling times
 	asm volatile ("cli");
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 
