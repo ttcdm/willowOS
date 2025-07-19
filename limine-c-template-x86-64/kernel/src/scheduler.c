@@ -149,6 +149,8 @@ void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 	volatile thread_context* t = create_thread(pid, thread_entry);
 	uint64_t new_cr3 = create_new_userspace_page_table();
 	t->cr3 = (uint64_t*) new_cr3;
+	t->elf_entry = NULL;//HERE always remember to set the appropriate things to NULl because some stuff will expect it to be NULL
+	t->elf_file = NULL;
 	push_thread(t);
 	num_threads++;
 	irq_restore(&irq);
@@ -169,6 +171,7 @@ void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of
 	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3 - hhdm_offset));
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
     t->elf_entry = load_elf(file, new_cr3);
+	t->elf_file = file;
 	t->cr3 = (uint64_t*) (new_cr3);
     push_thread(t);
 	num_threads++;
@@ -188,6 +191,8 @@ void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void)) {
 	uint64_t new_cr3 = create_new_userspace_page_table();
 	t->elf_entry = thread_entry;
 	t->cr3 = (uint64_t*) new_cr3;
+	t->elf_entry = NULL;
+	t->elf_file = NULL;
 	push_thread(t);
 	num_threads++;
 	irq_restore(&irq);
@@ -363,6 +368,10 @@ void scheduler_return() {//basically pthread_exit
 
 
 			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
+			if (temp->elf_entry != NULL) {
+				assert(temp->elf_file != NULL);
+				unload_elf(temp->elf_file, (uint64_t) temp->cr3);
+			}
 			free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 			kfree_interruptable((uint64_t*) temp);
 
@@ -384,12 +393,16 @@ void scheduler_return() {//basically pthread_exit
 	}
 	if (next_thread->status[3] == 0) {
 
-		kprintf_interruptable("\n%d\n", next_thread->pid);
+		// kprintf_interruptable("\n%d\n", next_thread->pid);
 		// while (1) {asm volatile ("cli; hlt");}
 
 		discard_thread(temp);
 		num_threads--;
 		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
+		if (temp->elf_entry != NULL) {
+			assert(temp->elf_file != NULL);
+			unload_elf(temp->elf_file, (uint64_t) temp->cr3);
+		}
 		free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 		temp->next_thread = NULL;
 		kfree_interruptable((uint64_t*) temp);
@@ -429,6 +442,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->prev_thread = NULL;
 
 	new_thread->elf_entry = NULL;
+	new_thread->elf_file = NULL;
 	new_thread->status[4] = 0;
 
 

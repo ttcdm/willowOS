@@ -12,6 +12,7 @@
 #include <apic.h>
 #include <vmm.h>
 #include <gdt.h>
+#include <vfs.h>
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
@@ -35,6 +36,7 @@ typedef struct thread_context_declared {
 	uint64_t status[10];//RUNNING, READY, BLOCKED, SLEEPING, USERSPACE?.//running flag isn't used for now. also this should probably be bool but oh well
 	// void (*elf_entry)(void);
 	void* elf_entry;
+	vfs_fd_t* elf_file;
 	// uint64_t cr3[512];
 	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
 	struct thread_context_declared* next_thread;

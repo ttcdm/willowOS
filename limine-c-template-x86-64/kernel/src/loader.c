@@ -144,47 +144,32 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
-            uint64_t segment_start;
             if (phdr->p_memsz < 4096) {
-                segment_start = alloc_frame();
-                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
-
-                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
+                free_frame(virt_to_phys(phdr->p_vaddr, cr3));//need to free before we unmap because we need to still be able to translate it
+                unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
-                segment_start = alloc_frame();
-                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
-
-                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
+                free_frame(virt_to_phys(phdr->p_vaddr, cr3));
+                unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
 
                 for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
-                    uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
-
-                    change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
+                    free_frame(virt_to_phys((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), cr3));
+                    unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)));
                 }
             }
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
-                segment_start = alloc_frame();
-                map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
-
-                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
+                free_frame(virt_to_phys(phdr->p_vaddr, cr3));
+                unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
 
                 for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
-                    uint64_t next_frame = alloc_frame();
-                    map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
-
-                    change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+                    free_frame(virt_to_phys((uint64_t) phdr->p_vaddr + (4096 * j), cr3));
+                    unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j));
                 }
             }
-
-            //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
-            //HERE remember to reread the docs and calculate the offsets correctly
-            memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
-
         }
 
     }
+    kprintf_interruptable("unloaded elf\n");
 }
 
 void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
@@ -193,6 +178,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
         for (size_t i = 0; i < 5; i++) {
+            //maybe i should have a stack in the lower half only but idk
             change_page_map(t->cr3, (((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
         }
 
@@ -205,7 +191,8 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
 
     }
     else {
-        kprintf_interruptable("no valid elf entry to execute");
+        // kprintf_interruptable("no valid elf entry to execute");
+        //no else because we also use this function to run functions in userspace
     }
     asm volatile ("sti");
 }
