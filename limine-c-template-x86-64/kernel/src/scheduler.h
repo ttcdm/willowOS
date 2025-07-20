@@ -18,6 +18,12 @@
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
 #define THREAD_QUANTUM 30//not sure if quantum is the right word
 
+typedef struct thread_mappings {//used by map_page but it's only used if there's a running thread. maybe i should change it for the original cr3 as well idk
+	uint64_t* mapped_virt_addresses;
+	uint64_t num_mappings;
+	uint64_t max_mappings;
+} thread_mappings_t;
+
 typedef struct thread_context_declared {
 	uint64_t start_time;
 	uint64_t last_start_time;
@@ -37,8 +43,10 @@ typedef struct thread_context_declared {
 	// void (*elf_entry)(void);
 	void* elf_entry;
 	vfs_fd_t* elf_file;
+	thread_mappings_t mappings;
 	// uint64_t cr3[512];
 	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
+
 	struct thread_context_declared* next_thread;
 	struct thread_context_declared* prev_thread;
 

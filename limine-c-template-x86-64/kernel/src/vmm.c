@@ -82,8 +82,11 @@ uint64_t init_heap() {
 
 // uint64_t index = 0;
 uint64_t* kmalloc(uint64_t size) {
+    bool irq;
+    irq_disable_save(&irq);
     if (size == 0) {
         kprintln("allocated 0 bytes. returning NULL");
+        irq_restore(&irq);
         return NULL;//might page fault if you try to dereference this
     }
     heap_page* current = heap_page_head;
@@ -102,6 +105,7 @@ uint64_t* kmalloc(uint64_t size) {
             for (int i = 0; i < size-1; i++) {//we do size-1 because the last line sets it as the last node we need but it doesn't actually check it, and so it gets checked by the if block at the end
                 if (probe->next == NULL) {
                     kprintln("heap is full");
+                    irq_restore(&irq);
                     return 0;
                 }
                 if (probe->status == 1) {
@@ -128,8 +132,7 @@ uint64_t* kmalloc(uint64_t size) {
                 kprintf_interruptable("allocated heap at index: %llu\n", index);
                 #endif
                 
-                
-                // asm volatile ("sti");
+                irq_restore(&irq);
                 return (uint64_t*) (HEAP_START_VIRT_DEFINED + (index * HEAP_CHUNK_SIZE_DEFINED));//HERE hopefully there's no issue with using macros as the values for the operations
             }
         }
@@ -137,6 +140,7 @@ uint64_t* kmalloc(uint64_t size) {
         index++;
     }
     kprintln("heap is full. returning 0");
+    irq_restore(&irq);
     return 0;
 }
 

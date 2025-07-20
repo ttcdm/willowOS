@@ -146,6 +146,7 @@ uint64_t create_new_userspace_page_table() {//returns the virtual address
 void hot_create_and_push_thread(uint64_t pid, void (*thread_entry)(void)) {
 	bool irq;
 	irq_disable_save(&irq);
+	//HERE we don't need to swap in the original cr3 because the heap was already mapped previously
 	volatile thread_context* t = create_thread(pid, thread_entry);
 	uint64_t new_cr3 = create_new_userspace_page_table();
 	t->cr3 = (uint64_t*) new_cr3;
@@ -186,7 +187,7 @@ void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of
 void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void)) {
 	bool irq;
 	irq_disable_save(&irq);
-
+	//HERE we don't need to swap in the original cr3 because the heap was already mapped previously
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
 	uint64_t new_cr3 = create_new_userspace_page_table();
 	t->elf_entry = thread_entry;
@@ -444,6 +445,10 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->elf_entry = NULL;
 	new_thread->elf_file = NULL;
 	new_thread->status[4] = 0;
+
+	new_thread->mappings.num_mappings = 0;
+	new_thread->mappings.max_mappings = 8;
+	new_thread->mappings.mapped_virt_addresses = kmalloc_byte(sizeof(uint64_t) * 8);
 
 
 	// while (1);

@@ -11,6 +11,10 @@
 #include <scheduler.h>
 #include <mutex.h>
 
+
+
+
+
 extern void* user_code;
 
 void init_syscalls(void);
@@ -75,3 +79,83 @@ int sys_anon_free(void *pointer, size_t size);
 
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window);//we're using 8 byte signed int as a replacement for off_t. hopefully it's fine
 int sys_vm_unmap(void *pointer, size_t size);
+
+
+
+
+//temp linux abi stuff for mlibc
+
+#define __MLIBC_LINUX_OPTION 1//HERE
+
+#define PROT_NONE  0x00
+#define PROT_READ  0x01
+#define PROT_WRITE 0x02
+#define PROT_EXEC  0x04
+
+#define MAP_FAILED ((void *)(-1))
+#define MAP_FILE    0x00
+#define MAP_SHARED    0x01
+#define MAP_PRIVATE   0x02
+#define MAP_FIXED     0x10
+#define MAP_ANON      0x20
+#define MAP_ANONYMOUS 0x20
+
+#if __MLIBC_LINUX_OPTION
+
+#define MAP_GROWSDOWN 0x100
+#define MAP_DENYWRITE 0x800
+#define MAP_EXECUTABLE 0x1000
+#define MAP_LOCKED    0x2000
+#define MAP_NORESERVE 0x4000
+#define MAP_POPULATE  0x8000
+#define MAP_NONBLOCK  0x10000
+#define MAP_STACK     0x20000
+#define MAP_HUGETLB   0x40000
+#define MAP_SYNC      0x80000
+#define MAP_FIXED_NOREPLACE 0x100000
+
+#endif /* __MLIBC_LINUX_OPTION */
+
+#define MS_ASYNC 0x01
+#define MS_INVALIDATE 0x02
+#define MS_SYNC 0x04
+
+#define MCL_CURRENT 0x01
+#define MCL_FUTURE 0x02
+
+#define POSIX_MADV_NORMAL 0
+#define POSIX_MADV_RANDOM 1
+#define POSIX_MADV_SEQUENTIAL 2
+#define POSIX_MADV_WILLNEED 3
+#define POSIX_MADV_DONTNEED 4
+
+// #if __MLIBC_LINUX_OPTION
+
+#define MADV_NORMAL 0
+#define MADV_RANDOM 1
+#define MADV_SEQUENTIAL 2
+#define MADV_WILLNEED 3
+#define MADV_DONTNEED 4
+#define MADV_FREE 8
+#define MADV_REMOVE 9
+#define MADV_DONTFORK 10
+#define MADV_DOFORK 11
+#define MADV_MERGEABLE 12
+#define MADV_UNMERGEABLE 13
+#define MADV_HUGEPAGE 14
+#define MADV_NOHUGEPAGE 15
+#define MADV_DONTDUMP 16
+#define MADV_DODUMP 17
+#define MADV_WIPEONFORK 18
+#define MADV_KEEPONFORK 19
+#define MADV_COLD 20
+#define MADV_PAGEOUT 21
+#define MADV_HWPOISON 100
+#define MADV_SOFT_OFFLINE 101
+
+#define MREMAP_MAYMOVE 1
+#define MREMAP_FIXED 2
+
+#define MFD_CLOEXEC 1U
+#define MFD_ALLOW_SEALING 2U
+#define MFD_HUGETLB 4U

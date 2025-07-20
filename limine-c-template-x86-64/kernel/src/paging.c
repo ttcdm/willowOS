@@ -1,6 +1,6 @@
 #include <paging.h>
 #include <kutils.h>
-
+#include <scheduler.h>
 
 typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
     uint64_t entries[512];
@@ -174,6 +174,18 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     uint64_t* pt_entry = &pt->entries[pt_index];
     *pt_entry = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+
+    if (get_current_thread() != NULL) {
+        goto hi;
+        thread_context* t = get_current_thread();
+        t->mappings.mapped_virt_addresses[t->mappings.num_mappings] = virt_address;
+        t->mappings.num_mappings++;
+        if (t->mappings.num_mappings == t->mappings.max_mappings) {
+            t->mappings.max_mappings += 8;
+            t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, t->mappings.max_mappings + (8 * sizeof(uint64_t)));//remember to do sizeof
+        }
+    }
+    hi:
     irq_restore(&irq);
 }
 
