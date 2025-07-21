@@ -10,7 +10,7 @@
 #include <tsc.h>
 #include <vfs.h>
 
-#define TMPFS_MAX_FILES 1024
+// #define TMPFS_MAX_FILES 1024
 
 typedef struct tmpfs_header {
     char permissions[3];//rwx
@@ -30,7 +30,10 @@ typedef struct tmpfs_file {
 
 typedef struct tmpfs_directory {
     tmpfs_header_t header;
-    void* files[TMPFS_MAX_FILES];//probably could use this to store directories as well
+    // void* files[TMPFS_MAX_FILES];//probably could use this to store directories as well
+    void** files;
+    uint64_t max_files;
+    uint64_t num_files;
     // void* first_file;//implement linked list
     uint64_t probably_next_free_entry_index;//uint32_t or even uint16_t would probably suffice but oh well
 } tmpfs_directory_t;

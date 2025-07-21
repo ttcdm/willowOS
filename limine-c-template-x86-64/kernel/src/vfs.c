@@ -68,6 +68,14 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             char* file_data1 = (char*) kmalloc_byte(8);
             b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
 
+
+            for (int i = 0; i < 71; i++) {
+                char strn[8];
+                // char* strn = (char*) kmalloc_byte(8);
+                itoa(i, strn);
+                root->vnode_ops->vnode_create(root, strn, 5000);
+            }
+
             root->vnode_ops->vnode_create(root, "bye2.txt", b_size);
             vnode_t* f1 = root->vnode_ops->vnode_lookup(root, "bye2.txt");
             vfs_fd_t* fd1 = (vfs_fd_t*) tmpfs_open(root->vnode_data, "bye2.txt", 0);
@@ -94,7 +102,6 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             exec_file->vnode_ops->vnode_wr(exec_fd, exec_ptr, b_size, 0);
 
             // init_loader(exec_fd);
-
 
             
             hot_exec_elf(0, exec_fd);

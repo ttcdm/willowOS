@@ -52,7 +52,9 @@
             "endian.h": "c",
             "compare": "c",
             "cstdint": "c",
-            "format": "c"
+            "format": "c",
+            "typeinfo": "c",
+            "text_encoding": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }
