@@ -201,7 +201,7 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
 
 void tmpfs_delete_file(tmpfs_directory_t* dir, char* name) {//recursive search
     for (int i = 0; i < dir->max_files; i++) {
-        if (dir->files[i] == NULL) {continue;}//can't put it in the if statement below because strcmp runs first so if it is null it'll page fault
+        if (dir->files[i] == NULL) { kprintf("NULL\n"); continue;}//can't put it in the if statement below because strcmp runs first so if it is null it'll page fault
         //if the names are the same and if it isn't null and if its type is a file
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 0)) {//we cast to header and not file because it could be either a file or a directory
             kfree(((tmpfs_file_t*)dir->files[i])->data);
