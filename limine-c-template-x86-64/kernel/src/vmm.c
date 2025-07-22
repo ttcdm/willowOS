@@ -149,9 +149,11 @@ void kfree(uint64_t* virt_address) {
     irq_disable_save(&irq);
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
-    for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
+    //HERE maybe fixed the tmpfs page fault issue because i need to start from 1 because we're already at 0 when we first declare current and we still do < index because the last one does to index??
+    for (int i = 1; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
         current = current->next;//we do the second last one because at the end of the loop it moves onto the last node
     }
+
     uint64_t alloc_length_node = current->alloc_length;
     current->alloc_length = 0;
 
@@ -174,7 +176,8 @@ void kfree_interruptable(uint64_t* virt_address) {
 	irq_disable_save(&irq);
     uint64_t index = (((uint64_t) virt_address) - HEAP_START_VIRT_DEFINED) / HEAP_CHUNK_SIZE_DEFINED;
     heap_page* current = heap_page_head;
-    for (int i = 0; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
+    //HERE maybe fixed the tmpfs page fault issue because i need to start from 1 because we're already at 0 when we first declare current and we still do < index because the last one does to index??
+    for (int i = 1; i < index; i++) {//there's no safety against trying to clear past the end of the heap here, but kalloc() prevents you from allocating past the end, so i don't think that there's any errors
         current = current->next;//we do the second last one because at the end of the loop it moves onto the last node
     }
     uint64_t alloc_length_node = current->alloc_length;

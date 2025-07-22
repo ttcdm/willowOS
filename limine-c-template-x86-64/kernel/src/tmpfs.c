@@ -341,8 +341,6 @@ void* tmpfs_lookup(tmpfs_directory_t* dir, char* name) {
     for (int i = 0; i < dir->max_files; i++) {
         if (dir->files[i] == NULL) {continue;}
         //if the names are the same and if it isn't null and if its type is a directory
-        
-        kprintf("%s\n", ((tmpfs_file_t*) dir->files[i])->header.name);
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {//we cast to header and not file because it could be either a file or a directory
             return dir->files[i];
         }

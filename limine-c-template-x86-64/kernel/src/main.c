@@ -545,6 +545,16 @@ void kmain(void) {
     // GLOBAL_SCHED_QUEUE_LOCK.locked = 0;
     // GLOBAL_SCHED_QUEUE_LOCK.object = GLOBAL_SCHED_OBJECT;
 
+    // int** arr = (int**) kmalloc_byte(64);
+    // arr = (int**) krealloc_byte((uint64_t*) arr, 4096);
+    // for (int i = 0; i < 512; i++) {
+    //     int* v = (int*) kmalloc_byte(8);
+    //     *v = i;
+    //     arr[i] = v;
+    //     kprintf("%d ", *(arr[i]));
+    // }
+    // while (1);
+
     init_vfs(&module_request);
 
     // init_scheduler();
