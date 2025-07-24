@@ -74,7 +74,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
                 itoa(i, strn);
                 root->vnode_ops->vnode_create(root, strn, 100);
                 
-                root->vnode_ops->vnode_remove(root, root->vnode_ops->vnode_lookup(root, strn));
+                root->vnode_ops->vnode_remove(root, ((tmpfs_header_t*) root->vnode_ops->vnode_lookup(root, strn)->vnode_data)->name);
             }
 
             // for (int i = 0; i < 1200; i++) {
