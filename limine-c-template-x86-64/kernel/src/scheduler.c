@@ -85,6 +85,8 @@ volatile thread_context* running_thread;
 
 uint64_t num_threads;
 
+bool scheduling_started = 0;//0 for no and 1 for yes
+
 // //declared inside mutex.h
 // bool GLOBAL_SCHED_OBJECT;
 // mutex_t GLOBAL_SCHED_QUEUE_LOCK;
@@ -227,6 +229,8 @@ void reschedule() {
 	asm volatile ("cli");
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 	print_queue();
+
+	scheduling_started = 1;
 
 	//we clear the eoi here because i don't wanna wrap it with a cr3 switch
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));

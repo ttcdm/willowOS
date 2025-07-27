@@ -63,6 +63,8 @@ extern volatile thread_context* running_thread;
 
 extern uint64_t num_threads;
 
+extern bool scheduling_started;//0 for no and 1 for yes
+
 void init_scheduler(void);
 
 volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void));
