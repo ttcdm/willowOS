@@ -69,7 +69,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
 
 
-            for (int i = 0; i < 1200; i++) {
+            for (int i = 0; i < 5; i++) {
                 char strn[8];
                 itoa(i, strn);
                 root->vnode_ops->vnode_create(root, strn, 100);

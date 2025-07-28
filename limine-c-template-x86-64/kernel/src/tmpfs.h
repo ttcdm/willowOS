@@ -9,6 +9,7 @@
 #include <vmm.h>
 #include <tsc.h>
 #include <vfs.h>
+#include <mutex.h>
 
 // #define TMPFS_MAX_FILES 1024
 
@@ -20,12 +21,14 @@ typedef struct tmpfs_header {
     char path[1024];
     uint8_t type;//0 for file, 1 for directory
     uint64_t timestamps[3];//ctime(inode change time), mtime, atime;//use tsc to get/update timestamps
+    mutex_t* mutex;
 } tmpfs_header_t;
 
 typedef struct tmpfs_file {
     tmpfs_header_t header;
     uint64_t size;
     void* data;
+    uint64_t open_count;
 } tmpfs_file_t;
 
 typedef struct tmpfs_directory {
@@ -43,6 +46,7 @@ typedef struct tmpfs_fd {
     uint64_t size;
     uint64_t position;
     uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
+    tmpfs_file_t* file;//pointer back to the original file
 } tmpfs_fd_t;
 
 vfs_t* init_tmpfs();

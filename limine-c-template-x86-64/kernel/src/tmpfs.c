@@ -83,6 +83,8 @@ vfs_t* init_tmpfs() {
     return vfs_tmpfs;
 }
 
+//HERE remember to use mutexes and lock around all file related io stuff to prevent weird race conditions and other bugs
+
 void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     bool irq;
     irq_disable_save(&irq);
@@ -111,6 +113,9 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     new_file->header.user_id = 0;
     new_file->header.group_id = 0;
     new_file->header.type = 0;
+    new_file->header.mutex = (mutex_t*) kmalloc_byte(sizeof(mutex_t));
+    new_file->header.mutex->locked = 0;
+    new_file->open_count = 0;
     for (int i = 0; i < 3; i++) {new_file->header.timestamps[i] = 0;}//remmeber to switch to tsc
     strncpy(new_file->header.name, name, kstrlen(name)+1);
     new_file->size = size;
@@ -168,6 +173,8 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     new_dir->header.user_id = 0;
     new_dir->header.group_id = 0;
     new_dir->header.type = 1;
+    new_dir->header.mutex = (mutex_t*) kmalloc_byte(sizeof(mutex_t));
+    new_dir->header.mutex->locked = 0;
     new_dir->max_files = 32;
     new_dir->num_files = 0;
     new_dir->files = (void**) kmalloc_byte(new_dir->max_files * sizeof(void*));
@@ -201,11 +208,12 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
 
 void tmpfs_delete_file(tmpfs_directory_t* dir, char* name) {//recursive search
     for (int i = 0; i < dir->max_files; i++) {
-        if (dir->files[i] == NULL) { kprintf("NULL\n"); continue;}//can't put it in the if statement below because strcmp runs first so if it is null it'll page fault
+        if (dir->files[i] == NULL) {continue;}//can't put it in the if statement below because strcmp runs first so if it is null it'll page fault
         //if the names are the same and if it isn't null and if its type is a file
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 0)) {//we cast to header and not file because it could be either a file or a directory
             kfree(((tmpfs_file_t*)dir->files[i])->data);
             kfree(dir->files[i]);
+            kfree((uint64_t*) dir->header.mutex);
             dir->files[i] = NULL;
             dir->probably_next_free_entry_index--;
             dir->num_files--;
@@ -224,6 +232,7 @@ void tmpfs_delete_directory(tmpfs_directory_t* dir, char* name) {//we orphan the
         //if the names are the same and if it isn't null and if its type is a directory
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 1)) {//we cast to header and not file because it could be either a file or a directory
             kfree(dir->files[i]);
+            kfree((uint64_t*) dir->header.mutex);
             dir->files[i] = NULL;
             dir->probably_next_free_entry_index--;
             dir->num_files--;
@@ -243,6 +252,7 @@ void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name) {//we 
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 1)) {//we cast to header and not file because it could be either a file or a directory
             for (int j = 0; j < dir->max_files; j++) {
 
+                //HERE
                 break;
 
                 if (((tmpfs_directory_t*) dir->files[i])->files[j] != NULL) {
@@ -264,6 +274,7 @@ void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name) {//we 
         else if ((((tmpfs_header_t*) dir->files[i])->type == 0) && (strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {
             kfree(((tmpfs_file_t*)dir->files[i])->data);
             kfree(dir->files[i]);
+            kfree((uint64_t*) dir->header.mutex);
             dir->files[i] = NULL;
             dir->probably_next_free_entry_index--;
             dir->num_files--;
@@ -294,14 +305,18 @@ void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t o
     if (offset + size > file->size) {
         void* new_file = kmalloc_byte(offset+size);
         if (file->data) {
+            acquire_mutex(file->file->header.mutex);
             memcpy(new_file, file->data, file->size);
+            release_mutex(file->file->header.mutex);
             kfree(file->data);
         }
         file->data = new_file;
         file->size = offset+size;
     }
 
+    acquire_mutex(file->file->header.mutex);
     memcpy((void*) ((uint64_t) file->data+offset), data, size);
+    release_mutex(file->file->header.mutex);
 
 }
 
@@ -313,13 +328,17 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
     if (count > size) {
         count = size;
     }
+    acquire_mutex(file->file->header.mutex);
     memcpy(data, (void*) ((uint64_t)(file->data)+offset), count);
+    release_mutex(file->file->header.mutex);
     return count;
 }
 
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
+    file->open_count++;
+    fd->file = file;
     fd->data = file->data;
     fd->size = file->size;
     fd->mode = mode;
@@ -329,6 +348,9 @@ tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//mayb
 }
 
 void tmpfs_close(tmpfs_fd_t* fd) {
+    acquire_mutex(fd->file->header.mutex);
+    fd->file->open_count--;
+    release_mutex(fd->file->header.mutex);
     kfree((uint64_t*) fd);
 }
 
