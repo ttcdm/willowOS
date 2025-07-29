@@ -38,7 +38,7 @@ typedef struct tmpfs_directory {
     uint64_t max_files;
     uint64_t num_files;
     // void* first_file;//implement linked list
-    uint64_t probably_next_free_entry_index;//uint32_t or even uint16_t would probably suffice but oh well
+    // uint64_t probably_next_free_entry_index;//uint32_t or even uint16_t would probably suffice but oh well
 } tmpfs_directory_t;
 
 typedef struct tmpfs_fd {

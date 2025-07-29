@@ -5,8 +5,11 @@ vfs_t* vfs_tmpfs;//not sure if we should actually declare this as a global varia
 vfs_t* init_tmpfs() {
     //we load stuff from ustar and we just parse it and create our own custom filesystem
     tmpfs_directory_t* root_dir_pointer = (tmpfs_directory_t*) kmalloc_byte(sizeof(tmpfs_directory_t));
+    //HERE always remember to initialize the stuff because we're manually creating the dir ourselves
     root_dir_pointer->max_files = 2;
     root_dir_pointer->num_files = 0;
+    root_dir_pointer->header.mutex = (mutex_t*) kmalloc_byte(sizeof(mutex_t));
+    root_dir_pointer->header.mutex->locked = 0;
     root_dir_pointer->files = (void**) kmalloc_byte(root_dir_pointer->max_files * root_dir_pointer->max_files * sizeof(void*));
     for (int i = 0; i < root_dir_pointer->max_files; i++) {
         root_dir_pointer->files[i] = NULL;
@@ -89,19 +92,14 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     bool irq;
     irq_disable_save(&irq);
 
-    //not needed because i don't think we can actually run out
-    // if (dir->probably_next_free_entry_index == dir->max_files) {//because len-1
-    //     kprintf("tmpfs_create_file(): out of space\n");
-    //     return NULL;
-    // }
-    if (dir->probably_next_free_entry_index == dir->max_files) {
-        // dir->probably_next_free_entry_index--;
-    }
-    dir->probably_next_free_entry_index = 0;
-    if (dir->files[dir->probably_next_free_entry_index] != NULL) {
+
+    //dir->probably_next_free_entry_index is just used for indexing and not used for any probably free next stuff
+    // dir->probably_next_free_entry_index = 0;
+    uint64_t free_index = 0;
+    if (dir->files[free_index] != NULL) {
         for (int i = 0; i < dir->max_files; i++) {
             if (dir->files[i] == NULL) {
-                dir->probably_next_free_entry_index = i;
+                free_index = i;
                 break;
             }
         }
@@ -119,8 +117,9 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     for (int i = 0; i < 3; i++) {new_file->header.timestamps[i] = 0;}//remmeber to switch to tsc
     strncpy(new_file->header.name, name, kstrlen(name)+1);
     new_file->size = size;
-    dir->files[dir->probably_next_free_entry_index] = new_file;
-    dir->probably_next_free_entry_index++;
+
+    acquire_mutex(dir->header.mutex);
+    dir->files[free_index] = new_file;
 
     new_file->data = kmalloc_byte(size);
 
@@ -132,6 +131,7 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
             dir->files[i] = NULL;
         }
     }
+    release_mutex(dir->header.mutex);
 
     // new_file->header.path;//do something about the path
 
@@ -154,14 +154,12 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     //     kprintf("tmpfs_create_directory(): out of space\n");
     //     return NULL;
     // }
-    if (dir->probably_next_free_entry_index == dir->max_files) {
-        // dir->probably_next_free_entry_index--;
-    }
-    dir->probably_next_free_entry_index = 0;
-    if (dir->files[dir->probably_next_free_entry_index] != NULL) {
+
+    uint64_t free_index = 0;
+    if (dir->files[free_index] != NULL) {
         for (int i = 0; i < dir->max_files; i++) {
             if (dir->files[i] == NULL) {
-                dir->probably_next_free_entry_index = i;
+                free_index = i;
                 break;
             }
         }
@@ -186,9 +184,9 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     for (int i = 0; i < 3; i++) {new_dir->header.timestamps[i] = 0;}//remmeber to switch to tsc
     strncpy(new_dir->header.name, name, kstrlen(name)+1);
     for (int i = 0; i < dir->max_files; i++) {new_dir->files[i] = NULL;}//not sure if this is necessary
-    new_dir->probably_next_free_entry_index = 0;
-    dir->files[dir->probably_next_free_entry_index] = new_dir;
-    dir->probably_next_free_entry_index++;
+
+    acquire_mutex(dir->header.mutex);
+    dir->files[free_index] = new_dir;
 
     //i should probably put this in a separate function since i'm copy pasting this multiple times
     dir->num_files++;
@@ -199,6 +197,7 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
             dir->files[i] = NULL;
         }
     }
+    release_mutex(dir->header.mutex);
     
     // tmpfs_link_vnode(new_dir, VDIR);//not 100% sure how i'm supposed to go about this
 
@@ -211,12 +210,17 @@ void tmpfs_delete_file(tmpfs_directory_t* dir, char* name) {//recursive search
         if (dir->files[i] == NULL) {continue;}//can't put it in the if statement below because strcmp runs first so if it is null it'll page fault
         //if the names are the same and if it isn't null and if its type is a file
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 0)) {//we cast to header and not file because it could be either a file or a directory
+            if (((tmpfs_file_t*)dir->files[i])->open_count != 0) {//if there's still something using the file
+                kprintf("tmpfs_delete_file(): cannot delete file. file in use\n");
+                return;
+            }
             kfree(((tmpfs_file_t*)dir->files[i])->data);
+            kfree((uint64_t*) ((tmpfs_file_t*)dir->files[i])->header.mutex);
             kfree(dir->files[i]);
-            kfree((uint64_t*) dir->header.mutex);
+            acquire_mutex(dir->header.mutex);
             dir->files[i] = NULL;
-            dir->probably_next_free_entry_index--;
             dir->num_files--;
+            release_mutex(dir->header.mutex);
             //should probably add a shrinking realloc as well if max_files - num_files > 32
             return;
         }
@@ -231,11 +235,12 @@ void tmpfs_delete_directory(tmpfs_directory_t* dir, char* name) {//we orphan the
         if (dir->files[i] == NULL) {continue;}
         //if the names are the same and if it isn't null and if its type is a directory
         if ((strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0) && (((tmpfs_header_t*) dir->files[i])->type == 1)) {//we cast to header and not file because it could be either a file or a directory
+            kfree((uint64_t*) ((tmpfs_directory_t*) dir->files[i])->header.mutex);
             kfree(dir->files[i]);
-            kfree((uint64_t*) dir->header.mutex);
+            acquire_mutex(dir->header.mutex);
             dir->files[i] = NULL;
-            dir->probably_next_free_entry_index--;
             dir->num_files--;
+            release_mutex(dir->header.mutex);
             return;
         }
         else if ((((tmpfs_header_t*) dir->files[i])->type == 1) && (strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {
@@ -261,23 +266,25 @@ void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name) {//we 
                     kfree(((tmpfs_directory_t*) dir->files[i])->files[j]);
                     ((tmpfs_directory_t*) dir->files[i])->files[j] = NULL;
                     ((tmpfs_directory_t*) dir->files[i])->num_files--;
-                    ((tmpfs_directory_t*) dir->files[i])->probably_next_free_entry_index--;
                 }
             }
             tmpfs_delete_directory_no_orphan(((tmpfs_directory_t*) dir->files[i]), name);
+            acquire_mutex(dir->header.mutex);
+            kfree((uint64_t*) ((tmpfs_file_t*)dir->files[i])->header.mutex);
             kfree(dir->files[i]);
             dir->files[i] = NULL;
-            dir->probably_next_free_entry_index--;
             dir->num_files--;
+            release_mutex(dir->header.mutex);
             return;
         }
         else if ((((tmpfs_header_t*) dir->files[i])->type == 0) && (strcmp(((tmpfs_header_t*) dir->files[i])->name, name) == 0)) {
             kfree(((tmpfs_file_t*)dir->files[i])->data);
+            kfree((uint64_t*) ((tmpfs_file_t*)dir->files[i])->header.mutex);
             kfree(dir->files[i]);
-            kfree((uint64_t*) dir->header.mutex);
+            acquire_mutex(dir->header.mutex);
             dir->files[i] = NULL;
-            dir->probably_next_free_entry_index--;
             dir->num_files--;
+            release_mutex(dir->header.mutex);
             return;
         }
         
@@ -307,11 +314,11 @@ void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t o
         if (file->data) {
             acquire_mutex(file->file->header.mutex);
             memcpy(new_file, file->data, file->size);
-            release_mutex(file->file->header.mutex);
             kfree(file->data);
         }
         file->data = new_file;
         file->size = offset+size;
+        release_mutex(file->file->header.mutex);
     }
 
     acquire_mutex(file->file->header.mutex);
@@ -337,7 +344,9 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
+    acquire_mutex(file->header.mutex);
     file->open_count++;
+    release_mutex(file->header.mutex);
     fd->file = file;
     fd->data = file->data;
     fd->size = file->size;
