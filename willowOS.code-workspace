@@ -54,7 +54,12 @@
             "cstdint": "c",
             "format": "c",
             "typeinfo": "c",
-            "text_encoding": "c"
+            "text_encoding": "c",
+            "string.h": "c",
+            "ctype.h": "c",
+            "limits.h": "c",
+            "str-two-way.h": "c",
+            "stdlib.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

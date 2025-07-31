@@ -12,6 +12,10 @@
 
 // #include <stdatomic.h>
 
+// #include <oa_hash/oa_hash.h>
+
+#include <string.h>
+
 
 //the actual definitions of these functions are kinda scattered all over the place since i'm using this header file as a main link to expose util stuff
 
@@ -37,10 +41,10 @@ void uint64_to_string(uint64_t value, char* buffer);
 extern struct limine_memmap_entry** usable_memmaps_1_ptr;//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
 
 //we should declare these in the header file
-void* memcpy(void* dest, const void* src, size_t n);
-void* memset(void* s, int c, size_t n);
-void* memmove(void* dest, const void* src, size_t n);
-int memcmp(const void* s1, const void* s2, size_t n);
+// void* memcpy(void* dest, const void* src, size_t n);
+// void* memset(void* s, int c, size_t n);
+// void* memmove(void* dest, const void* src, size_t n);
+// int memcmp(const void* s1, const void* s2, size_t n);
 
 uint64_t get_rsdp_physical_address(void);
 
@@ -79,12 +83,12 @@ void print_kb(uint8_t scancode);
 
 uint64_t get_rsdp_physical_address();
 
-char* strncpy(char* dest, char* source, size_t num);
-int strcmp (const char *p1, const char *p2);
+// char* strncpy(char* dest, char* source, size_t num);
+// int strcmp (const char *p1, const char *p2);
 
-//taken from libc
-char* strtok(char *s, const char *delim);
-char* strtok_r(char *s, const char *delim, char **last);
+// //taken from libc
+// char* strtok(char *s, const char *delim);
+// char* strtok_r(char *s, const char *delim, char **last);
 
 extern uint64_t smp_ticket;
 
