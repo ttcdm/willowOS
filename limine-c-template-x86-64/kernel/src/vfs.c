@@ -142,6 +142,17 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 }
 
 
+int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder for now
+
+    void* fd = (void*) tmpfs_open(dir, name, mode);
+    
+    if (scheduling_started) {
+        //hash fd to int
+    }
+
+    //return the int fd
+}
+
 
 void vnode_mount_vfs(vnode_t* parent_vnode, vfs_t* vfs) {//this most likely isn't the correct way to implement it...
     if (vfs == NULL) {

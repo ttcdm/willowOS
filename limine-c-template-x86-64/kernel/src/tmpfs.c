@@ -341,6 +341,8 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
     return count;
 }
 
+
+//HERE remember to use paths ig instead of just names and lookup maybe?
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
