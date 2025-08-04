@@ -71,7 +71,14 @@ void gen2() {
 }
 
 void gen3() {
-
+	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
+	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
+	int a = vfs_open(tmpfs_root->vnode_data, "bye2.txt", 0);
+	char* buf = (char*) kmalloc_byte(128);
+	tmpfs_fd_read_from_file(a, buf, 128, 0);
+	kprintf("%s\n", buf);
+	while (1);
+	
 }
 
 void idle_thread() {

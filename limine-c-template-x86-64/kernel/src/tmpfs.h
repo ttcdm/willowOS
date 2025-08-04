@@ -81,3 +81,6 @@ void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64
 size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset);
 
 vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type);
+
+void tmpfs_fd_write_to_file(int fd, void* data, uint64_t size, uint64_t offset);
+size_t tmpfs_fd_read_from_file(int fd, void* data, uint64_t size, uint64_t offset);

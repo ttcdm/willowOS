@@ -117,6 +117,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             buffer1 = (char*) krealloc_byte((uint64_t*) buffer1, b_size);
             f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
 
+            //HERE always make sure that the string is null terminated when you print it. i think it works here because the memory was originally all zeros so the string was automatically null terminated
             kprintf("%s\n", buffer1);
 
             // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
@@ -170,16 +171,16 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
     
     if (scheduling_started) {
         if (fd->file->open_count == 1) {//remember to always use double equals where necessary
-            struct oa_hash* ht = kmalloc_byte(sizeof(struct oa_hash));
+            struct oa_hash* ht = (struct oa_hash*) kmalloc_byte(sizeof(struct oa_hash));
             get_current_thread()->fd_table = (vfs_fd_table_t*) ht;//the first member of the struct is the same since it's using OA_HASH_ATTRS(mut) i think
             struct oa_hash_entry* buckets;
             size_t capacity = 32;//we allocate in increments of 32
-            buckets = kmalloc_byte(capacity * sizeof(*buckets));//always remember to dereference to get the full size of the value and not just the size of the pointer
+            buckets = (struct oa_hash_entry*) kmalloc_byte(capacity * sizeof(*buckets));//always remember to dereference to get the full size of the value and not just the size of the pointer
             // buckets = kmalloc_byte(capacity * sizeof(struct oa_hash_entry));//always remember to dereference to get the full size of the value and not just the size of the pointer
             oa_hash_init(ht, buckets, capacity);
 
 
-            char buf = kmalloc_byte(64);
+            char* buf = (char*) kmalloc_byte(64);
             int len = npf_snprintf(buf, 64, "%d", ht->length);
 
             oa_hash_set(ht, buf, len, fd);
@@ -187,37 +188,39 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
         }
         else if (fd->file->open_count > 1) {
             //ht is fd_table
-            vfs_fd_table_t* ht = get_current_thread()->fd_table;
+            struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
             if (ht->length == 33) {
                 //HERE remember to recheck arithmetic
-                struct oa_hash_entry* new_buckets = kmalloc_byte(sizeof(*(ht->buckets)) * (ht->capacity + 32));//always remember to use capacity and not length where necessary
+                struct oa_hash_entry* new_buckets = (struct oa_hash_entry*) kmalloc_byte(sizeof(*(ht->buckets)) * (ht->capacity + 32));//always remember to use capacity and not length where necessary
                 struct oa_hash_entry* old_buckets = oa_hash_rehash(ht, new_buckets, ht->capacity + 32);
                 if (old_buckets) {
                     assert(old_buckets == ht->buckets);
-                    free(old_buckets);
+                    kfree((uint64_t*) old_buckets);
                     ht->buckets = new_buckets;
                 }
                 else {
-                    free(new_buckets);
+                    kfree((uint64_t*) new_buckets);
                 }
             }
 
 
 
-            char buf = kmalloc_byte(64);
+            char* buf = (char*) kmalloc_byte(64);
             int len = npf_snprintf(buf, 64, "%d", ht->length);
 
 
             if (oa_hash_get_entry(ht, buf, len) == NULL) {
                 oa_hash_set(ht, buf, len, fd);
+                return ht->length;
             }
             else {
                 for (int i = 0; i < ht->capacity; i++) {
                     memset(buf, 0, 64);//figure out if snprintf will clear the entire buffer since we entered 64
                     len = npf_snprintf(buf, 64, "%d", i);
-                    if (oa_hash_get_entry(ht, buf, len) == NULL) {
+                    if (oa_hash_get(ht, buf, len) == NULL) {
                         oa_hash_set(ht, buf, len, fd);
-                        break;//always remember to break
+                        // break;//always remember to break
+                        return i;
                     }
                 }
             }
@@ -235,9 +238,13 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
 }
 
 int vfs_fdclose(int fd) {
-
-
-
+    struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
+    char* buf = (char*) kmalloc_byte(64);
+    int len = npf_snprintf(buf, 64, "%d", fd);
+    tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
+    oa_hash_remove(ht, buf, len);
+    kfree((uint64_t*) buf);
+    tmpfs_close(file);
 }
 
 int vfs_close(vfs_fd_t* fd) {

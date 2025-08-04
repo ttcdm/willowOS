@@ -67,7 +67,7 @@ int strcoll(const char* s1, const char* s2);
 /**
  * C11 7.24.2.3
  */
-char* strcpy(char* restrict s1, const char* restrict s2);
+char* strcpy(char* s1, const char* s2);
 
 /**
  * C11 7.24.5.3

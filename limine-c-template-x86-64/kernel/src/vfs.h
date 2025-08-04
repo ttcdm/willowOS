@@ -8,7 +8,6 @@
 #include <kutils.h>
 #include <vmm.h>
 #include <tsc.h>
-// #include <tmpfs.h>
 
 // #include "./oa_hash/oa_hash.h"
 
@@ -22,7 +21,9 @@ typedef struct vfs_ops vfs_ops_t;
 typedef struct vfs_fd vfs_fd_t;
 
 typedef struct vfs_fd_table vfs_fd_table_t;
-extern vfs_fd_table_t;
+// extern vfs_fd_table_t;
+
+typedef struct tmpfs_directory tmpfs_directory_t;//we forward declare it. hopefully it doesn't break anything
 
 extern vnode_t* tmpfs_root;//tmpfs root vnode
 

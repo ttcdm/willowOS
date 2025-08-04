@@ -306,7 +306,11 @@ void *memchr(const void *src, int c, size_t n)
 
 
 
-
+char *//from glibc
+strcpy (char *dest, const char *src)
+{
+  return memcpy (dest, src, strlen (src) + 1);
+}
 
 
 

@@ -15,6 +15,8 @@ extern "C" {
 
 #include <stddef.h>
 
+#include <vmm.h>
+
 /** @brief Hash table entry state */
 enum oa_hash_entry_state {
     OA_HASH_ENTRY_EMPTY = 0, /**< empty entry */
@@ -144,6 +146,9 @@ OA_HASH_API struct oa_hash_entry *oa_hash_rehash(
     struct oa_hash_entry new_buckets[],
     const size_t new_capacity);
 
+
+// //HERE
+// #undef OA_HASH_HEADER
 #ifndef OA_HASH_HEADER
 
 #include <string.h>
@@ -294,6 +299,9 @@ oa_hash_remove(struct oa_hash *ht, const char key[], const size_t len)
         {
             entry->state = OA_HASH_ENTRY_DELETED;
             ht->length--;
+
+            //HERE we modify it to free the string
+            kfree((uint64_t*) entry->key.buf);
             return 1;
         }
 

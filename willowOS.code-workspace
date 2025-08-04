@@ -59,7 +59,14 @@
             "ctype.h": "c",
             "limits.h": "c",
             "str-two-way.h": "c",
-            "stdlib.h": "c"
+            "stdlib.h": "c",
+            "charconv": "c",
+            "optional": "c",
+            "system_error": "c",
+            "functional": "c",
+            "tuple": "c",
+            "type_traits": "c",
+            "utility": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }
