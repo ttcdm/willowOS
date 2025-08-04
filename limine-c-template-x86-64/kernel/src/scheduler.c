@@ -74,10 +74,20 @@ void gen3() {
 	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
 	int a = vfs_open(tmpfs_root->vnode_data, "bye2.txt", 0);
-	char* buf = (char*) kmalloc_byte(128);
+	char* buf = (char*) kmalloc_byte(1024);
 	tmpfs_fd_read_from_file(a, buf, 128, 0);
+	// buf[127] = '\0';
 	kprintf("%s\n", buf);
-	while (1);
+	char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
+	tmpfs_fd_write_to_file(a, buf1, sizeof(buf1), 128);
+	
+	tmpfs_fd_read_from_file(a, buf, 256, 0);
+	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
+	for (int i = 0; i < 256; i++) {
+		kprintf("%c", buf[i]);
+	}
+	
+	while (1) asm volatile ("cli");
 	
 }
 
@@ -618,6 +628,7 @@ void print_queue() {
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
+	#ifdef VERBOSE
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
 	for (int i = 0; i < num_threads+1; i++) {
@@ -626,5 +637,6 @@ void print_queue() {
 		current_thread = current_thread->next_thread;
 	}
 	kprintf_interruptable("|||\n");
+	#endif
 	irq_restore(&irq);
 }

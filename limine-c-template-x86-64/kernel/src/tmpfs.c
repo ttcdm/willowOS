@@ -332,6 +332,7 @@ void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t o
 }
 
 size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {//MUST INITIALIZE BUFFER TO FILL
+    //remember to add protection against reading past the end of the file if there isn't already
     if (offset >= file->size) {
         return 1;
     }
@@ -441,8 +442,9 @@ size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uin
 void tmpfs_fd_write_to_file(int fd, void* data, uint64_t size, uint64_t offset) {
     struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
     char* buf = (char*) kmalloc_byte(64);
-    int len = npf_snprintf(buf, 64, "%d", ht->length);
+    int len = npf_snprintf(buf, 64, "%d", fd);
     tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
+    assert(file != NULL);
     kfree((uint64_t*) buf);
     tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
 }
@@ -450,8 +452,9 @@ void tmpfs_fd_write_to_file(int fd, void* data, uint64_t size, uint64_t offset) 
 size_t tmpfs_fd_read_from_file(int fd, void* data, uint64_t size, uint64_t offset) {
     struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
     char* buf = (char*) kmalloc_byte(64);
-    int len = npf_snprintf(buf, 64, "%d", ht->length);
+    int len = npf_snprintf(buf, 64, "%d", fd);
     tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
+    assert(file != NULL);
     kfree((uint64_t*) buf);
     return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
 }

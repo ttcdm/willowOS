@@ -117,6 +117,8 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             buffer1 = (char*) krealloc_byte((uint64_t*) buffer1, b_size);
             f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
 
+            tmpfs_close((tmpfs_fd_t*) fd1);
+
             //HERE always make sure that the string is null terminated when you print it. i think it works here because the memory was originally all zeros so the string was automatically null terminated
             kprintf("%s\n", buffer1);
 
@@ -179,12 +181,13 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
             // buckets = kmalloc_byte(capacity * sizeof(struct oa_hash_entry));//always remember to dereference to get the full size of the value and not just the size of the pointer
             oa_hash_init(ht, buckets, capacity);
 
-
             char* buf = (char*) kmalloc_byte(64);
+            assert(ht->length == 0);
             int len = npf_snprintf(buf, 64, "%d", ht->length);
-
             oa_hash_set(ht, buf, len, fd);
 
+            //always remember to return a value
+            return 0;//should be 0
         }
         else if (fd->file->open_count > 1) {
             //ht is fd_table

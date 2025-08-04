@@ -6,6 +6,8 @@
 #include <hpet.h>
 #include <scheduler.h>
 
+#define VERBOSE//HERE make sure it's not double defined or smth from vmm.h idk if it matters tbh
+
 //this is the non chatgpt'ed version of the idt. it may be more error free
 
 __attribute__((aligned(0x10)))
@@ -83,7 +85,10 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     asm volatile ("cli");
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
 
+    #undef VERBOSE
+    #ifdef VERBOSE
     kprintf_interruptable("\nthread interrupted\n");
+    #endif
     volatile thread_context* current_thread = get_current_thread();
     // current_thread->frame[0] = 1;//signaled for rescheduling
 
