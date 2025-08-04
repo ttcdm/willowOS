@@ -1,6 +1,8 @@
 #include <scheduler.h>
 #include <loader.h>
 #include <mutex.h>
+#define OA_HASH_HEADER
+#include <./oa_hash/oa_hash.h>
 
 //HERE ONLY USE "THREAD SAFE" FUNCTIONS. DO NOT USE FUNCTIONS THAT STI DURING SECTIONS THAT ARE CLI'D
 
@@ -475,6 +477,15 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->mappings.max_mappings = 8;
 	new_thread->mappings.mapped_virt_addresses = kmalloc_byte(sizeof(uint64_t) * 8);
 
+
+	struct oa_hash* ht = (struct oa_hash*) kmalloc_byte(sizeof(struct oa_hash));
+	new_thread->fd_table = (vfs_fd_table_t*) ht;//the first member of the struct is the same since it's using OA_HASH_ATTRS(mut) i think
+	struct oa_hash_entry* buckets;
+	size_t capacity = 32;//we allocate in increments of 32
+	buckets = (struct oa_hash_entry*) kmalloc_byte(capacity * sizeof(*buckets));//always remember to dereference to get the full size of the value and not just the size of the pointer
+	// buckets = kmalloc_byte(capacity * sizeof(struct oa_hash_entry));//always remember to dereference to get the full size of the value and not just the size of the pointer
+	oa_hash_init(ht, buckets, capacity);
+	assert(ht->length == 0);
 
 	// while (1);
 	//HERE REMEMBER TO CAST TO PREVENT DOING POINTER ARITHMETIC INSTEAD OF JUST NORMAL ARITHEMETIC

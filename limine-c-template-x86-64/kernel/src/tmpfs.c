@@ -1,4 +1,5 @@
 #include <tmpfs.h>
+#define OA_HASH_HEADER
 #include <oa_hash/oa_hash.h>
 #include <nanoprintf-0.5.4/nanoprintf.h>
 

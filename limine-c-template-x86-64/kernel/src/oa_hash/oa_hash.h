@@ -17,6 +17,7 @@ extern "C" {
 
 #include <vmm.h>
 
+
 /** @brief Hash table entry state */
 enum oa_hash_entry_state {
     OA_HASH_ENTRY_EMPTY = 0, /**< empty entry */
