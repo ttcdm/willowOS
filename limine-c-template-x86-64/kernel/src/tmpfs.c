@@ -113,6 +113,7 @@ void* tmpfs_create_file(tmpfs_directory_t* dir, char* name, uint64_t size) {
     new_file->header.type = 0;
     new_file->header.mutex = (mutex_t*) kmalloc_byte(sizeof(mutex_t));
     new_file->header.mutex->locked = 0;
+    strcpy(new_file->header.fs_type, "tmpfs");
     new_file->open_count = 0;
     for (int i = 0; i < 3; i++) {new_file->header.timestamps[i] = 0;}//remmeber to switch to tsc
     strncpy(new_file->header.name, name, kstrlen(name)+1);
@@ -173,6 +174,7 @@ void* tmpfs_create_directory(tmpfs_directory_t* dir, char* name) {
     new_dir->header.type = 1;
     new_dir->header.mutex = (mutex_t*) kmalloc_byte(sizeof(mutex_t));
     new_dir->header.mutex->locked = 0;
+    strcpy(new_dir->header.fs_type, "tmpfs");
     new_dir->max_files = 32;
     new_dir->num_files = 0;
     new_dir->files = (void**) kmalloc_byte(new_dir->max_files * sizeof(void*));

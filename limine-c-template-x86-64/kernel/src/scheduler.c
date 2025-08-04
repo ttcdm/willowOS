@@ -70,6 +70,10 @@ void gen2() {
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); yield_thread(); }
 }
 
+void gen3() {
+
+}
+
 void idle_thread() {
 	while (1) {
 		asm volatile ("pause");

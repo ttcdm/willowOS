@@ -2,13 +2,34 @@
 #include <tmpfs.h>//i put this here instead of inside vfs.h because it was causing definition or redefinition? issues
 #include <loader.h>
 
+#include <nanoprintf-0.5.4/nanoprintf.h>
+
+#define OA_HASH_HEADER
+#include "./oa_hash/oa_hash.h"
+
+struct vfs_fd_table {
+    OA_HASH_ATTRS(mut);
+
+};
+
+vnode_t* tmpfs_root;
+
 void init_vfs(volatile struct limine_module_request* module_request) {
+
+    //init oa_hash stuff
+
+    
+
+
     vfs_t* tmpfs = init_tmpfs();
 
     kprintf("\n\n");
 
     
     vnode_t* root = tmpfs->vnode_covered;
+    // root = tmpfs->vnode_covered;
+
+    tmpfs_root = tmpfs->vnode_covered;
     
     tmpfs_list_files(root->vnode_data);
     root->vnode_ops->vnode_create(root, "hi.txt", 4096);
@@ -113,11 +134,12 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // init_loader(exec_fd);
 
             
-            hot_exec_elf(0, exec_fd);
-            hot_create_and_push_user_thread(1, test_a);
-            hot_create_and_push_user_thread(2, test_a);
-            hot_exec_elf(3, exec_fd);
-            hot_create_and_push_thread(4, gen2);
+            // hot_exec_elf(0, exec_fd);
+            // hot_create_and_push_user_thread(1, test_a);
+            // hot_create_and_push_user_thread(2, test_a);
+            // hot_exec_elf(3, exec_fd);
+            // hot_create_and_push_thread(4, gen2);
+            hot_create_and_push_thread(0, gen3);
             for (int i = 0; i < 100; i++) {
                 // hot_exec_elf(i, exec_fd);
                 // hot_exec_elf(i+15, test_a);
@@ -144,13 +166,82 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 
 int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder for now
 
-    void* fd = (void*) tmpfs_open(dir, name, mode);
+    tmpfs_fd_t* fd = (tmpfs_fd_t*) tmpfs_open(dir, name, mode);
     
     if (scheduling_started) {
+        if (fd->file->open_count == 1) {//remember to always use double equals where necessary
+            struct oa_hash* ht = kmalloc_byte(sizeof(struct oa_hash));
+            get_current_thread()->fd_table = (vfs_fd_table_t*) ht;//the first member of the struct is the same since it's using OA_HASH_ATTRS(mut) i think
+            struct oa_hash_entry* buckets;
+            size_t capacity = 32;//we allocate in increments of 32
+            buckets = kmalloc_byte(capacity * sizeof(*buckets));//always remember to dereference to get the full size of the value and not just the size of the pointer
+            // buckets = kmalloc_byte(capacity * sizeof(struct oa_hash_entry));//always remember to dereference to get the full size of the value and not just the size of the pointer
+            oa_hash_init(ht, buckets, capacity);
+
+
+            char buf = kmalloc_byte(64);
+            int len = npf_snprintf(buf, 64, "%d", ht->length);
+
+            oa_hash_set(ht, buf, len, fd);
+
+        }
+        else if (fd->file->open_count > 1) {
+            //ht is fd_table
+            vfs_fd_table_t* ht = get_current_thread()->fd_table;
+            if (ht->length == 33) {
+                //HERE remember to recheck arithmetic
+                struct oa_hash_entry* new_buckets = kmalloc_byte(sizeof(*(ht->buckets)) * (ht->capacity + 32));//always remember to use capacity and not length where necessary
+                struct oa_hash_entry* old_buckets = oa_hash_rehash(ht, new_buckets, ht->capacity + 32);
+                if (old_buckets) {
+                    assert(old_buckets == ht->buckets);
+                    free(old_buckets);
+                    ht->buckets = new_buckets;
+                }
+                else {
+                    free(new_buckets);
+                }
+            }
+
+
+
+            char buf = kmalloc_byte(64);
+            int len = npf_snprintf(buf, 64, "%d", ht->length);
+
+
+            if (oa_hash_get_entry(ht, buf, len) == NULL) {
+                oa_hash_set(ht, buf, len, fd);
+            }
+            else {
+                for (int i = 0; i < ht->capacity; i++) {
+                    memset(buf, 0, 64);//figure out if snprintf will clear the entire buffer since we entered 64
+                    len = npf_snprintf(buf, 64, "%d", i);
+                    if (oa_hash_get_entry(ht, buf, len) == NULL) {
+                        oa_hash_set(ht, buf, len, fd);
+                        break;//always remember to break
+                    }
+                }
+            }
+
+            //and then add the int fd and stuff
+            
+            //if it's 33
+            //remember to ask about memcpy and so on
+
+        }
         //hash fd to int
     }
 
     //return the int fd
+}
+
+int vfs_fdclose(int fd) {
+
+
+
+}
+
+int vfs_close(vfs_fd_t* fd) {
+
 }
 
 

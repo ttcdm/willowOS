@@ -10,6 +10,8 @@
 #include <tsc.h>
 // #include <tmpfs.h>
 
+// #include "./oa_hash/oa_hash.h"
+
 
 //taken from https://www.cs.fsu.edu/~awang/courses/cop5611_s2024/vnode.pdf
 
@@ -18,6 +20,11 @@ typedef struct vnode_ops vnode_ops_t;
 typedef struct vfs vfs_t;
 typedef struct vfs_ops vfs_ops_t;
 typedef struct vfs_fd vfs_fd_t;
+
+typedef struct vfs_fd_table vfs_fd_table_t;
+extern vfs_fd_table_t;
+
+extern vnode_t* tmpfs_root;//tmpfs root vnode
 
 enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };
 
@@ -75,10 +82,21 @@ struct vfs_fd {
     uint64_t size;
     uint64_t position;
     uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
+    void* file;//pointer to actual file descriptor thing
 };
+
+// struct vfs_fd_table {
+//     // OA_HASH_ATTRS(mut);
+
+// };
 
 
 void init_vfs(volatile struct limine_module_request* module_request);
+
+//always remember to use pointers for args where necessary
+int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
+int vfs_fdclose(int fd);
+int vfs_close(vfs_fd_t* fd);
 
 void vnode_mount_vfs(vnode_t* parent_vnode, vfs_t* vfs);
 

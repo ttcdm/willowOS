@@ -44,6 +44,7 @@ typedef struct thread_context_declared {
 	void* elf_entry;
 	vfs_fd_t* elf_file;
 	thread_mappings_t mappings;
+	vfs_fd_table_t* fd_table;
 	// uint64_t cr3[512];
 	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
 
@@ -102,3 +103,4 @@ void disable_preemption();
 void gen0();
 void gen1();
 void gen2();
+void gen3();
