@@ -50,6 +50,8 @@ struct vnode {
 struct vnode_ops {//HERE remember to always match the return types to prevent errors
     size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
     void (*vnode_wr)();
+    size_t (*vnode_fd_rd)();
+    void (*vnode_fd_wr)();
     int (*vnode_ioctl)();
     vnode_t* (*vnode_lookup)();
     vnode_t* (*vnode_create)();
@@ -95,7 +97,7 @@ struct vfs_fd {
 void init_vfs(volatile struct limine_module_request* module_request);
 
 //always remember to use pointers for args where necessary
-int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
+int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode);
 int vfs_fdclose(int fd);
 int vfs_close(vfs_fd_t* fd);
 

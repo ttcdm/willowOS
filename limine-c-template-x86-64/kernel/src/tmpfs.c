@@ -349,6 +349,7 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 
 
 //HERE remember to use paths ig instead of just names and lookup maybe?
+//maybe also add append or at least some way to get eof
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
@@ -480,6 +481,8 @@ vnode_t* tmpfs_link_vnode(void* file_object, enum vtype type) {
     else if (type == VREG) {
         new_vnode->vnode_ops->vnode_rd = vnode_tmpfs_read_from_file;//MAYBE COMBINE READ AND WRITE???
         new_vnode->vnode_ops->vnode_wr = vnode_tmpfs_write_to_file;
+        new_vnode->vnode_ops->vnode_fd_rd = tmpfs_fd_read_from_file;
+        new_vnode->vnode_ops->vnode_fd_wr = tmpfs_fd_write_to_file;
     }
 
     // vnode_t* root_vnode = (vnode_t*) root_dir;

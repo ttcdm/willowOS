@@ -166,8 +166,8 @@ void init_vfs(volatile struct limine_module_request* module_request) {
     // vnode_unmount_vfs
 }
 
-
-int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder for now
+//make this non tmpfs specific
+int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode) {
 
     tmpfs_fd_t* fd = (tmpfs_fd_t*) tmpfs_open(dir, name, mode);
     
@@ -206,6 +206,7 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
                 len = npf_snprintf(buf, 64, "%d", i);
                 if (oa_hash_get(ht, buf, len) == NULL) {
                     oa_hash_set(ht, buf, len, fd);
+                    kfree((uint64_t*) buf);
                     // break;//always remember to break
                     return i;
                 }
@@ -219,9 +220,14 @@ int vfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//placeholder fo
         //hash fd to int
     }
 
+    else {
+        return -1;//make sure we don't incorrectly cast the returned val to an unsigned int causing an overflow
+    }
+
     //return the int fd
 }
 
+// make this non tmpfs specific
 int vfs_fdclose(int fd) {
     struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
     char* buf = (char*) kmalloc_byte(64);

@@ -1,8 +1,11 @@
 #include <scheduler.h>
 #include <loader.h>
 #include <mutex.h>
+
 #define OA_HASH_HEADER
 #include <./oa_hash/oa_hash.h>
+
+#include <global_vars.h>
 
 //HERE ONLY USE "THREAD SAFE" FUNCTIONS. DO NOT USE FUNCTIONS THAT STI DURING SECTIONS THAT ARE CLI'D
 
@@ -75,21 +78,24 @@ void gen2() {
 void gen3() {
 	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
-	int a = vfs_open(tmpfs_root->vnode_data, "bye2.txt", 0);
+	int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
 	char* buf = (char*) kmalloc_byte(1024);
-	tmpfs_fd_read_from_file(a, buf, 128, 0);
+	tmpfs_fd_read_from_file(fd, buf, 128, 0);
 	// buf[127] = '\0';
 	kprintf("%s\n", buf);
 	char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
-	tmpfs_fd_write_to_file(a, buf1, sizeof(buf1), 128);
+	tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
 	
-	tmpfs_fd_read_from_file(a, buf, 256, 0);
+	tmpfs_fd_read_from_file(fd, buf, 256, 0);
 	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
 	for (int i = 0; i < 256; i++) {
 		kprintf("%c", buf[i]);
 	}
+
+	vfs_fdclose(fd);
 	
-	while (1) asm volatile ("cli");
+	// while (1) asm volatile ("cli");
+	while (1);
 	
 }
 
