@@ -2,6 +2,8 @@
 #include <vfs.h>
 #include <tmpfs.h>
 
+#include <mman.h>
+
 #define MSR_LSTAR   0xC0000082
 #define MSR_STAR    0xC0000081
 #define MSR_SFMASK  0xC0000084
@@ -326,6 +328,36 @@ int sys_anon_free(void *pointer, size_t size) {//14
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {
     int ret;
     uint64_t num = 7;
+
+    //we don't have permissions for file access yet so we're just gonna ignore prot
+
+    // int64_t w_flags = (int64_t) flags;//wide flags
+
+    //masking and extracting only a single bit https://stackoverflow.com/questions/2249731/how-do-i-get-bit-by-bit-data-from-an-integer-value-in-c
+
+    //https://pubs.opengroup.org/onlinepubs/9799919799/
+
+    //https://chuck.cranor.org/p/diss.pdf
+
+    
+    switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
+        case MAP_SHARED:
+
+            break;
+        case MAP_PRIVATE:
+
+            break;
+        case MAP_FIXED:
+
+            break;
+        case MAP_ANON:
+
+            break;
+        // case MAP_ANONYMOUS://MAP_ANONYMOUS is the same as MAP_ANON
+
+        //     break;
+    }
+
 }
 int sys_vm_unmap(void *pointer, size_t size) {
     int ret;

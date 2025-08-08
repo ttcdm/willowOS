@@ -12,7 +12,8 @@
 #include <mutex.h>
 
 
-
+//we're currently aiming for some semblance of posix compatibility because linux's is more or less just an add on of that
+//so it makes my life easier to have to do less and still be able to run the stuff i want
 
 
 extern void* user_code;
