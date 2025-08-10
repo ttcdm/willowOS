@@ -336,10 +336,73 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     //masking and extracting only a single bit https://stackoverflow.com/questions/2249731/how-do-i-get-bit-by-bit-data-from-an-integer-value-in-c
 
     //https://pubs.opengroup.org/onlinepubs/9799919799/
+    //mmap
 
     //https://chuck.cranor.org/p/diss.pdf
 
+
+    //make it so that scheduling must be started for this to function
+    if (scheduling_started == 0) {
+        kprintf("error: scheduling not started\n");
+        return -1;//remember to return errno instead of just -1
+    }
     
+    if (size == 0) {
+        return kmalloc(0);
+    }
+    if (size <= PAGE_SIZE_DEFINED) {
+        return kmalloc(1);
+    }
+    else {
+        if (size % PAGE_SIZE_DEFINED == 0) {
+            return kmalloc(size / PAGE_SIZE_DEFINED);
+        }
+        else {
+            return kmalloc((size / PAGE_SIZE_DEFINED) + 1);
+        }
+    }
+
+
+
+    switch (prot) {//extracting the 0th bit
+        case PROT_READ:
+
+            break;
+        case PROT_WRITE:
+
+            break;
+        case PROT_EXEC:
+
+            break;
+        case PROT_NONE:
+
+            break;
+    }
+
+    if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, 2);
+    }
+    else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+
+    }
+
+    if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
+        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, 2);
+    }
+    else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
+
+    }
+
+
+
+
+
+
+
+
+    else if (PROT_READ) {
+        
+    }
     switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
         case MAP_SHARED:
 
