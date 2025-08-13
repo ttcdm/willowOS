@@ -1,6 +1,7 @@
 #include <paging.h>
 #include <kutils.h>
 #include <scheduler.h>
+#include <errno.h>
 
 typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
     uint64_t entries[512];
@@ -28,6 +29,33 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
     }
 	kprintln("no more frames to allocate. returning 0");
     return 0;
+}
+
+void* pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value regardless of if it was successful or not so the depending functions don't take in undefined values
+
+    if (size == 0) {
+        return NULL;//always remember to assert this
+    }
+    if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
+        return (void*) alloc_frame();
+    }
+    else {
+        if (size % PAGE_SIZE_DEFINED == 0) {
+            uint64_t ret = alloc_frame();
+            for (int i = 1; i < (size / PAGE_SIZE_DEFINED); i++) {
+                alloc_frame();
+            }
+            return (void*) ret;
+        }
+        else {
+            uint64_t ret = alloc_frame();
+            for (int i = 1; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
+                alloc_frame();
+            }
+            return (void*) ret;
+        }
+    }
+
 }
 
 uint8_t** memmap_bitmap;
@@ -187,6 +215,29 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     }
     hi:
     irq_restore(&irq);
+}
+int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size) {//map size bytes starting from arg
+    if (size == 0) {
+        return EINVAL;//always remember to assert this
+    }
+    if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
+        map_page(pml4_address, phys_address, virt_address, permissions);
+        return 0;
+    }
+    else {
+        if (size % PAGE_SIZE_DEFINED == 0) {
+            for (int i = 0; i < (size / PAGE_SIZE_DEFINED); i++) {
+                map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+            }
+            return 0;
+        }
+        else {
+            for (int i = 0; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
+                map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+            }
+            return 0;
+        }
+    }
 }
 
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {

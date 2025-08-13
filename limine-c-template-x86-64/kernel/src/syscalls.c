@@ -255,11 +255,6 @@ int syscall15(uint64_t num, char* str) {//log; remember to always have the sysca
 }
 
 
-
-
-
-
-
 int syscall_log(char* str) {//15
     int ret;
     size_t num = 15;
@@ -269,12 +264,8 @@ int syscall_log(char* str) {//15
 }
 
 
-
-
 int syscall_test() {
 }
-
-
 
 
 int syscall_yield() {//6
@@ -290,7 +281,6 @@ int syscall_user_thread_exit() {//9
     asm volatile("syscall" : "=a"(ret): "D"(num) : "memory");
     return ret;
 }
-
 
 
 
@@ -346,50 +336,48 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         kprintf("error: scheduling not started\n");
         return -1;//remember to return errno instead of just -1
     }
-    
-    if (size == 0) {
-        return kmalloc(0);
-    }
-    if (size <= PAGE_SIZE_DEFINED) {
-        return kmalloc(1);
-    }
-    else {
-        if (size % PAGE_SIZE_DEFINED == 0) {
-            return kmalloc(size / PAGE_SIZE_DEFINED);
-        }
-        else {
-            return kmalloc((size / PAGE_SIZE_DEFINED) + 1);
-        }
-    }
 
 
 
-    switch (prot) {//extracting the 0th bit
-        case PROT_READ:
+    // switch (prot) {
+    //     case PROT_READ:
 
-            break;
-        case PROT_WRITE:
+    //         break;
+    //     case PROT_WRITE:
 
-            break;
-        case PROT_EXEC:
+    //         break;
+    //     case PROT_EXEC:
 
-            break;
-        case PROT_NONE:
+    //         break;
+    //     case PROT_NONE:
 
-            break;
-    }
+    //         break;
+    // }
 
     if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
-        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, 2);
+        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, prot);
     }
     else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
 
     }
 
     if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
-        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, 2);
+        //remember to zero the entire allocation
+        void* region_start = pmm_alloc_bytes(size);
+        //figure out if we're gonna use hint regardless or our own thing
+        //HERE remember to unmap if it's already mapped?? smth about overlaps
+        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, hint, prot, size);//HERE maybe not hint?
+        assert(region_start != NULL);
+        memset(hint, 0, size);
+        *window = hint;
     }
     else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
+        void* region_start = pmm_alloc_bytes(size);
+        //HERE remember to unmap if it's already mapped?? smth about overlaps
+        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, hint, prot, size);
+        assert(region_start != NULL);
+        memset(hint, 0, size);
+        *window = hint;
 
     }
 
