@@ -383,14 +383,25 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
 
 
-
-
-
-
-
-    else if (PROT_READ) {
-        
+    uint64_t perm = 0;
+    //not sure about PROT_NONE
+    //always remember to change every value
+    //maybe use a mask instead of shifts
+    if (((prot & ( 1 << 0 )) >> 0) == 1) {//PROT_READ
+        perm &= 0 << 1;
     }
+    else {
+        perm |= ~(1 << 0);//??
+        //move down so we don't need a goto??
+    }
+    if (((prot & ( 1 << 1 )) >> 1) == 1) {//PROT_WRITE
+        perm |= 1 << 1;
+    }
+    if (((prot & ( 1 << 2 )) >> 2) == 0) {//PROT_EXEC
+        perm |= 1 << 63;//no execute
+    }
+    //HERE remember to cast 1 to a ull and maybe have a constant(s?).h to have macros for it as well
+
     switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
         case MAP_SHARED:
 
