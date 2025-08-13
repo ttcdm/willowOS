@@ -153,9 +153,9 @@ int shm_unlink (const char *);
 #define off64_t off_t
 #endif
 
+*/
+
 #ifdef __cplusplus
 }
 #endif
 #endif
-
-*/

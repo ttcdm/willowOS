@@ -332,53 +332,9 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
 
     //make it so that scheduling must be started for this to function
-    if (scheduling_started == 0) {
+    if (scheduling_started) {
         kprintf("error: scheduling not started\n");
         return -1;//remember to return errno instead of just -1
-    }
-
-
-
-    // switch (prot) {
-    //     case PROT_READ:
-
-    //         break;
-    //     case PROT_WRITE:
-
-    //         break;
-    //     case PROT_EXEC:
-
-    //         break;
-    //     case PROT_NONE:
-
-    //         break;
-    // }
-
-    if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
-        map_page((uint64_t*) get_current_thread()->cr3, hint, hint, prot);
-    }
-    else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
-
-    }
-
-    if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
-        //remember to zero the entire allocation
-        void* region_start = pmm_alloc_bytes(size);
-        //figure out if we're gonna use hint regardless or our own thing
-        //HERE remember to unmap if it's already mapped?? smth about overlaps
-        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, hint, prot, size);//HERE maybe not hint?
-        assert(region_start != NULL);
-        memset(hint, 0, size);
-        *window = hint;
-    }
-    else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
-        void* region_start = pmm_alloc_bytes(size);
-        //HERE remember to unmap if it's already mapped?? smth about overlaps
-        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, hint, prot, size);
-        assert(region_start != NULL);
-        memset(hint, 0, size);
-        *window = hint;
-
     }
 
 
@@ -398,9 +354,39 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         perm |= 1 << 1;
     }
     if (((prot & ( 1 << 2 )) >> 2) == 0) {//PROT_EXEC
-        perm |= 1 << 63;//no execute
+        perm |= 1ULL << 63;//no execute
     }
+    //we have to use 1ULL because 1 defaults to int which is 16 or 32 bits wide i don't remember 
     //HERE remember to cast 1 to a ull and maybe have a constant(s?).h to have macros for it as well
+
+
+    if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+        // map_page((uint64_t*) get_current_thread()->cr3, hint, hint, perm);
+    }
+    else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+
+    }
+
+    if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
+        //remember to zero the entire allocation
+        void* region_start = pmm_alloc_bytes(size);
+        //figure out if we're gonna use hint regardless or our own thing
+        //HERE remember to unmap if it's already mapped?? smth about overlaps
+        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size);//HERE maybe not hint?
+        assert(region_start != NULL);
+        memset(hint, 0, size);
+        *window = hint;
+    }
+    else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
+        void* region_start = pmm_alloc_bytes(size);
+        //HERE remember to unmap if it's already mapped?? smth about overlaps
+        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size);
+        assert(region_start != NULL);
+        memset(hint, 0, size);
+        *window = hint;
+
+    }
+
 
     switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
         case MAP_SHARED:

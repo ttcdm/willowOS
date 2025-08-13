@@ -203,20 +203,28 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     *pt_entry = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 
-    if (get_current_thread() != NULL) {
-        goto hi;
-        thread_context* t = get_current_thread();
-        t->mappings.mapped_virt_addresses[t->mappings.num_mappings] = virt_address;
+
+    if (scheduling_started) {
+        // goto hi;
+        thread_context* t = get_current_thread();//make sure that this always returns the correct thread
+        if (t->mappings.mapped_virt_addresses[t->mappings.num_mappings] == 0) {
+            for (uint64_t i = 0; i <= t->mappings.num_mappings; i++) {//i think we do need the equal sign in the <= here
+                if (t->mappings.mapped_virt_addresses[i] == 0) {
+                    t->mappings.mapped_virt_addresses[i] = virt_address;
+                }
+            }
+        }
         t->mappings.num_mappings++;
         if (t->mappings.num_mappings == t->mappings.max_mappings) {
             t->mappings.max_mappings += 8;
             t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, t->mappings.max_mappings + (8 * sizeof(uint64_t)));//remember to do sizeof
         }
     }
-    hi:
+    // hi:
     irq_restore(&irq);
 }
 int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size) {//map size bytes starting from arg
+    //make sure that we always have a call to map_page() or at least do something with the thread's mapping array whenever we call this
     if (size == 0) {
         return EINVAL;//always remember to assert this
     }
@@ -262,6 +270,18 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
     pt->entries[pt_index] = (uint64_t) NULL;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+
+    if (scheduling_started) {
+        thread_context* t = get_current_thread();
+        for (uint64_t i = 0; i < t->mappings.num_mappings; i++) {//make sure that there's no off by 1 error
+            if (t->mappings.mapped_virt_addresses[i] == virt_address) {
+                t->mappings.mapped_virt_addresses[i] = 0;
+            }
+        }
+        t->mappings.num_mappings--;
+        //remember to add array shrinking as well
+    }
+
     irq_restore(&irq);
 }
 
