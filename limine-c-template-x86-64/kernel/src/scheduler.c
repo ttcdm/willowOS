@@ -78,6 +78,7 @@ void gen2() {
 void gen3() {
 	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
+	map_page(get_current_thread()->cr3, 0xabcd, 0xabcd, 0b111);
 	int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
 	char* buf = (char*) kmalloc_byte(1024);
 	tmpfs_fd_read_from_file(fd, buf, 128, 0);
@@ -329,7 +330,9 @@ void reschedule() {
 		if (next_thread->pid == next_thread->prev_thread->pid) {
 			return;
 		}
+		#ifdef VERBOSE
 		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", current_thread->pid, next_thread->pid);
+		#endif
 		current_thread->last_run_time = tsc_read_ns();
 		change_tss(tss, next_thread->stack_base);
 
@@ -401,11 +404,14 @@ void scheduler_return() {//basically pthread_exit
 			kprintf_interruptable("\n%d\n", num_threads);
 
 
-			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 			if (temp->elf_entry != NULL) {
 				assert(temp->elf_file != NULL);
 				unload_elf(temp->elf_file, (uint64_t) temp->cr3);
 			}
+			for (uint64_t i = 0; i < temp->mappings.num_mappings; i++) {
+				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
+			}
+			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 			free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 			kfree_interruptable((uint64_t*) temp);
 
@@ -432,15 +438,17 @@ void scheduler_return() {//basically pthread_exit
 
 		discard_thread(temp);
 		num_threads--;
-		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 		if (temp->elf_entry != NULL) {
 			assert(temp->elf_file != NULL);
 			unload_elf(temp->elf_file, (uint64_t) temp->cr3);
 		}
+		for (uint64_t i = 0; i < temp->mappings.num_mappings; i++) {
+			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
+		}
+		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 		free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 		temp->next_thread = NULL;
 		kfree_interruptable((uint64_t*) temp);
-		
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", temp_pid, next_thread->pid);
 
 		change_tss(tss, next_thread->stack_base);
@@ -457,7 +465,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
-
+	memset(new_thread, 0, sizeof(thread_context));//HERE always remember to zero these type of allocations
 
 	new_thread->start_time;// = tsc_read_ns();
 	new_thread->last_start_time = 0;
@@ -482,9 +490,11 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;
 	new_thread->mappings.mapped_virt_addresses = kmalloc_byte(sizeof(uint64_t) * 8);
+	memset(new_thread->mappings.mapped_virt_addresses, 0, sizeof(uint64_t) * 8);
 
 
 	struct oa_hash* ht = (struct oa_hash*) kmalloc_byte(sizeof(struct oa_hash));
+	memset(ht, 0, sizeof(struct oa_hash));
 	new_thread->fd_table = (vfs_fd_table_t*) ht;//the first member of the struct is the same since it's using OA_HASH_ATTRS(mut) i think
 	struct oa_hash_entry* buckets;
 	size_t capacity = 32;//we allocate in increments of 32

@@ -151,7 +151,6 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 free_frame(virt_to_phys(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
-
                 for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
                     free_frame(virt_to_phys((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), cr3));
                     unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)));
@@ -160,7 +159,6 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
                 free_frame(virt_to_phys(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
-
                 for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
                     free_frame(virt_to_phys((uint64_t) phdr->p_vaddr + (4096 * j), cr3));
                     unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j));

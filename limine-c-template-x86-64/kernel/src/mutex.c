@@ -82,5 +82,6 @@ int futex_enqueue(int* pointer, thread_context* thread) {//HERE use hash table i
 
 void init_futex() {
     global_futex_array = (futex_queue_t**) kmalloc_byte(128 * sizeof(int*));
+    memset(global_futex_array, 0, 128 * sizeof(int*));
     global_futex_array_size = 128;
 }

@@ -273,7 +273,8 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
 
     if (scheduling_started) {
         thread_context* t = get_current_thread();
-        for (uint64_t i = 0; i < t->mappings.num_mappings; i++) {//make sure that there's no off by 1 error
+        for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
+            kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
             if (t->mappings.mapped_virt_addresses[i] == virt_address) {
                 t->mappings.mapped_virt_addresses[i] = 0;
             }
