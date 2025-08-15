@@ -92,11 +92,14 @@ uint64_t alloc_frame_better(void) {
 
 void free_frame(uint64_t phys_address) {//pretty sure this works. may have to align input to 4kib??
     // uint8_t index;
+    bool irq;
+    irq_disable_save(&irq);
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
             if ((phys_address > current->base) && (phys_address < current->next->base)) {
                 current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
+                irq_restore(&irq);
                 return;
             }
             else if (phys_address > current->base) {
@@ -106,9 +109,11 @@ void free_frame(uint64_t phys_address) {//pretty sure this works. may have to al
         else if (current->next == NULL) {
             current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
             // kprintln_uint64((phys_address-current->base)/4096);
+            irq_restore(&irq);
             return;
         }
     }
+    irq_restore(&irq);
 }
 
 
@@ -205,7 +210,7 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
 
 
     if (scheduling_started) {
-        // goto hi;
+        // kprintf("%llx virt_address aa\n", virt_address);
         thread_context* t = get_current_thread();//make sure that this always returns the correct thread
         if (t->mappings.mapped_virt_addresses[t->mappings.num_mappings] == 0) {
             for (uint64_t i = 0; i <= t->mappings.num_mappings; i++) {//i think we do need the equal sign in the <= here
@@ -220,7 +225,6 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
             t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, t->mappings.max_mappings + (8 * sizeof(uint64_t)));//remember to do sizeof
         }
     }
-    // hi:
     irq_restore(&irq);
 }
 int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size) {//map size bytes starting from arg
@@ -273,13 +277,16 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
 
     if (scheduling_started) {
         thread_context* t = get_current_thread();
-        for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
-            kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
+        for (uint64_t i = 0; i <= t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
+            // kprintf("%d %d\n", t->mappings.num_mappings, t->mappings.max_mappings);
+            // if (t->mappings.mapped_virt_addresses[i] != UINT64_MAX) kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
             if (t->mappings.mapped_virt_addresses[i] == virt_address) {
+                // kprintf("%llx virt_address\n", virt_address);
                 t->mappings.mapped_virt_addresses[i] = 0;
+                t->mappings.num_mappings--;
+                break;
             }
         }
-        t->mappings.num_mappings--;
         //remember to add array shrinking as well
     }
 

@@ -83,14 +83,14 @@ void gen3() {
 	char* buf = (char*) kmalloc_byte(1024);
 	tmpfs_fd_read_from_file(fd, buf, 128, 0);
 	// buf[127] = '\0';
-	kprintf("%s\n", buf);
+	// kprintf("%s\n", buf);
 	char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
 	tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
 	
 	tmpfs_fd_read_from_file(fd, buf, 256, 0);
 	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
 	for (int i = 0; i < 256; i++) {
-		kprintf("%c", buf[i]);
+		// kprintf("%c", buf[i]);
 	}
 
 	vfs_fdclose(fd);
@@ -398,19 +398,25 @@ void scheduler_return() {//basically pthread_exit
 
 			kill_and_switch_to_idle:
 
-			discard_thread(temp);
-			num_threads--;
-
 			kprintf_interruptable("\n%d\n", num_threads);
 
-
+			thread_context* actual_running_thread = running_thread;
+			running_thread = temp;//i feel like this is a bad idea if something gets interrupted in the middle and the threads get mixed up
 			if (temp->elf_entry != NULL) {
 				assert(temp->elf_file != NULL);
 				unload_elf(temp->elf_file, (uint64_t) temp->cr3);
 			}
-			for (uint64_t i = 0; i < temp->mappings.num_mappings; i++) {
+
+			for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+				if (temp->mappings.mapped_virt_addresses[i] == 0) continue;
 				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 			}
+
+			running_thread = actual_running_thread;
+
+			discard_thread(temp);
+			num_threads--;
+
 			kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 			free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 			kfree_interruptable((uint64_t*) temp);
@@ -436,19 +442,27 @@ void scheduler_return() {//basically pthread_exit
 		// kprintf_interruptable("\n%d\n", next_thread->pid);
 		// while (1) {asm volatile ("cli; hlt");}
 
-		discard_thread(temp);
-		num_threads--;
+		thread_context* actual_running_thread = running_thread;
+		running_thread = temp;//i feel like this is a bad idea if something gets interrupted in the middle and the threads get mixed up
 		if (temp->elf_entry != NULL) {
 			assert(temp->elf_file != NULL);
 			unload_elf(temp->elf_file, (uint64_t) temp->cr3);
 		}
-		for (uint64_t i = 0; i < temp->mappings.num_mappings; i++) {
+
+		for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {
+			if (temp->mappings.mapped_virt_addresses[i] == 0) continue;
 			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 		}
+
+		running_thread = actual_running_thread;
+
+		discard_thread(temp);
+		num_threads--;
 		kfree_interruptable((uint64_t*) (((uint64_t) temp->stack_base)-THREAD_STACK_SIZE));
 		free_frame(((uint64_t)temp->cr3) - hhdm_offset);
 		temp->next_thread = NULL;
 		kfree_interruptable((uint64_t*) temp);
+		
 		kprintf_interruptable("\nthread exited!\nswitching from thread %d to thread %d at return\n", temp_pid, next_thread->pid);
 
 		change_tss(tss, next_thread->stack_base);
