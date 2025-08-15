@@ -147,8 +147,6 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
             if (phdr->p_memsz < 4096) {
                 free_frame(virt_to_phys(phdr->p_vaddr, cr3));//need to free before we unmap because we need to still be able to translate it
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
-                kprintf("HIHIHI");
-                kprintf("%llx\n", phdr->p_vaddr);
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 free_frame(virt_to_phys(phdr->p_vaddr, cr3));

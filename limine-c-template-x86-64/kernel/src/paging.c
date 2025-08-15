@@ -212,17 +212,18 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     if (scheduling_started) {
         // kprintf("%llx virt_address aa\n", virt_address);
         thread_context* t = get_current_thread();//make sure that this always returns the correct thread
-        if (t->mappings.mapped_virt_addresses[t->mappings.num_mappings] == 0) {
+        if (t->mappings.mapped_virt_addresses[t->mappings.num_mappings] == UINT64_MAX) {
             for (uint64_t i = 0; i <= t->mappings.num_mappings; i++) {//i think we do need the equal sign in the <= here
-                if (t->mappings.mapped_virt_addresses[i] == 0) {
+                if (t->mappings.mapped_virt_addresses[i] == UINT64_MAX) {
                     t->mappings.mapped_virt_addresses[i] = virt_address;
                 }
             }
         }
         t->mappings.num_mappings++;
         if (t->mappings.num_mappings == t->mappings.max_mappings) {
-            t->mappings.max_mappings += 8;
             t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, t->mappings.max_mappings + (8 * sizeof(uint64_t)));//remember to do sizeof
+            memset(t->mappings.mapped_virt_addresses + (t->mappings.max_mappings * sizeof(uint64_t)), UINT64_MAX, 8 * sizeof(uint64_t));
+            t->mappings.max_mappings += 8;
         }
     }
     irq_restore(&irq);
@@ -277,12 +278,12 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
 
     if (scheduling_started) {
         thread_context* t = get_current_thread();
-        for (uint64_t i = 0; i <= t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
-            // kprintf("%d %d\n", t->mappings.num_mappings, t->mappings.max_mappings);
+        for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
+            kprintf("%d %d\n", t->mappings.num_mappings, t->mappings.max_mappings);
             // if (t->mappings.mapped_virt_addresses[i] != UINT64_MAX) kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
             if (t->mappings.mapped_virt_addresses[i] == virt_address) {
-                // kprintf("%llx virt_address\n", virt_address);
-                t->mappings.mapped_virt_addresses[i] = 0;
+                kprintf("%llx virt_address %d\n", virt_address, i);
+                t->mappings.mapped_virt_addresses[i] = UINT64_MAX;
                 t->mappings.num_mappings--;
                 break;
             }

@@ -408,7 +408,7 @@ void scheduler_return() {//basically pthread_exit
 			}
 
 			for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-				if (temp->mappings.mapped_virt_addresses[i] == 0) continue;
+				if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
 				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 			}
 
@@ -450,7 +450,7 @@ void scheduler_return() {//basically pthread_exit
 		}
 
 		for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {
-			if (temp->mappings.mapped_virt_addresses[i] == 0) continue;
+			if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
 			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 		}
 
@@ -504,7 +504,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;
 	new_thread->mappings.mapped_virt_addresses = kmalloc_byte(sizeof(uint64_t) * 8);
-	memset(new_thread->mappings.mapped_virt_addresses, 0, sizeof(uint64_t) * 8);
+	memset(new_thread->mappings.mapped_virt_addresses, UINT64_MAX, sizeof(uint64_t) * 8);
 
 
 	struct oa_hash* ht = (struct oa_hash*) kmalloc_byte(sizeof(struct oa_hash));
