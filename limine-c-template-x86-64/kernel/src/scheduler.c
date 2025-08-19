@@ -78,7 +78,16 @@ void gen2() {
 void gen3() {
 	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
-	map_page(get_current_thread()->cr3, 0xabcd, 0xabcd, 0b111);
+	for (int i = 0; i < 32; i++) {
+		map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
+		if (i == 23) {
+			for (uint64_t i = 0; i < get_current_thread()->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+				kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses[i]);
+			}
+			while (1);
+		}
+	}
+
 	int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
 	char* buf = (char*) kmalloc_byte(1024);
 	tmpfs_fd_read_from_file(fd, buf, 128, 0);
@@ -96,7 +105,7 @@ void gen3() {
 	vfs_fdclose(fd);
 	
 	// while (1) asm volatile ("cli");
-	while (1);
+	// while (1);
 	
 }
 
@@ -398,7 +407,8 @@ void scheduler_return() {//basically pthread_exit
 
 			kill_and_switch_to_idle:
 
-			kprintf_interruptable("\n%d\n", num_threads);
+			// kprintf_interruptable("\n%d\n", num_threads);
+
 
 			thread_context* actual_running_thread = running_thread;
 			running_thread = temp;//i feel like this is a bad idea if something gets interrupted in the middle and the threads get mixed up
@@ -408,6 +418,8 @@ void scheduler_return() {//basically pthread_exit
 			}
 
 			for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+				// kprintf("%d %llx virt address ABC\n", i, temp->mappings.mapped_virt_addresses[i]);
+				// continue;
 				if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
 				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 			}
@@ -450,6 +462,9 @@ void scheduler_return() {//basically pthread_exit
 		}
 
 		for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {
+    		kprintf("%d %llx virt address ABC\n", i, temp->mappings.mapped_virt_addresses[i]);
+			// continue;
+
 			if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
 			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
 		}
