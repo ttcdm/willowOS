@@ -215,15 +215,16 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//i think we do need the equal sign in the <= here
             if (t->mappings.mapped_virt_addresses[i] == UINT64_MAX) {
                 t->mappings.mapped_virt_addresses[i] = virt_address;
+                
+                t->mappings.num_mappings++;
                 // kprintf("%d %llx virt address\n", i, virt_address);
 
                 break;//always remember to break when necessary
             }
         }
-        t->mappings.num_mappings++;
         if (t->mappings.num_mappings == t->mappings.max_mappings) {
-            t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, t->mappings.max_mappings + 8);//remember to do sizeof
-            // memset(t->mappings.mapped_virt_addresses + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
+            t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, (t->mappings.max_mappings + 8) * sizeof(uint64_t));//remember to do sizeof
+            memset(t->mappings.mapped_virt_addresses + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
             t->mappings.max_mappings += 8;
         }
     }
