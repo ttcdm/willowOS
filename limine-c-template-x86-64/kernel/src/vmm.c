@@ -157,7 +157,8 @@ void kfree(uint64_t* virt_address) {
     uint64_t alloc_length_node = current->alloc_length;
     current->alloc_length = 0;
 
-    for (int i = 0; i < alloc_length_node; i++) {
+    //also changed this from 0 to 1 and it seemed to fix the mapped virt addresses array issue
+    for (int i = 1; i < alloc_length_node; i++) {
         current->status = 0;
         current = current->next;
     }
@@ -183,7 +184,8 @@ void kfree_interruptable(uint64_t* virt_address) {
     uint64_t alloc_length_node = current->alloc_length;
     current->alloc_length = 0;
 
-    for (int i = 0; i < alloc_length_node; i++) {
+    //also changed this from 0 to 1 and it seemed to fix the mapped virt addresses array issue
+    for (int i = 1; i < alloc_length_node; i++) {
         current->status = 0;
         current = current->next;
     }

@@ -212,13 +212,11 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     if (scheduling_started) {
         // kprintf("%llx virt_address aa\n", virt_address);
         thread_context* t = get_current_thread();//make sure that this always returns the correct thread
+        // kprintf("PID %d %d\n", t->pid, t->mappings.num_mappings);
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//i think we do need the equal sign in the <= here
             if (t->mappings.mapped_virt_addresses[i] == UINT64_MAX) {
                 t->mappings.mapped_virt_addresses[i] = virt_address;
-                
                 t->mappings.num_mappings++;
-                // kprintf("%d %llx virt address\n", i, virt_address);
-
                 break;//always remember to break when necessary
             }
         }
@@ -227,6 +225,7 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
             memset(t->mappings.mapped_virt_addresses + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
             t->mappings.max_mappings += 8;
         }
+
     }
     irq_restore(&irq);
 }
@@ -285,7 +284,7 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
             // kprintf("%d %d\n", t->mappings.num_mappings, t->mappings.max_mappings);
             // if (t->mappings.mapped_virt_addresses[i] != UINT64_MAX) kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
             if (t->mappings.mapped_virt_addresses[i] == virt_address) {
-                // kprintf("%llx virt_address %d\n", virt_address, i);
+                kprintf("%llx virt_address %d\n", virt_address, i);
                 t->mappings.mapped_virt_addresses[i] = UINT64_MAX;
                 t->mappings.num_mappings--;
                 break;
