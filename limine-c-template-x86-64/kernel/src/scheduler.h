@@ -18,8 +18,13 @@
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
 #define THREAD_QUANTUM 30//not sure if quantum is the right word
 
+typedef struct mapped_virt_addresses {
+	uint64_t virt_address;
+	uint64_t flag;//map_shared, map_private, or none
+	bool used;
+} mapped_virt_addresses_t;
 typedef struct thread_mappings {//used by map_page but it's only used if there's a running thread. maybe i should change it for the original cr3 as well idk
-	uint64_t* mapped_virt_addresses;
+	mapped_virt_addresses_t* mapped_virt_addresses_array;
 	uint64_t num_mappings;
 	uint64_t max_mappings;
 } thread_mappings_t;

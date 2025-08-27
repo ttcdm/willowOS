@@ -82,7 +82,7 @@ void gen3() {
 		map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
 	}
 	for (uint64_t i = 0; i < get_current_thread()->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-		// kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses[i]);
+		kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses_array[i].virt_address);
 	}
 	// while (1);
 
@@ -418,8 +418,8 @@ void scheduler_return() {//basically pthread_exit
 			for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
 				// kprintf("%d %llx virt address ABC\n", i, temp->mappings.mapped_virt_addresses[i]);
 				// continue;
-				if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
-				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
+				if (temp->mappings.mapped_virt_addresses_array[i].used == 0) continue;
+				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 			}
 
 			running_thread = actual_running_thread;
@@ -463,8 +463,8 @@ void scheduler_return() {//basically pthread_exit
     		// kprintf("%d %llx virt address ABC\n", i, temp->mappings.mapped_virt_addresses[i]);
 			// continue;
 
-			if (temp->mappings.mapped_virt_addresses[i] == UINT64_MAX) continue;
-			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses[i]);
+			if (temp->mappings.mapped_virt_addresses_array[i].used == 0) continue;
+			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 		}
 
 		running_thread = actual_running_thread;
@@ -516,8 +516,14 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;
-	new_thread->mappings.mapped_virt_addresses = kmalloc_byte(sizeof(uint64_t) * 8);
-	memset(new_thread->mappings.mapped_virt_addresses, UINT64_MAX, sizeof(uint64_t) * 8);
+	//i should probably use max_mappings instead of hardcoding it to 8 but oh well
+	new_thread->mappings.mapped_virt_addresses_array = (mapped_virt_addresses_t*) kmalloc_byte(sizeof(mapped_virt_addresses_t) * 8);
+	// memset(new_thread->mappings.mapped_virt_addresses, UINT64_MAX, sizeof(uint64_t) * 8);
+	for (uint64_t i = 0; i < 8; i++) {
+		new_thread->mappings.mapped_virt_addresses_array[i].virt_address = 0;
+		new_thread->mappings.mapped_virt_addresses_array[i].flag = 0;
+		new_thread->mappings.mapped_virt_addresses_array[i].used = 0;
+	}
 
 
 	struct oa_hash* ht = (struct oa_hash*) kmalloc_byte(sizeof(struct oa_hash));

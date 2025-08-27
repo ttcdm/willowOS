@@ -387,7 +387,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
     }
 
-
+    //always use explicit if's to make sure that we're getting the exact value and not using else's cuz we're lazy
     switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
         case MAP_SHARED:
 

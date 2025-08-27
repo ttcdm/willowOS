@@ -214,17 +214,24 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
         thread_context* t = get_current_thread();//make sure that this always returns the correct thread
         // kprintf("PID %d %d\n", t->pid, t->mappings.num_mappings);
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//i think we do need the equal sign in the <= here
-            if (t->mappings.mapped_virt_addresses[i] == UINT64_MAX) {
-                t->mappings.mapped_virt_addresses[i] = virt_address;
+            if (t->mappings.mapped_virt_addresses_array[i].used == 0) {
+                t->mappings.mapped_virt_addresses_array[i].virt_address = virt_address;
+                t->mappings.mapped_virt_addresses_array[i].used = 1;
+                //we set the flag in the wrapper function ie sys vm map
                 t->mappings.num_mappings++;
                 break;//always remember to break when necessary
             }
         }
         if (t->mappings.num_mappings == t->mappings.max_mappings) {
-            t->mappings.mapped_virt_addresses = krealloc_byte(t->mappings.mapped_virt_addresses, (t->mappings.max_mappings + 8) * sizeof(uint64_t));//remember to do sizeof
-            memset(t->mappings.mapped_virt_addresses + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
+            t->mappings.mapped_virt_addresses_array = (mapped_virt_addresses_t*) krealloc_byte((uint64_t*) (t->mappings.mapped_virt_addresses_array), (t->mappings.max_mappings + 8) * sizeof(mapped_virt_addresses_t));//remember to do sizeof
+            // memset(t->mappings.mapped_virt_addresses_array + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
+            for (uint64_t i = t->mappings.max_mappings; i < t->mappings.max_mappings + 8; i++) {
+                t->mappings.mapped_virt_addresses_array[i].used = 0;
+                t->mappings.mapped_virt_addresses_array[i].flag = 0;
+            }
             t->mappings.max_mappings += 8;
         }
+
 
     }
     irq_restore(&irq);
@@ -283,9 +290,11 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//make sure that there's no off by 1 error
             // kprintf("%d %d\n", t->mappings.num_mappings, t->mappings.max_mappings);
             // if (t->mappings.mapped_virt_addresses[i] != UINT64_MAX) kprintf("%llx\n", t->mappings.mapped_virt_addresses[i]);
-            if (t->mappings.mapped_virt_addresses[i] == virt_address) {
-                kprintf("%llx virt_address %d\n", virt_address, i);
-                t->mappings.mapped_virt_addresses[i] = UINT64_MAX;
+            if (t->mappings.mapped_virt_addresses_array[i].virt_address == virt_address) {
+                // kprintf("%llx virt_address %d\n", virt_address, i);
+                t->mappings.mapped_virt_addresses_array[i].used = 0;
+                t->mappings.mapped_virt_addresses_array[i].flag = 0;
+                t->mappings.mapped_virt_addresses_array[i].virt_address = 0;
                 t->mappings.num_mappings--;
                 break;
             }
