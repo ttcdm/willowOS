@@ -372,7 +372,16 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         void* region_start = pmm_alloc_bytes(size);
         //figure out if we're gonna use hint regardless or our own thing
         //HERE remember to unmap if it's already mapped?? smth about overlaps
-        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size);//HERE maybe not hint?
+
+
+        if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_SHARED);//HERE maybe not hint?
+
+        }
+        else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_PRIVATE);//HERE maybe not hint?
+
+        }
         assert(region_start != NULL);
         memset(hint, 0, size);
         *window = hint;
@@ -380,7 +389,13 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
         void* region_start = pmm_alloc_bytes(size);
         //HERE remember to unmap if it's already mapped?? smth about overlaps
-        int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size);
+        if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_SHARED);
+        }
+        else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_PRIVATE);
+
+        }
         assert(region_start != NULL);
         memset(hint, 0, size);
         *window = hint;

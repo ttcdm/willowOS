@@ -170,7 +170,7 @@ void init_paging() {
     kprintln("successfully initialized pml4");
 }
 
-void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
+uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {
     bool irq;
     irq_disable_save(&irq);
     uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
@@ -208,17 +208,18 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
     *pt_entry = phys_address | permissions;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 
-
     if (scheduling_started) {
         // kprintf("%llx virt_address aa\n", virt_address);
         thread_context* t = get_current_thread();//make sure that this always returns the correct thread
         // kprintf("PID %d %d\n", t->pid, t->mappings.num_mappings);
+        uint64_t ret = 0;
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//i think we do need the equal sign in the <= here
             if (t->mappings.mapped_virt_addresses_array[i].used == 0) {
                 t->mappings.mapped_virt_addresses_array[i].virt_address = virt_address;
                 t->mappings.mapped_virt_addresses_array[i].used = 1;
                 //we set the flag in the wrapper function ie sys vm map
                 t->mappings.num_mappings++;
+                ret = i;
                 break;//always remember to break when necessary
             }
         }
@@ -226,35 +227,43 @@ void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_addre
             t->mappings.mapped_virt_addresses_array = (mapped_virt_addresses_t*) krealloc_byte((uint64_t*) (t->mappings.mapped_virt_addresses_array), (t->mappings.max_mappings + 8) * sizeof(mapped_virt_addresses_t));//remember to do sizeof
             // memset(t->mappings.mapped_virt_addresses_array + t->mappings.max_mappings, UINT64_MAX, 8 * sizeof(uint64_t));//we're using pointer arithmetic here
             for (uint64_t i = t->mappings.max_mappings; i < t->mappings.max_mappings + 8; i++) {
+                t->mappings.mapped_virt_addresses_array[i].virt_address = 0;
                 t->mappings.mapped_virt_addresses_array[i].used = 0;
                 t->mappings.mapped_virt_addresses_array[i].flag = 0;
             }
             t->mappings.max_mappings += 8;
         }
-
-
+        //we return the index. ik it's weird but it's the easiest way to return where the struct is so the wrapper function doesn't have to look for it again
+        return ret;
     }
+    return UINT64_MAX;
+    // return 0ULL;
     irq_restore(&irq);
 }
-int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size) {//map size bytes starting from arg
+
+int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag) {//map size bytes starting from arg
     //make sure that we always have a call to map_page() or at least do something with the thread's mapping array whenever we call this
     if (size == 0) {
         return EINVAL;//always remember to assert this
     }
     if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
-        map_page(pml4_address, phys_address, virt_address, permissions);
+        uint64_t ret = map_page(pml4_address, phys_address, virt_address, permissions);
+        get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;//map_page returns the index for the struct
         return 0;
     }
     else {
         if (size % PAGE_SIZE_DEFINED == 0) {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED); i++) {
-                map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t ret = map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
+
             }
             return 0;
         }
         else {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
-                map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t ret = map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
             }
             return 0;
         }

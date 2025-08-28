@@ -28,8 +28,8 @@ void init_paging();
 
 uint64_t virt_lookup(uint64_t virt_address);
 
-void map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions);
-int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size);
+uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions);
+int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag);
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address);
 void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions);
 

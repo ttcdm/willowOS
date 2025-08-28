@@ -33,7 +33,7 @@ void tsc_init() {
     // uint64_t ten_ms = 10000000;
     uint64_t tsc_start = tsc_read();
     //timer_wait_ns(ten_ms);
-    kpass(10);
+    kpass(10);//not sure if we're supposed to use kpass here but oh well
     uint64_t tsc_end = tsc_read();
 
     // 10 ms * 100 = 1 s, tsc_freq in Hz

@@ -68,8 +68,6 @@ void sleep_handler(struct interrupt_frame* frame) {//66
     volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
     sleep_locks[(*lapic_id)>>24] = 0;
-
-
     *lapic_eoi = 0;//remember to clear eoi after handling the interrupt
 }
 
