@@ -41,6 +41,17 @@ void pop_syscall_args(void);
 
 void syscall_asm(uint64_t num);
 
+struct map_page_bytes_args {
+            uint64_t* cr3;
+            uint64_t phys_address;
+            uint64_t virt_address;
+            uint64_t permissions;
+            uint64_t size;
+            uint64_t flag;
+            int error;//exit code
+            void* ret;//used for returning the actual mapped virtual address but it's unused rn
+};
+
 int syscall0(uint64_t num);
 int syscall1(uint64_t num);
 int syscall2(uint64_t num);
@@ -48,8 +59,8 @@ int syscall3(uint64_t num);
 int syscall4(size_t num);
 int syscall5(uint64_t num);
 int syscall6(uint64_t num);
-int syscall7(uint64_t num);
-int syscall8(uint64_t num, void *pointer, size_t size);
+int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args);//map
+int syscall8(uint64_t num, void *pointer, size_t size);//unmap
 int syscall9(uint64_t num);
 int syscall10(uint64_t num);
 int syscall11(uint64_t num, int* pointer, int expected);

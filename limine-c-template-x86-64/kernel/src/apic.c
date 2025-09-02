@@ -33,7 +33,7 @@ void kpass(size_t ms) {
     volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
     volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
     // volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
-    asm volatile ("sti");//added sti here because it was somehow breaking probably due to some random cli because map_page returned a value but we never handled it or smth idk
+    // asm volatile ("sti");//ignore the stuff after this. it broke because we returned before we sti'd at the end of map_page.added sti here because it was somehow breaking probably due to some random cli because map_page returned a value but we never handled it or smth idk
     *lapic_divider = 0b0011;
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
     *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;

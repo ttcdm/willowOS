@@ -236,9 +236,9 @@ uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_a
         //we return the index. ik it's weird but it's the easiest way to return where the struct is so the wrapper function doesn't have to look for it again
         return ret;
     }
+    irq_restore(&irq);
     return UINT64_MAX;
     // return 0ULL;
-    irq_restore(&irq);
 }
 
 int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag) {//map size bytes starting from arg

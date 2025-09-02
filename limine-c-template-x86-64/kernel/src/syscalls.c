@@ -3,6 +3,7 @@
 #include <tmpfs.h>
 
 #include <mman.h>
+#include <errno.h>
 
 #define MSR_LSTAR   0xC0000082
 #define MSR_STAR    0xC0000081
@@ -152,8 +153,16 @@ int syscall6(uint64_t num) {
     return 0;
 }
 
-int syscall7(uint64_t num) {//vm map
-    return 0;
+int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
+
+    kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
+
+    mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
+
+
+
+
+    return mmap_args->error;
 }
 
 int syscall8(uint64_t num, void *pointer, size_t size) {//vm unmap
@@ -332,9 +341,9 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
 
     //make it so that scheduling must be started for this to function
-    if (scheduling_started) {
+    if (!scheduling_started) {
         kprintf("error: scheduling not started\n");
-        return -1;//remember to return errno instead of just -1
+        return EPERM;
     }
 
 
@@ -347,7 +356,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         perm &= 0 << 1;
     }
     else {
-        perm |= ~(1 << 0);//??
+        perm |= ~(1 << 0);//PROT_NONE. should be correct
         //move down so we don't need a goto??
     }
     if (((prot & ( 1 << 1 )) >> 1) == 1) {//PROT_WRITE
@@ -367,60 +376,83 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
     }
 
+    //remember to zero the entire allocation
+    void* region_start = pmm_alloc_bytes(size);
+
+    int map_page_ret;
+
+    struct map_page_bytes_args mmap_args = {//make sure that this persists throughout the actual syscaLL
+            .cr3 = (uint64_t*) get_current_thread()->cr3,
+            .phys_address = (uint64_t) region_start,
+            .virt_address = (uint64_t) hint,
+            .permissions = perm,
+            .size = size,
+            .error = 0,
+            .ret = NULL
+    };
+
+    //the issue is because we're extracting instead of masking
+    kprintf("\n%b\n", flags);
+
+    
     if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
-        //remember to zero the entire allocation
-        void* region_start = pmm_alloc_bytes(size);
-        //figure out if we're gonna use hint regardless or our own thing
+        ////HERE figure out if we're gonna use hint regardless or our own thing
         //HERE remember to unmap if it's already mapped?? smth about overlaps
+
+        //we wall map_page_bytes behind a syscall here
+        //we can just shove all the args into a struct because we don't have enough syscall args for all of the args here
 
 
         if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
-            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_SHARED);//HERE maybe not hint?
-
+            //remember to change hint as well if necessary
+            mmap_args.flag = MAP_SHARED;
         }
         else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
-            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_PRIVATE);//HERE maybe not hint?
-
+            mmap_args.flag = MAP_PRIVATE;
         }
+        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(mmap_args): "memory");
         assert(region_start != NULL);
         memset(hint, 0, size);
         *window = hint;
+        ret = 0;
     }
     else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
-        void* region_start = pmm_alloc_bytes(size);
+        
         //HERE remember to unmap if it's already mapped?? smth about overlaps
         if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
-            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_SHARED);
+            mmap_args.flag = MAP_SHARED;
         }
         else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
-            int map_page_ret = map_page_bytes((uint64_t*) get_current_thread()->cr3, (uint64_t) region_start, (uint64_t) hint, perm, size, MAP_PRIVATE);
-
+            mmap_args.flag = MAP_PRIVATE;
         }
+        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(mmap_args): "memory");
         assert(region_start != NULL);
         memset(hint, 0, size);
         *window = hint;
-
+        ret = 0;
     }
 
-    //always use explicit if's to make sure that we're getting the exact value and not using else's cuz we're lazy
-    switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
-        case MAP_SHARED:
+    // always use explicit if's to make sure that we're getting the exact value and not using else's cuz we're lazy
+    
+    // switch ((flags & ( 1 << 0 )) >> 0) {//extracting the 0th bit
+    //     case MAP_SHARED:
 
-            break;
-        case MAP_PRIVATE:
+    //         break;
+    //     case MAP_PRIVATE:
 
-            break;
-        case MAP_FIXED:
+    //         break;
+    //     case MAP_FIXED:
 
-            break;
-        case MAP_ANON:
+    //         break;
+    //     case MAP_ANON:
 
-            break;
-        // case MAP_ANONYMOUS://MAP_ANONYMOUS is the same as MAP_ANON
+    //         break;
+    //     // case MAP_ANONYMOUS://MAP_ANONYMOUS is the same as MAP_ANON
 
-        //     break;
-    }
+    //     //     break;
+    // }
 
+    return ret;
 }
 int sys_vm_unmap(void *pointer, size_t size) {
     int ret;
