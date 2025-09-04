@@ -158,10 +158,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
 
     mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
-
-
-
-
+    
     return mmap_args->error;
 }
 
@@ -391,43 +388,51 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
             .ret = NULL
     };
 
-    //the issue is because we're extracting instead of masking
-    kprintf("\n%b\n", flags);
+    // //the issue is because we're extracting instead of masking
+    // kprintf("\n%llx\n", flags);
+    // kprintf("\n%llx ", (flags & (0xF << (4 * 1))));//chatgpt'd more or less
+    // while (1);
 
+    // kprintf("%llx\n", MAP_ANON);
+
+    // kprintf("%b\n", (flags & (0xF << (4 * 1))) == (int) MAP_ANON);
     
-    if (((flags & ( 1 << 1 )) >> 1) == MAP_ANON) {
+    if ((int) (flags & (0xF << (4 * 1))) == (int) MAP_ANON) {
         ////HERE figure out if we're gonna use hint regardless or our own thing
         //HERE remember to unmap if it's already mapped?? smth about overlaps
 
         //we wall map_page_bytes behind a syscall here
         //we can just shove all the args into a struct because we don't have enough syscall args for all of the args here
 
-
-        if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+        if ((int) (flags & (0xF << (4 * 0))) == (int) MAP_SHARED) {
             //remember to change hint as well if necessary
             mmap_args.flag = MAP_SHARED;
         }
-        else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+        else if ((int) (flags & (0xF << (4 * 0))) == (int) MAP_PRIVATE) {
             mmap_args.flag = MAP_PRIVATE;
         }
-        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(mmap_args): "memory");
-        assert(region_start != NULL);
-        memset(hint, 0, size);
+        //it should be fine passing the struct that's on the stack since the branch hasn't exited yet
+        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
+        //HERE remember to uncomment these
+        // assert(mmap_args.error == 0);
+        // memset(hint, 0, size);
+
         *window = hint;
         ret = 0;
     }
-    else if (((flags & ( 1 << 1 )) >> 1) == MAP_FIXED) {
+    else if ((int) (flags & (0xF << (4 * 1))) == (int) MAP_FIXED) {
         
         //HERE remember to unmap if it's already mapped?? smth about overlaps
-        if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+        if ((int) (flags & (0xF << (4 * 0))) == (int) MAP_SHARED) {
             mmap_args.flag = MAP_SHARED;
         }
-        else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+        else if ((int) (flags & (0xF << (4 * 0))) == (int) MAP_PRIVATE) {
             mmap_args.flag = MAP_PRIVATE;
         }
-        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(mmap_args): "memory");
-        assert(region_start != NULL);
-        memset(hint, 0, size);
+        asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
+        //HERE remember to uncomment these
+        // assert(mmap_args.error == 0);
+        // memset(hint, 0, size);
         *window = hint;
         ret = 0;
     }

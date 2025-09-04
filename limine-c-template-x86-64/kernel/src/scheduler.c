@@ -80,8 +80,9 @@ void gen3() {
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
 	for (uint64_t i = 0; i < 32; i++) {
 		// map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
-		uint64_t** a;
-		sys_vm_map((uint64_t*) (i+10000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0, (void**) a);
+		uint64_t* a;
+
+		sys_vm_map((uint64_t*) (i+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
 	}
 	for (uint64_t i = 0; i < get_current_thread()->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
 		kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses_array[i].virt_address);
