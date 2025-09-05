@@ -183,9 +183,10 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     }
 
     //this is kinda dirty but oh well
-    change_page_map(t->cr3, (uint64_t) t, 0b111);//map the entire thread context struct. not sure if it's needed but just in case. also might be bad for safety but idk
+    // change_page_map(t->cr3, (uint64_t) t, 0b111);//map the entire thread context struct. not sure if it's needed but just in case. also might be bad for safety but idk
     change_page_map(t->cr3, (uint64_t) &scheduling_started, 0b111);//because scheduling_started is a global variable but it's originally mapped without userspace permissions
-    change_page_map(t->cr3, (uint64_t) &running_thread, 0b111);
+    // change_page_map(t->cr3, (uint64_t) running_thread, 0b111);
+    // change_page_map(t->cr3, (uint64_t) get_current_thread, 0b111);
 
     t->status[4] = 1;//userspace = true
 

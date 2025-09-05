@@ -50,18 +50,25 @@ void test_a() {
 		// map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
 		uint64_t* a;
 
-		sys_vm_map((uint64_t*) (i+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
+		sys_vm_map((uint64_t*) (i), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
 	}
-    thread_context* t;
-    get_current_thread_syscall(&t);
+    // thread_context* t;
+    // get_current_thread_syscall(&t);
+    // t = get_current_thread();
+    // return;
+    // t = running_thread;
     //HERE modify syscall log for fmt and verify that all the mappings are correct
-    syscall_log("%llx", t);
-	for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-		syscall_log("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
-	}
+    // syscall_log("%llx", t);
+	// for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+		// syscall_log("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+	// }
+
+    int aa = 1;
+    int b = 2;
+    syscall_log("abc %d %d", aa, b);
 
     while (1) {
-        syscall_log("hi from test_a");
+        // syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
         test_b();
@@ -180,6 +187,14 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
 
     mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
     
+    if (mmap_args->virt_address == 31) {
+        thread_context* t;
+        t = get_current_thread();
+        for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+            kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+        }
+    }
+
     return mmap_args->error;
 }
 
@@ -187,7 +202,8 @@ int syscall8(uint64_t num, void *pointer, size_t size) {//vm unmap
     assert(pointer);
     bool irq;
     irq_disable_save(&irq);
-    uint64_t* cr3 = (uint64_t*) (get_cr3() + hhdm_offset);
+    // uint64_t* cr3 = (uint64_t*) (get_cr3() + hhdm_offset);//not sure if we sould use get_current_thread() instead of just getting the raw cr3
+    uint64_t* cr3 = get_current_thread()->cr3;
     irq_restore(&irq);
     assert(cr3);
     uint64_t num_pages;
@@ -276,8 +292,27 @@ int syscall14(uint64_t num, void *pointer) {
     return 0;
 }
 
-int syscall15(uint64_t num, char* str) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
-    kprintf("%s\n", str);//no checks against non null terminated strings
+int syscall15(uint64_t num, struct fmt_args* args_struct) {//log; remember to always have the syscall number as the first arg because syscall_handler calls every syscall with all the args
+    bool irq_status;
+    irq_disable_save(&irq_status);
+    // va_list args;
+    // va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args_struct->args);
+    uint64_t size = npf_vsnprintf(NULL, 0, args_struct->fmt, args_struct->args);
+    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    char str[size];//was told that using a variable length array was a bad idea...
+    npf_vsnprintf(str, size+1, args_struct->fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+
+    acquire_mutex(&ft_ctx_mutex);
+    flanterm_write(ft_ctx, str, size);
+    release_mutex(&ft_ctx_mutex);
+
+    // kfree((uint64_t*) str);
+    va_end(args_struct->args);
+    va_end(args_copy);
+    irq_restore(&irq_status);
+    
     return 0;
 }
 
@@ -294,15 +329,14 @@ int syscall_log(char* fmt, ...) {//15
     //not sure if we need to cli here
     va_list args;
     va_start(args, fmt);
-    va_list args_copy;
-    va_copy(args_copy, args);
-    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
-    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
-    char str[size];//was told that using a variable length array was a bad idea...
-    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
-    
-    // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
-    asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(str) : "memory");
+
+    struct fmt_args args_struct = {
+        .fmt = fmt,
+    };
+
+    va_copy(args_struct.args, args);
+
+    asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(&args_struct) : "memory");
     return ret;
 }
 

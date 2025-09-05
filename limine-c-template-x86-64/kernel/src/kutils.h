@@ -19,8 +19,11 @@
 
 //the actual definitions of these functions are kinda scattered all over the place since i'm using this header file as a main link to expose util stuff
 
-
-
+extern struct limine_framebuffer* framebuffer;
+extern struct flanterm_context* ft_ctx;
+//HERE not sure if this is correct but oh well
+typedef struct mutex mutex_t;//forward declaration because we can't include mutex.h or else we'll get circular inclusions. i hope nothing breaks
+extern mutex_t ft_ctx_mutex;
 
 size_t kstrlen(char* msg);
 

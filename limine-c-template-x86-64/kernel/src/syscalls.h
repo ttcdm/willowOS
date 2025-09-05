@@ -54,6 +54,11 @@ struct map_page_bytes_args {
             void* ret;//used for returning the actual mapped virtual address but it's unused rn
 };
 
+struct fmt_args {//for passing in from log into syscall kprintf
+    char* fmt;
+    va_list args;
+};
+
 int syscall0(uint64_t num);
 int syscall1(uint64_t num);
 int syscall2(uint64_t num);
@@ -69,7 +74,7 @@ int syscall11(uint64_t num, int* pointer, int expected);
 int syscall12(uint64_t num, int* pointer);
 int syscall13(uint64_t num, size_t size, void **pointer);
 int syscall14(uint64_t num, void *pointer);
-int syscall15(uint64_t num, char* str);
+int syscall15(uint64_t num, struct fmt_args* args_struct);
 int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscall
 
 
