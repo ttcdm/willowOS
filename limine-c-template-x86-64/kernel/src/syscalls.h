@@ -15,6 +15,7 @@
 //we're currently aiming for some semblance of posix compatibility because linux's is more or less just an add on of that
 //so it makes my life easier to have to do less and still be able to run the stuff i want
 
+//HERE always remember to update syscalls.asm with each additional syscall
 
 extern void* user_code;
 
@@ -68,12 +69,14 @@ int syscall12(uint64_t num, int* pointer);
 int syscall13(uint64_t num, size_t size, void **pointer);
 int syscall14(uint64_t num, void *pointer);
 int syscall15(uint64_t num, char* str);
+int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscall
 
 
 
 int syscall_log(char* str);
 int syscall_test(void);
 int syscall_yield(void);
+int get_current_thread_syscall(thread_context** thread);
 
 
 struct timespec {//apparently this is fine for type replacements

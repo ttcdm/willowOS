@@ -44,6 +44,20 @@ void test_a() {
         // syscall_log("bye");
     }
 
+    for (uint64_t i = 0; i < 32; i++) {
+		// map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
+		uint64_t* a;
+
+		sys_vm_map((uint64_t*) (i+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
+	}
+    thread_context* t;
+    get_current_thread_syscall(&t);
+    // t = get_current_thread();
+    kprintf("%llx", t);
+	for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+		kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+	}
+
     while (1) {
         syscall_log("hi from test_a");
         // syscall_test();
@@ -106,6 +120,8 @@ void init_syscalls() {
 
     change_page_map((uint64_t*) pml4_address_virt_glob, (uint64_t) test_b, 0b111);
 
+
+
     // change_page_map((uint64_t) scheduler_return, 0b111);
     // change_page_map((uint64_t) scheduler_return+0x1000, 0b111);
     // change_page_map((uint64_t) scheduler_return+0x2000, 0b111);
@@ -154,7 +170,10 @@ int syscall6(uint64_t num) {
 }
 
 int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
-
+    //remember to zero the entire allocation
+    void* region_start = pmm_alloc_bytes(mmap_args->size);
+    mmap_args->cr3 = get_current_thread()->cr3;
+    mmap_args->phys_address = (uint64_t) region_start;
     kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
 
     mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
@@ -260,6 +279,11 @@ int syscall15(uint64_t num, char* str) {//log; remember to always have the sysca
     return 0;
 }
 
+int syscall16(uint64_t num, thread_context** thread) {//get_current_thread_syscall
+    *thread = get_current_thread();
+    return 0;
+}
+
 
 int syscall_log(char* str) {//15
     int ret;
@@ -321,7 +345,7 @@ int sys_anon_free(void *pointer, size_t size) {//14
 }
 
 
-int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {
+int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {//7
     int ret;
     uint64_t num = 7;
 
@@ -373,14 +397,12 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
     }
 
-    //remember to zero the entire allocation
-    void* region_start = pmm_alloc_bytes(size);
 
     int map_page_ret;
 
     struct map_page_bytes_args mmap_args = {//make sure that this persists throughout the actual syscaLL
-            .cr3 = (uint64_t*) get_current_thread()->cr3,
-            .phys_address = (uint64_t) region_start,
+            // .cr3 = (uint64_t*) get_current_thread()->cr3,//this is set inside the syscall function
+            // .phys_address = (uint64_t) region_start,//this is also set inside the syscall function
             .virt_address = (uint64_t) hint,
             .permissions = perm,
             .size = size,
@@ -413,8 +435,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         }
         //it should be fine passing the struct that's on the stack since the branch hasn't exited yet
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
-        //HERE remember to uncomment these
-        // assert(mmap_args.error == 0);
+        assert(mmap_args.error == 0);
         // memset(hint, 0, size);
 
         *window = hint;
@@ -430,8 +451,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
             mmap_args.flag = MAP_PRIVATE;
         }
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
-        //HERE remember to uncomment these
-        // assert(mmap_args.error == 0);
+        assert(mmap_args.error == 0);
         // memset(hint, 0, size);
         *window = hint;
         ret = 0;
@@ -459,8 +479,15 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
 
     return ret;
 }
-int sys_vm_unmap(void *pointer, size_t size) {
+int sys_vm_unmap(void *pointer, size_t size) {//8
     int ret;
     uint64_t num = 8;
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(size): "memory");
+}
+
+int get_current_thread_syscall(thread_context** thread) {//16
+    int ret;
+    uint64_t num = 16;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(thread): "memory");
+    return ret;
 }

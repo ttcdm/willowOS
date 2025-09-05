@@ -170,27 +170,29 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
     kprintf_interruptable("unloaded elf\n");
 }
 
+
+//this function is for getting both elfs and whatever functions/stuff you want into userspace
 void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
     asm volatile ("cli");
     volatile thread_context* t = get_current_thread();
+    assert(t != NULL);
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
-    if (t->elf_entry != NULL) {//i should probably directly pass it in instead of getting the current thread some other way
-        for (size_t i = 0; i < 5; i++) {
-            //maybe i should have a stack in the lower half only but idk
-            change_page_map(t->cr3, (((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
-        }
-
-        t->status[4] = 1;
-
-        
-        // kprintf_interruptable("\npid: %d\n", t->pid);
-        // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
-        jump_to_user(t->elf_entry, t->stack_base);
-
+    for (size_t i = 0; i < 5; i++) {
+        //maybe i should have a stack in the lower half only but idk
+        change_page_map(t->cr3, (((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
     }
-    else {
-        // kprintf_interruptable("no valid elf entry to execute");
-        //no else because we also use this function to run functions in userspace
-    }
+
+    //this is kinda dirty but oh well
+    change_page_map(t->cr3, (uint64_t) t, 0b111);//map the entire thread context struct. not sure if it's needed but just in case. also might be bad for safety but idk
+    change_page_map(t->cr3, (uint64_t) &scheduling_started, 0b111);//because scheduling_started is a global variable but it's originally mapped without userspace permissions
+    change_page_map(t->cr3, (uint64_t) &running_thread, 0b111);
+
+    t->status[4] = 1;//userspace = true
+
+    
+    // kprintf_interruptable("\npid: %d\n", t->pid);
+    // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
+    if (t->elf_entry != NULL) jump_to_user(t->elf_entry, t->stack_base);
+
     asm volatile ("sti");
 }

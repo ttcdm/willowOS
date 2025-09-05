@@ -18,6 +18,7 @@ extern syscall12
 extern syscall13
 extern syscall14
 extern syscall15
+extern syscall16
 
 section .data
 syscall_array:
@@ -37,6 +38,7 @@ syscall_array:
     dq syscall13
     dq syscall14
     dq syscall15
+    dq syscall16
 
 ; .length: dq ($ - syscall_array) / 8;number of elements in the syscall array
 
@@ -63,7 +65,7 @@ jump_to_user:
     mov rcx, rdi
     mov r11, 0x202
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
-    sub rsp, 4096
+    sub rsp, 4096;//HERE not sure if we should keep this
     sub rsp, 1
     mov qword [rsp], syscall_user_thread_exit
 

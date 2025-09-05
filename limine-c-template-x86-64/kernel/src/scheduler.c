@@ -42,7 +42,7 @@ void gen1() {
 	// asm volatile ("sti");
 	kprintf("gen1: hi from thread %d\n", get_current_thread()->pid);
 	volatile thread_context* a = block_thread(1);
-	a->start_time--; a->start_time++;//to make gcc happy about unused variable
+	if (a != NULL) {a->start_time--; a->start_time++;}//to make gcc happy about unused variable
 	// while (1);
 	// return;
 	// scheduler_return();
@@ -78,14 +78,16 @@ void gen2() {
 void gen3() {
 	//HERE i think it page faults because ht isn't initialized yet because we called tmpfs_open a couple of times before we called vfs_open
 	// int a = vfs_open(tmpfs_root, "bye2.txt", 0);
+	// kprintf("\nhi\n");
+	// syscall_log("\n\nhi\n\n");
 	for (uint64_t i = 0; i < 32; i++) {
 		// map_page(get_current_thread()->cr3, 0x10000, (uint64_t) i, 0b111);
-		uint64_t* a;
+		// uint64_t* a;
 
-		sys_vm_map((uint64_t*) (i+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
+		// sys_vm_map((uint64_t*) (i+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
 	}
 	for (uint64_t i = 0; i < get_current_thread()->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-		kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses_array[i].virt_address);
+		// kprintf("%d %llx virt address ABC\n", i, get_current_thread()->mappings.mapped_virt_addresses_array[i].virt_address);
 	}
 	// while (1);
 
@@ -232,9 +234,8 @@ void hot_create_and_push_user_thread(uint64_t pid, void (*thread_entry)(void)) {
 	//HERE we don't need to swap in the original cr3 because the heap was already mapped previously
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
 	uint64_t new_cr3 = create_new_userspace_page_table();
-	t->elf_entry = thread_entry;
+	t->elf_entry = thread_entry;//HERE always remember to not unintentionally unset stuff after you've set stuff
 	t->cr3 = (uint64_t*) new_cr3;
-	t->elf_entry = NULL;
 	t->elf_file = NULL;
 	push_thread(t);
 	num_threads++;
@@ -413,8 +414,7 @@ void scheduler_return() {//basically pthread_exit
 
 			thread_context* actual_running_thread = running_thread;
 			running_thread = temp;//i feel like this is a bad idea if something gets interrupted in the middle and the threads get mixed up
-			if (temp->elf_entry != NULL) {
-				assert(temp->elf_file != NULL);
+			if ((temp->elf_entry != NULL) && (temp->elf_file != NULL)) {//because elf entry only refers to the thing we wanna run in userspace regardless of whether or not it's an elf
 				unload_elf(temp->elf_file, (uint64_t) temp->cr3);
 			}
 
