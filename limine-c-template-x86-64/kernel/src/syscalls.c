@@ -2,6 +2,8 @@
 #include <vfs.h>
 #include <tmpfs.h>
 
+#include <nanoprintf-0.5.4/nanoprintf.h>
+
 #include <mman.h>
 #include <errno.h>
 
@@ -52,10 +54,10 @@ void test_a() {
 	}
     thread_context* t;
     get_current_thread_syscall(&t);
-    // t = get_current_thread();
-    kprintf("%llx", t);
+    //HERE modify syscall log for fmt and verify that all the mappings are correct
+    syscall_log("%llx", t);
 	for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-		kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+		syscall_log("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
 	}
 
     while (1) {
@@ -285,9 +287,20 @@ int syscall16(uint64_t num, thread_context** thread) {//get_current_thread_sysca
 }
 
 
-int syscall_log(char* str) {//15
+int syscall_log(char* fmt, ...) {//15
     int ret;
     size_t num = 15;
+
+    //not sure if we need to cli here
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    char str[size];//was told that using a variable length array was a bad idea...
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
     // asm volatile("syscall" : "=a"(ret): "D"(id) : "memory");
     asm volatile ("syscall" : "=a"(ret) : "D"(num), "S"(str) : "memory");
     return ret;

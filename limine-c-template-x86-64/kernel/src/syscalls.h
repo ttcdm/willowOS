@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include <limine.h>
 
@@ -73,7 +74,7 @@ int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscal
 
 
 
-int syscall_log(char* str);
+int syscall_log(char* fmt, ...);
 int syscall_test(void);
 int syscall_yield(void);
 int get_current_thread_syscall(thread_context** thread);

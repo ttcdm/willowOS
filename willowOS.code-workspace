@@ -67,7 +67,8 @@
             "tuple": "c",
             "type_traits": "c",
             "utility": "c",
-            "oa_hash.h": "c"
+            "oa_hash.h": "c",
+            "syscalls.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }
