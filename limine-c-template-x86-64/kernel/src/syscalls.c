@@ -437,12 +437,12 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     //HERE remember to cast 1 to a ull and maybe have a constant(s?).h to have macros for it as well
 
 
-    if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
-        // map_page((uint64_t*) get_current_thread()->cr3, hint, hint, perm);
-    }
-    else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
+    // if (((flags & ( 1 << 0 )) >> 0) == MAP_SHARED) {
+    //     // map_page((uint64_t*) get_current_thread()->cr3, hint, hint, perm);
+    // }
+    // else if (((flags & ( 1 << 0 )) >> 0) == MAP_PRIVATE) {
 
-    }
+    // }
 
 
     int map_page_ret;
