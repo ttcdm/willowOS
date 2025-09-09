@@ -22,6 +22,7 @@
 extern struct limine_framebuffer* framebuffer;
 extern struct flanterm_context* ft_ctx;
 //HERE not sure if this is correct but oh well
+// https://stackoverflow.com/questions/4757565/what-are-forward-declarations-in-c
 typedef struct mutex mutex_t;//forward declaration because we can't include mutex.h or else we'll get circular inclusions. i hope nothing breaks
 extern mutex_t ft_ctx_mutex;
 
