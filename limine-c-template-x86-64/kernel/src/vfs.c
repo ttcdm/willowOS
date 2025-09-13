@@ -173,6 +173,11 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode) {
 
     tmpfs_fd_t* fd = (tmpfs_fd_t*) tmpfs_open(dir, name, mode);
+    if (fd == NULL) {
+        return -1;
+    }
+
+    assert(fd != NULL);//redundant but oh well
     
     if (scheduling_started) {
         //ht is fd_table
