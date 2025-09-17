@@ -181,6 +181,7 @@ int syscall6(uint64_t num) {
 int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     //remember to zero the entire allocation
     void* region_start = pmm_alloc_bytes(mmap_args->size);
+    //hopefully there's no race condition here with getting the current thread and other stuff
     mmap_args->cr3 = get_current_thread()->cr3;
     mmap_args->phys_address = (uint64_t) region_start;
     kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
