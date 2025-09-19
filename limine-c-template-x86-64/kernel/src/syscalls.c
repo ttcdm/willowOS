@@ -533,6 +533,18 @@ int sys_vm_unmap(void *pointer, size_t size) {//8
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(size): "memory");
 }
 
+
+int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
+    int ret;
+    //HERE add num as well
+}
+
+int sys_tcb_set(void *pointer) {
+    
+}
+
+
+
 int get_current_thread_syscall(thread_context** thread) {//16
     int ret;
     uint64_t num = 16;
