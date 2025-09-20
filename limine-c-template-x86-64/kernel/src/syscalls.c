@@ -540,7 +540,7 @@ int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
 }
 
 int sys_tcb_set(void *pointer) {
-    
+    int ret;
 }
 
 
