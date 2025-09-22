@@ -409,11 +409,12 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     //https://chuck.cranor.org/p/diss.pdf
 
 
+    //HERE technically this can really only be called when scheduling is started because scheduling is more or less always enabled and we don't call this outright in userspace by just jumping to something without creating a thread
     //make it so that scheduling must be started for this to function
-    if (!scheduling_started) {
-        kprintf("error: scheduling not started\n");
-        return EPERM;
-    }
+    // if (!scheduling_started) {
+    //     // kprintf("error: scheduling not started\n");
+    //     return EPERM;
+    // }
 
 
 
@@ -483,7 +484,10 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         }
         //it should be fine passing the struct that's on the stack since the branch hasn't exited yet
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
-        assert(mmap_args.error == 0);
+        // assert(mmap_args.error == 0);
+        if (mmap_args.error != 0) {
+            return mmap_args.error;
+        }
         // memset(hint, 0, size);
 
         *window = hint;
@@ -499,7 +503,10 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
             mmap_args.flag = MAP_PRIVATE;
         }
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
-        assert(mmap_args.error == 0);
+        // assert(mmap_args.error == 0);
+        if (mmap_args.error != 0) {
+            return mmap_args.error;
+        }
         // memset(hint, 0, size);
         *window = hint;
         ret = 0;
@@ -543,6 +550,47 @@ int sys_tcb_set(void *pointer) {
     int ret;
 }
 
+//HERE remember to fill these in
+int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
+    int ret;
+    //HERE add num as well
+}
+
+int sys_tcb_set(void *pointer) {
+    int ret;
+}
+
+int sys_open(const char *pathname, int flags, mode_t mode, int *fd) {
+    return 0;
+}
+
+int sys_read(int fd, void *buf, size_t count, ssize_t *bytes_read) {
+    return 0;
+}
+
+int sys_write(int fd, const void *buf, size_t count, ssize_t *bytes_written) {
+    return 0;
+}
+
+int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
+    return 0;
+}
+
+int sys_close(int fd) {
+    return 0;
+}
+
+void sys_libc_log(const char *message) {
+    // syscall_log(message);
+}
+
+[[noreturn]] void sys_libc_panic() {
+    while (1);
+}
+
+[[noreturn]] void sys_exit(int status) {
+    while (1);
+}
 
 
 int get_current_thread_syscall(thread_context** thread) {//16
