@@ -68,7 +68,8 @@
             "type_traits": "c",
             "utility": "c",
             "oa_hash.h": "c",
-            "syscalls.h": "c"
+            "syscalls.h": "c",
+            "mman.h": "c"
         },
         "remote.autoForwardPortsFallback": 0
     }

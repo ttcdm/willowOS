@@ -540,16 +540,6 @@ int sys_vm_unmap(void *pointer, size_t size) {//8
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(size): "memory");
 }
 
-
-int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
-    int ret;
-    //HERE add num as well
-}
-
-int sys_tcb_set(void *pointer) {
-    int ret;
-}
-
 //HERE remember to fill these in
 int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
     int ret;
@@ -560,19 +550,24 @@ int sys_tcb_set(void *pointer) {
     int ret;
 }
 
-int sys_open(const char *pathname, int flags, mode_t mode, int *fd) {
+
+//HERE hopefully replacing these types won't cause any misalignments and/or other errors with mlibc
+//replaced mode_t with int
+int sys_open(const char *pathname, int flags, int mode, int *fd) {
     return 0;
 }
 
-int sys_read(int fd, void *buf, size_t count, ssize_t *bytes_read) {
+//replaced ssize_t with size_t
+int sys_read(int fd, void *buf, size_t count, size_t *bytes_read) {
     return 0;
 }
 
-int sys_write(int fd, const void *buf, size_t count, ssize_t *bytes_written) {
+int sys_write(int fd, const void *buf, size_t count, size_t *bytes_written) {
     return 0;
 }
 
-int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
+//replaced off_t with int64_t
+int sys_seek(int fd, int64_t offset, int whence, int64_t *new_offset) {
     return 0;
 }
 
