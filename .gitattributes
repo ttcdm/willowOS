@@ -1,0 +1,2 @@
+#we're commenting cuz we have tarballs of downloaded stuff of gnu utils that we sorta wanna keep
+#*.tar.gz filter=lfs diff=lfs merge=lfs -text
