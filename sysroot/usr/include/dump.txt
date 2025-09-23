@@ -1,0 +1,1143 @@
+###code dump
+
+//for shift, shift has
+
+//key = get_key();//scrapped for greater than or less than 0x80 because of some weird timing issue where i'd need to call flanterm in mode 1 for it to be able print successively
+//if (mode == 0) {
+//    if (key != 0xfa) {
+//        keyr = (key | 0x80);
+//        mode = 1;
+
+//        char c[2];
+//        c[0] = scanmap_set1[key];
+//        c[1] = '\0';//doesn't seem right to just have to convert a char to a string this way
+//        flanterm_write(ft_ctx, c, 1);//4 chars excluding the null terminating char
+//    }
+//}
+//else if (mode == 1) {
+//    //if (key != 0xfa) {
+//        if (key == keyr) {//&& key != 0xfa
+//            //flanterm_write(ft_ctx, "hi", 2);//4 chars excluding the null terminating char
+//            mode = 0;
+//            continue;
+//        }
+//    //}
+//}
+/*
+uint8_t status = get_kb_status;
+//status = status & 0b00000001;
+if (key != 0) {//(uint8_t) 0xfa) {//remember to typecast it
+    //static char* str[5];
+    //scancode_to_string(key, str);
+    ////while (1) {asm("hlt");}
+    char c[2];
+    c[0] = scanmap_set1[key];
+    c[1] = '\0';//doesn't seem right to just have to convert a char to a string this way
+    flanterm_write(ft_ctx, c, 1);//4 chars excluding the null terminating char
+
+}
+
+*/
+
+    //for (;;) {
+    //    uint8_t key = get_key();
+    //    if (key) {
+    //        flanterm_write(ft_ctx, (char) key, 1);
+    //    }
+    //}
+
+
+    //for (;;) {
+    //
+    //    //chatgpt generated
+    //    uint8_t key = get_key(); // Function to retrieve the scancode
+    //
+    //    if (key == 0x1e) {
+    //        // Buffer to hold the hexadecimal string
+    //        char buffer[5]; // Enough to hold "0xXY\0"
+    //
+    //        // Inline hexadecimal conversion
+    //        buffer[0] = '0';                       // Prefix '0'
+    //        buffer[1] = 'x';                       // Prefix 'x'
+    //        buffer[2] = "0123456789ABCDEF"[key >> 4]; // High nibble
+    //        buffer[3] = "0123456789ABCDEF"[key & 0x0F]; // Low nibble
+    //        buffer[4] = '\0';                      // Null-terminate the string
+    //
+    //        // Write the raw hex string to Flanterm
+    //        flanterm_write(ft_ctx, key, 4); // Write "0xXY" (no null terminator sent)
+    //    }
+    //
+    //    
+    //}
+
+    //static uint8_t key;
+    //static uint8_t keyr;
+
+
+        //
+    //int a = 0;
+    //while (1) {
+    //    for (size_t i = 0; i < framebuffer->pitch * 128; i++) {//pitch is how many bytes of vram you should skip to go one row down
+    //        volatile uint32_t* fb_ptr = framebuffer->address;
+    //        //fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
+    //        if (i % 2) {
+    //            fb_ptr[i] = 0xffffff;
+    //        }
+    //    }
+    //}
+    //
+    //for (size_t i = 0; i < framebuffer->pitch * 128; i++) {
+    //    volatile uint32_t* fb_ptr = framebuffer->address;
+    //    if (i % 2) {
+    //        fb_ptr[i] = 0xffffff;
+    //    }
+    //
+
+    #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+#include <limine.h>
+//#include "limine.h"
+
+#include <flanterm/flanterm.h>
+#include <flanterm/backends/fb.h>
+//#include "flanterm/flanterm.h"
+//#include "flanterm/backends/fb.h"
+
+
+
+// Set the base revision to 3, this is recommended as this is the latest
+// base revision described by the Limine boot protocol specification.
+// See specification for further info.
+
+__attribute__((used, section(".limine_requests")))
+static volatile LIMINE_BASE_REVISION(3);
+
+// The Limine requests can be placed anywhere, but it is important that
+// the compiler does not optimise them away, so, usually, they should
+// be made volatile or equivalent, _and_ they should be accessed at least
+// once or marked as used with the "used" attribute as done here.
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_framebuffer_request framebuffer_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0
+};
+
+// Finally, define the start and end markers for the Limine requests.
+// These can also be moved anywhere, to any .c file, as seen fit.
+
+__attribute__((used, section(".limine_requests_start")))
+static volatile LIMINE_REQUESTS_START_MARKER;
+
+__attribute__((used, section(".limine_requests_end")))
+static volatile LIMINE_REQUESTS_END_MARKER;
+
+// GCC and Clang reserve the right to generate calls to the following
+// 4 functions even if they are not directly called.
+// Implement them as the C specification mandates.
+// DO NOT remove or rename these functions, or stuff will eventually break!
+// They CAN be moved to a different .c file.
+
+void *memcpy(void *dest, const void *src, size_t n) {
+    uint8_t *pdest = (uint8_t *)dest;
+    const uint8_t *psrc = (const uint8_t *)src;
+
+    for (size_t i = 0; i < n; i++) {
+        pdest[i] = psrc[i];
+    }
+
+    return dest;
+}
+
+void *memset(void *s, int c, size_t n) {
+    uint8_t *p = (uint8_t *)s;
+
+    for (size_t i = 0; i < n; i++) {
+        p[i] = (uint8_t)c;
+    }
+
+    return s;
+}
+
+void *memmove(void *dest, const void *src, size_t n) {
+    uint8_t *pdest = (uint8_t *)dest;
+    const uint8_t *psrc = (const uint8_t *)src;
+
+    if (src > dest) {
+        for (size_t i = 0; i < n; i++) {
+            pdest[i] = psrc[i];
+        }
+    } else if (src < dest) {
+        for (size_t i = n; i > 0; i--) {
+            pdest[i-1] = psrc[i-1];
+        }
+    }
+
+    return dest;
+}
+
+int memcmp(const void *s1, const void *s2, size_t n) {
+    const uint8_t *p1 = (const uint8_t *)s1;
+    const uint8_t *p2 = (const uint8_t *)s2;
+
+    for (size_t i = 0; i < n; i++) {
+        if (p1[i] != p2[i]) {
+            return p1[i] < p2[i] ? -1 : 1;
+        }
+    }
+
+    return 0;
+}
+
+// Halt and catch fire function.
+static void hcf(void) {
+    for (;;) {
+        asm ("hlt");
+    }
+}
+
+//need to make functions static so they persist and don't get overwritten for whatever reason
+static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
+    volatile uint32_t* fb_ptr = framebuffer->address;
+    for (size_t i = 0; i < framebuffer->height * framebuffer->width; i++) {
+        fb_ptr[i] = color;
+    }
+}
+
+static inline uint8_t inb(uint16_t port) {//chatgpt generated. try to rewrite in the future if possible
+    uint8_t result;
+    asm volatile ("inb %1, %0" : "=a"(result) : "Nd"(port));
+    return result;
+}
+
+static uint8_t get_key() {//chatgpt generated. try to rewrite in the future if possible
+    uint8_t scan_code = inb(0x60); // Read from the keyboard's data port
+    return scan_code;
+}
+
+static uint8_t get_kb_status() {
+    uint8_t status = inb(0x64);
+    return status;
+}
+
+static scancode_to_string(uint8_t scancode, char* str) {
+    //since the uint8_t scancode can be represented in binary, we just shift it and mask part of it to grab the 4 bits we want
+    char h[] = "0123456789abcdef";
+    str[0] = '0';
+    str[1] = 'x';
+    str[2] = h[(scancode >> 4)];//high nibble
+    //str[3] = h[(scancode << 4) >> 4];//low nibble//still not exactly sure why this line causes the low nibble to get dropped
+    str[3] = h[(scancode & 0x0f)];//low nibble
+    str[4] = '\0';
+}
+
+
+static const char scanmap_set1[128] = {//generated by chatgpt
+    0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',   '\t', // 0x00 - 0x0F//0x0e is backspace
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', 0,   'a', 's', // 0x10 - 0x1F
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0,   '\\', 'z', 'x', 'c', 'v', // 0x20 - 0x2F
+    'b', 'n', 'm', ',', '.', '/', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,   // 0x30 - 0x3F
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x40 - 0x4F
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x50 - 0x5F
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0    // 0x60 - 0x6F
+};
+
+static const char scanmap_set1_upper[128] = {//generated by chatgpt
+    0,   0,   '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',   '\t',
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n', 0,   'A', 'S',
+    'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~', 0,   '|', 'Z', 'X', 'C', 'V',
+    'B', 'N', 'M', '<', '>', '?', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0
+};
+
+
+static bool is_lshift() {//may be a better idea to remove get_key() from here and just pass in the key directly idk
+    uint8_t shift_pressed = 0x2a;
+    uint8_t shift_released = 0xaa;
+    uint8_t state = get_key();
+    if (state == shift_released) {//state != shift_pressed || 
+        return 0;
+    }
+    else if (state == shift_pressed) {//state != shift_released || 
+        return 1;
+    }
+}
+
+void poll_kb(struct flanterm_context* ft_ctx) {//not sure if this should be static. has a quirk where left shift is detected as pressed when the kernel first runs and it only gets reset when you press left shift
+    static uint8_t mode = 0;
+    static uint8_t prev_key;
+    static bool lshift_status = 0;
+    for (;;) {//may have weird bugs but i'm 95% sure it works fine
+        lshift_status = is_lshift();
+        uint8_t key = get_key();
+        //key != prev_key was to allow another key to be pressed once and get an output while the previous was still down and still have an output instead of having to press the other key twice in order to get its output maybe???
+        if ((key < 0x80 && key != 0x2a && mode == 0)) {// || ((key != prev_key) && (prev_key != (key | 0x80)))) {//key != prev key may have an issue because prev key was not given a proper value but its value would be 0x00 or something so idk
+            prev_key = key;//it doesn't matter whether shift is pressed or not for key release because the scancodes are just the same. we dictate the scanmap so we handle the differentiation
+            char c[2];
+            c[1] = '\0';//doesn't seem right to just have to convert a char to a string this way
+            if (lshift_status == 1) {
+                c[0] = scanmap_set1_upper[key];
+            }
+            else if (lshift_status == 0) {
+                c[0] = scanmap_set1[key];
+            }
+            if (c[0] == '\b') {//if it's backspace
+                flanterm_write(ft_ctx, "\b \b", 3);
+            }
+            else {
+                flanterm_write(ft_ctx, c, 1);//4 chars excluding the null terminating char. also may not be the best idea to be running the print even for keys that don't print anything
+            }
+            mode = 1;
+        }
+        else if ((key > 0x80 || key != prev_key) && mode == 1) {//need to reset back to mode 0 even if other keys are pressed. i'm not sure but the extra press when pressing down a different key whilst holding down the original key might've been cuz the keyboard automatically sends the release?? if another key is pressed or something or it just can't handle that many simultaneous keys at once or something can't handle that???
+            mode = 0;//maybe set key back to 0x00 but idk
+        }
+    }
+}
+
+
+//void encodeGdtEntry(uint8_t* target, struct GDT source)
+//{
+//    // Check the limit to make sure that it can be encoded
+//    if (source.limit > 0xFFFFF) { kerror("GDT cannot encode limits larger than 0xFFFFF"); }
+//
+//    // Encode the limit
+//    target[0] = source.limit & 0xFF;
+//    target[1] = (source.limit >> 8) & 0xFF;
+//    target[6] = (source.limit >> 16) & 0x0F;
+//
+//    // Encode the base
+//    target[2] = source.base & 0xFF;
+//    target[3] = (source.base >> 8) & 0xFF;
+//    target[4] = (source.base >> 16) & 0xFF;
+//    target[7] = (source.base >> 24) & 0xFF;
+//
+//    // Encode the access byte
+//    target[5] = source.access_byte;
+//
+//    // Encode the flags
+//    target[6] |= (source.flags << 4);
+//}
+
+
+
+
+// The following will be our kernel's entry point.
+// If renaming kmain() to something else, make sure to change the
+// linker script accordingly.
+void kmain(void) {
+
+    /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
+    uint32_t RED = 0xff0000;
+    uint32_t GREEN = 0x00ff00;
+    uint32_t BLUE = 0x0000ff;
+    uint32_t WHITE = 0xffffff;
+    uint32_t BLACK = 0x000000;
+
+    // Ensure the bootloader actually understands our base revision (see spec).
+    if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+        hcf();
+    }
+
+    // Ensure we got a framebuffer.
+    if (framebuffer_request.response == NULL
+     || framebuffer_request.response->framebuffer_count < 1) {
+        hcf();
+    }
+
+    // Fetch the first framebuffer.
+    struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
+
+    // Note: we assume the framebuffer model is RGB with 32-bit pixels.
+
+    //for (size_t i = 0; i < 100; i++) {
+    //    volatile uint32_t *fb_ptr = framebuffer->address;
+    //    fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
+    //}
+
+
+    struct flanterm_context* ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
+        NULL,
+        NULL,
+        framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,//remember to use framebuffer->address as the framebuffer arg. framebuffer is just a struct, so we need to pass its actual address in as well
+        framebuffer->red_mask_size, framebuffer->red_mask_shift,
+        framebuffer->green_mask_size, framebuffer->green_mask_shift,
+        framebuffer->blue_mask_size, framebuffer->blue_mask_shift,
+        NULL,
+        NULL, NULL,
+        NULL, NULL,
+        NULL, NULL,
+        NULL, 0, 0, 1,
+        0, 0,
+        0
+    );
+
+    clear_framebuffer(framebuffer, BLACK);
+
+    const char msg[] = "Hello world";
+    flanterm_write(ft_ctx, msg, sizeof(msg));
+
+    poll_kb(ft_ctx);
+
+    
+    // We're done, just hang...
+    hcf();
+}
+
+
+
+######the load_tss fix through load_gdt###---vvvv---
+
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+#include <keyboard.h>
+#include <gdt.h>
+
+//#include <gdt.h>
+
+
+#include <limine.h>
+//#include "limine.h"//to make gcc happy when compiling by myself
+
+#include <flanterm/flanterm.h>
+#include <flanterm/backends/fb.h>
+//#include "flanterm/flanterm.h"
+//#include "flanterm/backends/fb.h"
+
+
+
+// Set the base revision to 3, this is recommended as this is the latest
+// base revision described by the Limine boot protocol specification.
+// See specification for further info.
+
+__attribute__((used, section(".limine_requests")))
+static volatile LIMINE_BASE_REVISION(3);
+
+// The Limine requests can be placed anywhere, but it is important that
+// the compiler does not optimise them away, so, usually, they should
+// be made volatile or equivalent, _and_ they should be accessed at least
+// once or marked as used with the "used" attribute as done here.
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_framebuffer_request framebuffer_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0
+};
+
+// Finally, define the start and end markers for the Limine requests.
+// These can also be moved anywhere, to any .c file, as seen fit.
+
+__attribute__((used, section(".limine_requests_start")))
+static volatile LIMINE_REQUESTS_START_MARKER;
+
+__attribute__((used, section(".limine_requests_end")))
+static volatile LIMINE_REQUESTS_END_MARKER;
+
+// GCC and Clang reserve the right to generate calls to the following
+// 4 functions even if they are not directly called.
+// Implement them as the C specification mandates.
+// DO NOT remove or rename these functions, or stuff will eventually break!
+// They CAN be moved to a different .c file.
+
+void *memcpy(void *dest, const void *src, size_t n) {
+    uint8_t *pdest = (uint8_t *)dest;
+    const uint8_t *psrc = (const uint8_t *)src;
+
+    for (size_t i = 0; i < n; i++) {
+        pdest[i] = psrc[i];
+    }
+
+    return dest;
+}
+
+void *memset(void *s, int c, size_t n) {
+    uint8_t *p = (uint8_t *)s;
+
+    for (size_t i = 0; i < n; i++) {
+        p[i] = (uint8_t)c;
+    }
+
+    return s;
+}
+
+void *memmove(void *dest, const void *src, size_t n) {
+    uint8_t *pdest = (uint8_t *)dest;
+    const uint8_t *psrc = (const uint8_t *)src;
+
+    if (src > dest) {
+        for (size_t i = 0; i < n; i++) {
+            pdest[i] = psrc[i];
+        }
+    } else if (src < dest) {
+        for (size_t i = n; i > 0; i--) {
+            pdest[i-1] = psrc[i-1];
+        }
+    }
+
+    return dest;
+}
+
+int memcmp(const void *s1, const void *s2, size_t n) {
+    const uint8_t *p1 = (const uint8_t *)s1;
+    const uint8_t *p2 = (const uint8_t *)s2;
+
+    for (size_t i = 0; i < n; i++) {
+        if (p1[i] != p2[i]) {
+            return p1[i] < p2[i] ? -1 : 1;
+        }
+    }
+
+    return 0;
+}
+
+// Halt and catch fire function.
+static void hcf(void) {
+    for (;;) {
+        asm ("hlt");
+    }
+}
+
+
+
+
+
+//need to make functions static so they persist and don't get overwritten for whatever reason
+static void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
+    volatile uint32_t* fb_ptr = framebuffer->address;
+    for (size_t i = 0; i < framebuffer->height * framebuffer->width; i++) {
+        fb_ptr[i] = color;
+    }
+}
+
+struct GDTPtr {
+    uint16_t limit;
+    uint64_t base;
+} __attribute__((packed));
+
+
+struct GDTPtr gdtr;
+
+
+
+void load_gdt(uint64_t* gdt_table, struct limine_framebuffer* framebuffer) {//chatgpt generated
+    gdtr.limit = sizeof(uint64_t) * 7 - 1;  // GDT size
+    gdtr.base = (uint64_t)gdt_table;        // GDT base address
+
+    asm volatile("cli"); // Disable interrupts
+    // Load the GDTR register
+    asm volatile("lgdt %0" : : "m"(gdtr));
+
+    // Perform a far jump to reload the CS segment
+    asm volatile(
+        "pushq $0x08\n"        // Push kernel code segment selector (GDT entry 1)
+        "lea 1f(%%rip), %%rax\n"
+        "pushq %%rax\n"
+        "lretq\n"              // Long return to update CS
+        "1:\n"
+        :
+    :
+        : "rax", "memory"
+        );
+
+    // Reload other segment registers
+    asm volatile(
+        "mov $0x10, %%ax\n"    // Kernel data segment selector (GDT entry 2)
+        "mov %%ax, %%ds\n"
+        "mov %%ax, %%es\n"
+        "mov %%ax, %%fs\n"
+        "mov %%ax, %%gs\n"
+        "mov %%ax, %%ss\n"
+        :
+    :
+        : "memory"
+        );
+    asm volatile("sti"); // Re-enable interrupts
+}
+
+
+void load_tss(struct flanterm_context* ft_ctx) {//chatgpt generated
+
+    //flanterm_write(ft_ctx, "hi", 2);
+    asm volatile("cli"); // Disable interrupts
+    asm volatile("ltr %%ax" : : "a"(0x28)); // 0x28: Selector for TSS descriptor (GDT entry 5)
+    asm volatile("sti"); // Re-enable interrupts
+
+    flanterm_write(ft_ctx, "bye", 3);
+}
+
+
+void uint16_to_hex(uint16_t value, char* buffer) {
+    const char* hex_digits = "0123456789ABCDEF";
+
+    // Fill the buffer with "0x" prefix
+    buffer[0] = '0';
+    buffer[1] = 'x';
+
+    // Convert each nibble (4 bits) into a hexadecimal digit
+    for (int i = 3; i >= 0; i--) {
+        buffer[2 + (3 - i)] = hex_digits[(value >> (i * 4)) & 0xF];
+    }
+
+    // Null-terminate the string
+    buffer[6] = '\0';
+}
+
+
+
+void uint64_to_hex(uint64_t value, char* buffer) {
+    const char* hex_digits = "0123456789ABCDEF";
+
+    // Fill the buffer with "0x" prefix
+    buffer[0] = '0';
+    buffer[1] = 'x';
+
+    // Convert each nibble (4 bits) into a hexadecimal digit
+    for (int i = 15; i >= 0; i--) {
+        buffer[2 + (15 - i)] = hex_digits[(value >> (i * 4)) & 0xF];
+    }
+
+    // Null-terminate the string
+    buffer[18] = '\0';
+}
+
+void output_gdt_entries(uint64_t* gdt_table, size_t entry_count, struct flanterm_context* ft_ctx) {
+    char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
+
+    for (size_t i = 0; i < entry_count; i++) {
+        uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
+        flanterm_write(ft_ctx, "GDT Entry ", 10);
+        flanterm_write(ft_ctx, buffer, 18); // Write the hex value
+        flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
+    }
+}
+
+
+
+#include <stdint.h>
+
+// IDT entry structure (16 bytes per entry in long mode)
+struct IDTEntry {
+    uint16_t offset_low;     // Lower 16 bits of the handler function's address
+    uint16_t selector;       // Kernel code segment selector
+    uint8_t ist;             // Interrupt Stack Table offset (0 if unused)
+    uint8_t type_attr;       // Type and attributes
+    uint16_t offset_middle;  // Middle 16 bits of the handler function's address
+    uint32_t offset_high;    // Upper 32 bits of the handler function's address
+    uint32_t zero;           // Reserved, must be 0
+} __attribute__((packed));
+
+// IDT pointer structure
+struct IDTPtr {
+    uint16_t limit;          // Limit of the IDT (size - 1)
+    uint64_t base;           // Base address of the IDT
+} __attribute__((packed));
+
+// Declare a global IDT with 256 entries
+struct IDTEntry idt[256];
+struct IDTPtr idtr;
+
+// A simple fault handler (will halt the CPU for now)
+void fault_handler() {
+    asm volatile("cli; hlt");
+}
+
+// Set up an IDT entry
+void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr) {
+    uint64_t handler_address = (uint64_t)handler;
+
+    idt[vector].offset_low = handler_address & 0xFFFF;
+    idt[vector].selector = selector;
+    idt[vector].ist = 0; // No alternate stack
+    idt[vector].type_attr = type_attr;
+    idt[vector].offset_middle = (handler_address >> 16) & 0xFFFF;
+    idt[vector].offset_high = (handler_address >> 32) & 0xFFFFFFFF;
+    idt[vector].zero = 0;
+}
+
+// Load the IDT into the CPU
+void load_idt() {
+    idtr.limit = sizeof(idt) - 1;
+    idtr.base = (uint64_t)&idt;
+
+    asm volatile("lidt %0" : : "m"(idtr)); // Load IDT register
+}
+
+// Initialize the IDT
+void setup_idt() {
+    // Clear the IDT (set all entries to 0)
+    memset(idt, 0, sizeof(idt));
+
+    // Set handlers for basic exceptions
+    set_idt_entry(13, fault_handler, 0x08, 0x8E); // General Protection Fault (vector 13)
+    set_idt_entry(14, fault_handler, 0x08, 0x8E); // Page Fault (vector 14)
+
+    // Load the IDT
+    load_idt();
+}
+
+
+void gpf_handler() {
+    asm volatile("cli; hlt"); // Halt on GPF
+}
+void double_fault_handler() {
+    asm volatile("cli; hlt"); // Halt on Double Fault
+}
+
+
+
+
+
+
+
+// The following will be our kernel's entry point.
+// If renaming kmain() to something else, make sure to change the
+// linker script accordingly.
+void kmain(void) {
+
+    /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
+    uint32_t RED = 0xff0000;
+    uint32_t GREEN = 0x00ff00;
+    uint32_t BLUE = 0x0000ff;
+    uint32_t WHITE = 0xffffff;
+    uint32_t BLACK = 0x000000;
+
+    // Ensure the bootloader actually understands our base revision (see spec).
+    if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+        hcf();
+    }
+
+    // Ensure we got a framebuffer.
+    if (framebuffer_request.response == NULL
+     || framebuffer_request.response->framebuffer_count < 1) {
+        hcf();
+    }
+
+    // Fetch the first framebuffer.
+
+    // Note: we assume the framebuffer model is RGB with 32-bit pixels.
+
+    //for (size_t i = 0; i < 100; i++) {
+    //    volatile uint32_t *fb_ptr = framebuffer->address;
+    //    fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
+    //}
+
+    struct limine_framebuffer* framebuffer = framebuffer_request.response->framebuffers[0];
+
+    struct flanterm_context* ft_ctx = flanterm_fb_init(//https://github.com/mintsuki/flanterm
+        NULL,
+        NULL,
+        framebuffer->address, framebuffer->width, framebuffer->height, framebuffer->pitch,//remember to use framebuffer->address as the framebuffer arg. framebuffer is just a struct, so we need to pass its actual address in as well
+        framebuffer->red_mask_size, framebuffer->red_mask_shift,
+        framebuffer->green_mask_size, framebuffer->green_mask_shift,
+        framebuffer->blue_mask_size, framebuffer->blue_mask_shift,
+        NULL,
+        NULL, NULL,
+        NULL, NULL,
+        NULL, NULL,
+        NULL, 0, 0, 1,
+        0, 0,
+        0
+    );
+
+
+    clear_framebuffer(framebuffer, BLACK);
+
+
+    /* segments
+    null
+    kernel mode code
+    kernel mode data
+    user mode code
+    user mode data
+    task state
+    */
+
+
+
+    uint64_t gdt_table[7];
+    gdt_table[0] = 0;
+    gdt_table[1] = create_descriptor(0, 0xFFFFF, 0x9a, 0x0a);
+    gdt_table[2] = create_descriptor(0, 0xFFFFF, 0x92, 0x0c);
+    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);
+    gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
+    load_gdt(gdt_table, framebuffer);
+
+    setup_idt();
+
+    load_idt();
+
+    struct TSS tss __attribute__((aligned(16)));
+    //gdt_table[5] = create_descriptor(0, 0xFFFFF, 0x89, 0x40);
+    memset(&tss, 0, sizeof(tss));
+    tss.rsp[0] = 0x80000; // Kernel stack pointer for privilege level 0
+    tss.ist[0] = 0x90000; // Example IST stack pointer
+
+    //*(volatile uint64_t*)0x80000 = 0xDEADBEEF; // Test write
+    //*(volatile uint64_t*)0x90000 = 0xCAFEBABE; // Test write
+
+    tss.iomap_base = sizeof(tss); // End of TSS structure
+
+    // Step 3: Create the TSS descriptor in the GDT
+    create_tss_descriptor((uint64_t)&tss, sizeof(tss) - 1, gdt_table, 5);//for gdt_5
+
+    
+
+
+
+
+
+
+
+    output_gdt_entries(gdt_table, 7, ft_ctx);
+
+    char buffer[19];
+    flanterm_write(ft_ctx, "TSS Address: ", 13);
+    uint64_to_hex((uint64_t)&tss, buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+    flanterm_write(ft_ctx, "GDTR Base: ", 11);
+    uint64_to_hex((uint64_t)gdt_table, buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\nGDTR Limit: ", 14);
+    uint16_to_hex(gdtr.limit, buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+    flanterm_write(ft_ctx, "TSS Low: ", 9);
+    uint64_to_hex(gdt_table[5], buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+    flanterm_write(ft_ctx, "TSS High: ", 10);
+    uint64_to_hex(gdt_table[6], buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+    flanterm_write(ft_ctx, "TSS RSP0: ", 10);
+    uint64_to_hex(tss.rsp[0], buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+    flanterm_write(ft_ctx, "TSS IST1: ", 10);
+    uint64_to_hex(tss.ist[0], buffer);
+    flanterm_write(ft_ctx, buffer, 18);
+    flanterm_write(ft_ctx, "\n", 1);
+
+
+
+
+    //asm volatile("ltr %%ax" : : "a"(0x28));
+
+
+
+    load_tss(ft_ctx);
+    //load_tss_asm();
+    for (size_t i = 0; i < 100; i++) { volatile uint32_t* fb_ptr = framebuffer->address; fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff; }
+    while (1) { asm("hlt"); }
+    flanterm_write(ft_ctx, "helloworld", 10);
+
+    //poll_kb(ft_ctx);
+
+    // We're done, just hang...
+    hcf();
+}
+
+
+
+
+
+
+
+#################
+
+
+    // uint64_t alloc0 = kmalloc(5);
+    // uint64_t alloc1 = kmalloc(3);
+    // uint64_t alloc2 = kmalloc(1);
+    // uint64_t alloc3 = kmalloc(6);
+    // uint64_t alloc4 = kmalloc(4);
+    // print_heap(20);
+    // kfree(alloc1);
+    // print_heap(20);
+    // kprintln_uint64(alloc3);
+
+    // uint64_t* x = (uint64_t*) alloc3;
+    // for (int i = 0; i < 10; i++) {
+    //     x[i] = i;
+    // }
+    // for (int i = 3; i < 13; i++) {
+    //     kprintln_uint64(x[i]);
+    // }
+
+
+
+       //char buf[64];
+       //uint64_t pml4;
+       //asm volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
+       //kprint("pml4: ");
+       //uint64_to_string(pml4, buf);
+       //kprint(buf);
+       //kprint("\n");
+
+       //__asm__ volatile ("mv %0, cr3 : "=r"");
+
+       //__asm__ volatile ("sidt %0" : "=m"(idtr_v));
+
+    //init_paging();
+
+    //volatile uint64_t* lptr;//old r/w to memory test
+    //for (int i = 0; i < 10; i++) {
+    //    uint64_t pa = alloc_frame();//pa = physical address; va = virtual address
+    //    uint64_t va = pa + hhdm_offset;
+    //    volatile uint64_t* ptr = (uint64_t*)va;
+    //    *ptr = (uint64_t) i;
+    //    if (frame_bitmap[i] == 1) {
+    //        //kprintln_uint64(va);
+    //    }
+    //}
+    //for (int i = 0; i < 10; i++) {
+    //    if (frame_bitmap[i] == (uint8_t) 1) {
+    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+    //        lptr = (uint64_t*)a;
+    //        //kprintln_uint64(*lptr);
+    //        free_frame(a-hhdm_offset);
+    //    }
+    //}
+    //for (int i = 0; i < 10; i++) {
+    //    //kprintln("hi");
+    //    if (frame_bitmap[i] == (uint8_t) 1) {
+    //        uint64_t a = ((i * 4096) + starting_address) + hhdm_offset;
+    //        lptr = (uint64_t*)a;
+    //        //kprintln_uint64(*lptr);
+    //    }
+    //}
+
+
+//for (int i = 0; i < 10000; i++) {
+    //    frame_bitmap[i] = 0x00;//not sure if using frame_bitmap[10000] = { 0 } as a declaration is bug free so i'm doing this just to be safe
+    //}
+    //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096. also only declare this once because i think it was causing issues when it was called multiple times because of alloc_frame() redefining it multiple times
+    
+    //struct usable_memmaps_region* current_memmap = &first_memmap;
+
+    //for (int i = 0; i < 4; i++) {
+    //    kprint("base: ");
+    //    kprintln_uint64(current_memmap->base);
+    //    kprint("length: ");
+    //    kprintln_uint64(current_memmap->length);
+    //    current_memmap = current_memmap->next;
+    //}
+    //return &first_memmap;
+
+        //struct usable_memmaps_region* usable_memmap = usable_memmaps[i];
+  //      usable_memmap->base = usable_memmaps[i]->base;
+		//usable_memmap->length = usable_memmaps[i]->length;
+  //      usable_memmap->next = NULL;
+
+ //   struct usable_memmaps_region first_memmap;
+ //   first_memmap.base = usable_memmaps[0]->base;
+ //   first_memmap.length = usable_memmaps[0]->length;
+	//first_memmap.next = NULL;
+
+void map_page_bad(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions) {//tried debugging with chatgpt. doesn't work. don't use
+    uint64_t pml4_index = (virt_address >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt_address >> 30) & 0x1FF;
+    uint64_t pd_index = (virt_address >> 21) & 0x1FF;
+    uint64_t pt_index = (virt_address >> 12) & 0x1FF;
+    uint64_t offset = virt_address & 0xFFF;
+
+    page_struct* pml4 = (void*) pml4_address;
+
+    pml4->entries[511] =  ((((uint64_t)pml4_address)-hhdm_offset) & ~0xfff) | 0b11;
+
+    uint64_t pml4_entry = pml4->entries[pml4_index];
+    if (!(pml4_entry & 1)) {
+        uint64_t new_entry = (alloc_frame() & ~0xfff) | 0b11;
+        pml4->entries[pml4_index] = new_entry;
+        pml4_entry = (new_entry & 0x000FFFFFFFFFF000) + hhdm_offset;
+    }
+    // page_struct* pdpt = (page_struct*) ((pml4_entry & ~0xfff) + hhdm_offset);
+    page_struct* pdpt = (page_struct*) pml4_entry;
+    uint64_t pdpt_entry = pdpt->entries[pdpt_index];
+	if (!(pdpt_entry & 1)) {
+        uint64_t new_entry = (alloc_frame() & ~0xfff) | 0b11;
+        pdpt->entries[pdpt_index] = new_entry;
+        pdpt_entry = (new_entry & 0x000FFFFFFFFFF000) + hhdm_offset;
+	}
+	// page_struct* pd = (page_struct*) ((pdpt_entry & ~0xfff) + hhdm_offset);
+    page_struct* pd = (page_struct*) pdpt_entry;
+	uint64_t pd_entry = pd->entries[pd_index];
+    if (!(pd_entry & 1)) {
+        uint64_t new_entry = (alloc_frame() & ~0xfff) | 0b11;
+        pd->entries[pd_index] = new_entry;
+		pd_entry = (new_entry & 0x000FFFFFFFFFF000) + hhdm_offset;
+    }
+    
+	// page_struct* pt = (page_struct*) ((pd_entry & ~0xfff) + hhdm_offset);
+    page_struct* pt = (page_struct*) pd_entry;
+    pt->entries[pt_index] = (phys_address & ~0xfff) | permissions;
+    asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
+}
+
+    // map_page(((void*)page), 0x1000, 0x100000, 0b11);//credit to .linux_dude for making this thing work
+    // kprintln("hi");
+
+    //pml4_address = 0;//initialize memory
+    //kprintln("allocating pml4");
+    //asm volatile ("mov %%cr3, %0" : "=r"(pml4_address));//=r for output register and r for input register
+    //pml4_address += hhdm_offset;
+    //pml4 = (uint64_t*)pml4_address;
+
+    
+    //uint64_t pml4_address;
+    //uint64_t* pml4;
+    //pml4_address = alloc_frame() & ~0xfff;
+    //
+    ////asm volatile ("mov %%cr3, %0" : "=r"(pml4_address));//=r for output register and r for input register
+    ////__asm__ volatile ("mov %%cr3, %0" : "=r"(pml4_address));
+
+    //uint64_t pml4_address_phys = pml4_address;
+    //pml4_address += hhdm_offset;
+    //pml4 = (uint64_t*)pml4_address;
+    //kprintln("pml4:");
+    //kprintln_uint64(pml4);
+    ////for (int i = 0; i < 512; i++) pml4[i] = 0;
+    ////for (int i = 0; i < 512; i++) kprintln_uint64(pml4[i]);
+
+    //virt_lookup(pml4_address);
+    //kprintln_uint64(pml4_address-hhdm_offset);
+
+
+
+
+    //uint64_t self_map_addr = (uint64_t)511 << 39;
+    //uint64_t pml4_address_phys = (uint64_t) page;
+    //kprintln("mapping pml4");
+    //map_page(page, pml4_address_phys, self_map_addr, 0b11);//maps pml4 to itself
+    //kprintln("pml4 mapped to itself");
+
+    //kprintln("cr3 loaded successfully");
+    //kprintln_uint64(pml4_address_phys);
+    //asm volatile ("invlpg (%0)" :: "r" (self_map_addr) : "memory");
+
+//void init_paging() {//right now, i'm loading the pml4 address into the already provided address in cr3
+//    //pml4 = (uint64_t*) alloc_frame();
+//    kprintln("allocating pml4");
+//    //__asm__ volatile ("mov %%cr3, %0" : "=r"(pml4));//AT&T syntax so it's [src] [dest]
+//    //for (int i = 0; i < 512; i++) pml4[i] = 0;
+//    //asm volatile ("mov %0, %%cr3" :: "r"(pml4));
+//    kprintln("pml4:");
+//    //kprintln_uint64(pml4);
+//    //kprintln_uint64(pml4[0]);
+//}
+
+//void free_frame(void) {//kind of a stack allocator
+//    if (last_alloced_frame > (uint8_t)0) {//to prevent 
+//        frame_bitmap[last_alloced_frame] = 0x00;
+//        last_alloced_frame--;
+//    }
+//    else if (last_alloced_frame == (uint8_t)0) {
+//        kprint("no more frames to free\n");
+//    }
+//}
+
+// void free_frame(uint64_t address) {//right now, it's using an address instead of a pointer; uses physical address
+//     //uint8_t index = (address - hhdm_offset - starting_address) / 4096;//revert hhdm
+//     uint8_t index = (address - starting_address) / 4096;//uses physical address
+//     kprint("index: ");
+//     kprint_uint64(index);
+//     kprint("\n");
+//     //frame_bitmap[index] = 0x00;
+//     //HERE
+// }
+
+//init_physical_memory() is put in main.c because hhdm_request is static and can only be used in main.c i think
+
+//uint64_t alloc_frame(void) {//not sure how this would be used with hhdm yet
+//    //starting_address = (*usable_memmaps_1_ptr)->base;//might need to align to 4096
+//    for (int i = 0; i < 10000; i++) {
+//        if (frame_bitmap[i] == 0x00) {
+//            frame_bitmap[i] = 0x01;
+//            last_alloced_frame = i;
+//            return starting_address + (i * 4096);
+//        }
+//    }
+//    kprint("no more frames to allocate. returning last allocated frame's address\n");
+//    return starting_address + (last_alloced_frame * 4096);//returns an address instead of a pointer
+//}
+
+//uintptr_t pml4;
+//uintptr_t pdpt;
+//uintptr_t pd;
+//uintptr_t pt;
+
+//use hhdm
+
+/*
+so cr3 gives a pointer to an array of pml4 entries.
+each entry has a pointer to an array of pdpt entries.
+each pdpt entry has a pointer to an array of page directory entries.
+each page directory entry has a pointer to an array of page table entries
+each page table entry has a pointer to a frame
+
+so now i use the hhdm to map the cr3 address to an actual address
+with that address, i can access the array of pml4 entries
+after the array of pml4 entries, i can offset the original cr3 address create another array in physical memory to store the pdpt entries
+and then after that i do the same thing for each page dir entry
+and then after that i do the same thing for each page table entry
+like |pml4[512]|pdpt[512^2]|page_dir[512^3]|page_table[512^4]|
+
+and then to allocate a page, i just have a gigantic bitmap (for now) to store each individual frame
+*/
+
+
+/*
+You're mixing up what goes into the entry with how the CPU calculates the physical address of the entry. You've also skipped one level.
+
+Each entry contains bits 51:12 of the physical address of the next level's table in bits 51:12, and various other data in the remaining bits.
+
+CR3 contains the physical address of a PML5 or a PML4 depending on CR4.
+
+Each PML5 contains 512 PML5Es, and each PML5E contains the physical address of a PML4.
+Each PML4 contains 512 PML4Es, and each PML4E contains the physical address of a PDPT.
+Each PDPT contains 512 PDPTEs, and each PDPTE contains the physical address of a PD.
+Each PD contains 512 PDEs, and each PDE contains the physical address of a PT.
+Each PT contains 512 PTEs, and each PTE contains the physical address of a 4kiB page.
+
+It's easier to follow if you throw out Intel's dumb names and call them PML3, PML2, and PML1 instead of PDPT, PD, and PT.
+*/
+
+//extern typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
+//	uint64_t entries[512];
+//} page_struct;
+
+//void map_page(uint64_t address);
+
+//void free_frame(void);
+
+//extern uint8_t frame_bitmap[10000];
+
+void walk_page(uintptr_t structure) {
+
+}
+
+//uint8_t frame_bitmap[10000];//10000*4096 = 40.96 mb of memory. make sure it doesn't exceed the max amount of allocatable memory
+//remember to prevent overflows and underflows. make this more secure
+
+// kprint("current region's base: ");
+                // kprint_uint64(current->base);
+                // kprint("  index: ");
+                // kprintln_uint64(i);//i'm honestly not sure why the 0th index is 1. it's set to 0 when it's first initialized
+
+// current = head;
+// int i = 0;
+// while (current->next != NULL) {        
+//     i++;
+//     current = current->next;
+// }
+// kprintln_uint64(i);
