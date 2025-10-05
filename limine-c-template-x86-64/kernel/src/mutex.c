@@ -10,10 +10,17 @@ it'll just spin until the mutex is released
 bool acquire_mutex(mutex_t* mutex) {
 
     //(object, old val, new val)
-    while(!__sync_bool_compare_and_swap(&mutex->locked, 0, 1)) {
+    // while(!__sync_bool_compare_and_swap(&mutex->locked, 0, 1)) {
+    //     asm volatile ("pause");
+    // }
+
+    //0, 1
+    bool old = 0;
+    bool new = 1;
+    //(object, old val, new val)
+    while (!__atomic_compare_exchange(&mutex->locked, &old, &new, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) {
         asm volatile ("pause");
     }
-
     
     //we return whether or not the operation was successful
     return 0;
@@ -21,7 +28,16 @@ bool acquire_mutex(mutex_t* mutex) {
 
 bool release_mutex(mutex_t* mutex) {
 
-    __sync_bool_compare_and_swap(&mutex->locked, 1, 0);
+    // __sync_bool_compare_and_swap(&mutex->locked, 1, 0);
+
+    //1, 0
+    bool old = 1;
+    bool new = 0;
+    //(object, old val, new val)
+    while (!__atomic_compare_exchange(&mutex->locked, &old, &new, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) {
+        asm volatile ("pause");
+    }
+
     //we return whether or not the operation was successful
     return 0;
 }
