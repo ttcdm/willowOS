@@ -65,7 +65,7 @@ void test_a() {
 
     int aa = 1;
     int b = 2;
-    syscall_log("abc %d %d", aa, b);
+    // syscall_log("abc %d %d", aa, b);
 
     while (1) {
         // syscall_log("hi from test_a");
@@ -184,7 +184,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     //hopefully there's no race condition here with getting the current thread and other stuff
     mmap_args->cr3 = get_current_thread()->cr3;
     mmap_args->phys_address = (uint64_t) region_start;
-    kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
+    // kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
 
     mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
     
@@ -192,7 +192,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
         thread_context* t;
         t = get_current_thread();
         for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-            kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+            // kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
         }
     }
 

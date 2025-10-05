@@ -61,6 +61,7 @@ void gen1() {
 int aaa = 0;
 void gen2() {
 	// kprintf_interruptable("hi");
+	// static int aaa = 0;//not sure if this is safe for multiple cores
 	aaa += 2;
 	// aaa = 2;
 	int c;
@@ -457,10 +458,9 @@ void scheduler_return() {//basically pthread_exit
 
 		thread_context* actual_running_thread = running_thread;
 		running_thread = temp;//i feel like this is a bad idea if something gets interrupted in the middle and the threads get mixed up
-		if (temp->elf_entry != NULL) {
-			assert(temp->elf_file != NULL);
-			unload_elf(temp->elf_file, (uint64_t) temp->cr3);
-		}
+			if ((temp->elf_entry != NULL) && (temp->elf_file != NULL)) {//because elf entry only refers to the thing we wanna run in userspace regardless of whether or not it's an elf
+				unload_elf(temp->elf_file, (uint64_t) temp->cr3);
+			}
 
 		for (uint64_t i = 0; i < temp->mappings.max_mappings; i++) {
     		// kprintf("%d %llx virt address ABC\n", i, temp->mappings.mapped_virt_addresses[i]);
