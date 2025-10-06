@@ -7,7 +7,8 @@
 #include <limine.h>
 
 
-uint64_t alloc_frame(void);
+uint64_t alloc_frame(void);//does clear the allocated frame
+uint64_t alloc_frame_no_clear(void);//does NOT clear the allocated frame
 void* pmm_alloc_bytes(uint64_t size);
 
 uint64_t alloc_frame_better(void);

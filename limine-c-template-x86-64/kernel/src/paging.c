@@ -1,6 +1,7 @@
 #include <paging.h>
 #include <kutils.h>
 #include <scheduler.h>
+
 #include <errno.h>
 
 typedef struct pml4_page_struct {//not sure if we need __attribute__((packed))
@@ -31,27 +32,55 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
     return 0;
 }
 
-void* pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value regardless of if it was successful or not so the depending functions don't take in undefined values
+//does NOT clear the allocated section
+uint64_t alloc_frame_no_clear(void) {//can only allocate usable memmaps for now
+    return alloc_frame();
+    // starting_address = memmap_arr[0].base + 300000;//first 100k is self reserved for alloc_frame()'s bitmap
+    struct usable_memmaps_region* current = &memmap_arr[0];
+    // while (current->next != NULL) {
+    while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
+        for (uint64_t i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
+            if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
+                current->frame_bitmap[i] = 0x01;
+                last_alloced_frame = i;//idek if this is even supposed to be here atp
+                //HERE removed memset because it was causing page faults. it honestly shouldn't matter though because we don't know the page map that we're currently using so we probably shouldn't touch the memory itself
+                // memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
+                // kprintln("page allocated successfully");
+                return current->base + (i * 4096);
+            }
+        }
+        current = current->next;
+    }
+	kprintln("no more frames to allocate. returning 0");
+    return 0;
+}
 
+void* pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value regardless of if it was successful or not so the depending functions don't take in undefined values
+    bool irq;//HERE should probably change this because we're trying to allocate a contiguous chunks by disabling interupts but it might be really costly because this might be slow
+    irq_disable_save(&irq);
     if (size == 0) {
+        irq_restore(&irq);
         return NULL;//always remember to assert this
     }
     if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
-        return (void*) alloc_frame();
+        irq_restore(&irq);
+        return (void*) alloc_frame_no_clear();
     }
     else {
         if (size % PAGE_SIZE_DEFINED == 0) {
-            uint64_t ret = alloc_frame();
+            uint64_t ret = alloc_frame_no_clear();
             for (int i = 1; i < (size / PAGE_SIZE_DEFINED); i++) {
-                alloc_frame();
+                alloc_frame_no_clear();
             }
+            irq_restore(&irq);
             return (void*) ret;
         }
         else {
-            uint64_t ret = alloc_frame();
+            uint64_t ret = alloc_frame_no_clear();
             for (int i = 1; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
-                alloc_frame();
+                alloc_frame_no_clear();
             }
+            irq_restore(&irq);
             return (void*) ret;
         }
     }
@@ -89,9 +118,11 @@ uint64_t alloc_frame_better(void) {
     return 0;
 }
 
-
+//HERE fix this??
+//only allow 4kib aligned input?? and assert that it is as well?
 void free_frame(uint64_t phys_address) {//pretty sure this works. may have to align input to 4kib??
     // uint8_t index;
+    return;
     bool irq;
     irq_disable_save(&irq);
     struct usable_memmaps_region* current = &memmap_arr[0];
@@ -247,6 +278,9 @@ int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_
         return EINVAL;//always remember to assert this
     }
     if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
+        if ((virt_address & 0xfff + size) > PAGE_SIZE_DEFINED) {
+
+        }
         uint64_t ret = map_page(pml4_address, phys_address, virt_address, permissions);
         get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;//map_page returns the index for the struct
         return 0;

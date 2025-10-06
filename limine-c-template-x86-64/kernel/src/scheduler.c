@@ -73,6 +73,10 @@ void gen2() {
 
 	// while (1) {test_b();}
 
+	// uint64_t a = alloc_frame();
+    // map_page((get_current_thread()->cr3), a, 0x10000000, 0b111);
+    // memset((void*) (0x10000000), 0, 0x1000);
+
 	while (1) { kprintf("gen2: hi from thread %d\n", get_current_thread()->pid); yield_thread(); }
 }
 

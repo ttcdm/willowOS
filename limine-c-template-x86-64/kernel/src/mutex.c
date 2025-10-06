@@ -34,9 +34,7 @@ bool release_mutex(mutex_t* mutex) {
     bool old = 1;
     bool new = 0;
     //(object, old val, new val)
-    while (!__atomic_compare_exchange(&mutex->locked, &old, &new, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) {
-        asm volatile ("pause");
-    }
+    __atomic_compare_exchange(&mutex->locked, &old, &new, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED);
 
     //we return whether or not the operation was successful
     return 0;
