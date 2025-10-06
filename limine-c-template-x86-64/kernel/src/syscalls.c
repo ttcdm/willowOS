@@ -51,7 +51,7 @@ void test_a() {
 		uint64_t* a;
 
         //it breaks in the memset if i use non 4kib aligned addresses but i think that we're only supposed to pass in 4kib aligned stuff. we should probably do a check inside the function(s) for it tho
-		sys_vm_map((uint64_t*) ((i*0x1000)+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | 0x1000, 0, 0, (void**) &a);
+		sys_vm_map((uint64_t*) ((i*0x1000)+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_EXECUTABLE, 0, 0, (void**) &a);
         // break;
     }
     // thread_context* t;
@@ -190,7 +190,6 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
         kprintf("syscall7: mmap virt address is not 4kib aligned\n");
         return EINVAL;
     }
-    // alloc_frame();
     void* region_start = pmm_alloc_bytes(mmap_args->size);
     // uint64_t* region_start = (uint64_t*) alloc_frame();
     // uint64_t* region_start = (uint64_t*) 0x1234;
@@ -199,23 +198,11 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     mmap_args->cr3 = get_current_thread()->cr3;
     mmap_args->phys_address = (uint64_t) region_start;
     // kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
-    
-    
-
-    mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions | 0b100, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
-    // asm volatile ("mov %%cr3, %%rax" : "=a" (mmap_args->cr3));
-    // map_page(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions);
-    // asm volatile ("mov %0, %%cr3" :: "r"(mmap_args->cr3 - hhdm_offset));
+    mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
     memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
-    
-
-    // uint64_t a = alloc_frame();
-    // map_page(get_current_thread()->cr3, (uint64_t) region_start, 0x1000000, 0b111);
-    // memset((void*) (0x1000000), 0, 0x1000);
-
-    // uint64_t a = alloc_frame();
-    // map_page(mmap_args->cr3, a, 0x1000000, 0b111);
-    // memset((void*) (0x1000000), 0, 0x1000);
+    if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
+        while (1);
+    }
     
     if (mmap_args->virt_address == 31) {
         thread_context* t;
@@ -467,7 +454,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         perm |= 1ULL << 63;//no execute
     }
 
-    perm |= 0b01;//present
+    perm |= 0b01;//mark the page as present
 
     //we have to use 1ULL because 1 defaults to int which is 16 or 32 bits wide i don't remember 
     //HERE remember to cast 1 to a ull and maybe have a constant(s?).h to have macros for it as well
