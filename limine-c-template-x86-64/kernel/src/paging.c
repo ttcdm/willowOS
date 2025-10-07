@@ -122,18 +122,27 @@ uint64_t alloc_frame_better(void) {
 //only allow 4kib aligned input?? and assert that it is as well?
 void free_frame(uint64_t phys_address) {//pretty sure this works. may have to align input to 4kib??
     // uint8_t index;
-    return;
+    // return;
     bool irq;
     irq_disable_save(&irq);
+    if (phys_address & 0xfff != 0) {
+        return;
+    }
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
-            if ((phys_address > current->base) && (phys_address < current->next->base)) {
+            if ((phys_address >= current->base) && (phys_address < current->next->base)) {
                 current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
+                static int a = 0;
+                a++;
+                if (a == 9) {
+                    kprintf("\n%ld\n", (phys_address - current->base) / 4096);
+                    // while (1);
+                }
                 irq_restore(&irq);
                 return;
             }
-            else if (phys_address > current->base) {
+            else if (phys_address > current->base + current->length) {
                 current = current->next;
             }
         }
