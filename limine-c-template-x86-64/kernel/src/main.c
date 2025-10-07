@@ -189,12 +189,46 @@ struct usable_memmaps_region memmap_arr[32];//HERE. might run into issues with s
 
 struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there is.remember that it's plural
     uint64_t usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
+    
+    // uint8_t* memmap_bitmap;
+    uint64_t total_usable_memory;
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+
+        if (memmap_request.response->entries[i]->type == 0) {
+            kprintf("base: %llx\nlength: %llx\ntype: %llx\n", memmap_request.response->entries[i]->base, memmap_request.response->entries[i]->length, memmap_request.response->entries[i]->type);
+        }
+
+        if (memmap_request.response->entries[i]->type == 0) {
+            total_usable_memory += memmap_request.response->entries[i]->length;
+        }
+
+
         //if (memmap_request.response->entries[i]->type == 0) {
         //    usable_memmaps_number++;
         //}
         usable_memmaps_number++;
     }
+
+
+
+    //this isn't a proper bitmap. we're using uint8_t's instead of the actual bits.
+    //we require at least 
+    
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
+        if (memmap_request.response->entries[i]->length >= 0x800000) {
+            memmap_bitmap = memmap_request.response->entries[i]->length;
+            break;
+        }
+    }
+
+    //now we 
+
+
+
+
+
+
+
 
     //not sure if i should put this as global
     struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
@@ -265,10 +299,10 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
         current->next = usable_memmap;
         current = current->next;
     }
-    kprint("number of usable memmaps (1 indexed): ");
+    // kprint("number of usable memmaps (1 indexed): ");
     kprintln_uint64(usable_memmaps_number);
 
-    kprintln("initialized memmaps");
+    // kprintln("initialized memmaps");
     return &memmap_arr[0];
 }
 
@@ -443,6 +477,7 @@ void kmain(void) {
     struct usable_memmaps_region* current_memmap = memmap;
     
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+        continue;
         if (current_memmap->type == 0) {
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
@@ -456,6 +491,10 @@ void kmain(void) {
 
 
     init_physical_memory();//make sure this is called first
+
+    kprintf("%llx", alloc_frame());
+
+    while (1);
 
     init_paging();
 

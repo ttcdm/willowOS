@@ -87,7 +87,7 @@ void* pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value
 
 }
 
-uint8_t** memmap_bitmap;
+uint8_t* memmap_bitmap;
 
 uint64_t alloc_frame_better(void) {
     kprintf("%d", usable_memmaps_amount);
@@ -132,6 +132,10 @@ void free_frame(uint64_t phys_address) {//pretty sure this works. may have to al
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
             if ((phys_address >= current->base) && (phys_address < current->next->base)) {
+                if (current->frame_bitmap[(phys_address - current->base) / 4096] == 0) {
+                    kprintf("free_frame(): frame already free\n");
+                    while (1);
+                }
                 current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
                 static int a = 0;
                 a++;

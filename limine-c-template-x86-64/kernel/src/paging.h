@@ -46,7 +46,7 @@ struct usable_memmaps_region {
 	struct usable_memmaps_region* next;
 };//HERE not sure if i need to align or use packed for general structures
 
-extern uint8_t** memmap_bitmap;
+extern uint8_t* memmap_bitmap;
 
 extern struct usable_memmaps_region memmap_arr[32];
 

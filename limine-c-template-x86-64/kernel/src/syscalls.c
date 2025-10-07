@@ -186,7 +186,8 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     irq_disable_save(&irq);
     //we can only assert here because cli or smth isn't allowed in userspace or smth idk it just doesn't seem to work in userspace
     // assert(mmap_args->virt_address & (uint64_t) 0xfff == (uint64_t) 0);//assert wasn't evaluating correctly for some reason. probably a type issue idk
-    void* region_start = pmm_alloc_bytes(mmap_args->size);
+    // void* region_start = pmm_alloc_bytes(mmap_args->size);
+    void* region_start = (void*) alloc_frame();
     if ((mmap_args->virt_address & 0xfff != 0) || (mmap_args->phys_address & 0xfff != 0)) {//not sure if the check for phys_address is needed since pmm_alloc_bytes() should always return a 4kib aligned address
         kprintf("syscall7: mmap virt address is not 4kib aligned\n");
         return EINVAL;
@@ -201,6 +202,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
     memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
     if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
+        kprintf("syscall7: memset clear failed\n");
         while (1);
     }
     
