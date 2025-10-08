@@ -62,7 +62,7 @@ void test_a() {
     //HERE modify syscall log for fmt and verify that all the mappings are correct
     // syscall_log("%llx", t);
 	// for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-		// syscall_log("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+	// 	syscall_log("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
 	// }
 
     int aa = 1;
@@ -185,34 +185,26 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     bool irq;
     irq_disable_save(&irq);
     //we can only assert here because cli or smth isn't allowed in userspace or smth idk it just doesn't seem to work in userspace
-    // assert(mmap_args->virt_address & (uint64_t) 0xfff == (uint64_t) 0);//assert wasn't evaluating correctly for some reason. probably a type issue idk
-    // void* region_start = pmm_alloc_bytes(mmap_args->size);
-    void* region_start = (void*) alloc_frame();
-    if ((mmap_args->virt_address & 0xfff != 0) || (mmap_args->phys_address & 0xfff != 0)) {//not sure if the check for phys_address is needed since pmm_alloc_bytes() should always return a 4kib aligned address
-        kprintf("syscall7: mmap virt address is not 4kib aligned\n");
+    if ((mmap_args->virt_address & 0xfff != 0)) {
         return EINVAL;
     }
-    // uint64_t* region_start = (uint64_t*) alloc_frame();
-    // uint64_t* region_start = (uint64_t*) 0x1234;
-    assert(region_start != NULL);//in case we pass in 0 for size
     //hopefully there's no race condition here with getting the current thread and other stuff
     mmap_args->cr3 = get_current_thread()->cr3;
-    mmap_args->phys_address = (uint64_t) region_start;
-    // kprintf("syscall7 %llx %llx %llx %llx\n", mmap_args->phys_address, mmap_args->virt_address, mmap_args->size, mmap_args->flag);
-    mmap_args->error = map_page_bytes(mmap_args->cr3, mmap_args->phys_address, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
+    // kprintf("syscall7 %llx %llx %llx\n", mmap_args->virt_address, mmap_args->size, mmap_args->flag);
+    mmap_args->error = map_range(mmap_args->cr3, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
     memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
     if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
         kprintf("syscall7: memset clear failed\n");
         assert(false);
     }
     
-    if (mmap_args->virt_address == 31) {
-        thread_context* t;
-        t = get_current_thread();
-        for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
-            // kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
-        }
-    }
+    // if (mmap_args->virt_address == 0x101f000) {//because 0d31 is 0xf1
+    //     thread_context* t;
+    //     t = get_current_thread();
+    //     for (uint64_t i = 0; i < t->mappings.max_mappings; i++) {//we need max because num mappings can go under an allocated index
+    //         kprintf("%d %llx virt address ABC\n", i, t->mappings.mapped_virt_addresses_array[i].virt_address);
+    //     }
+    // }
 
     irq_restore(&irq);
 

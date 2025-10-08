@@ -220,7 +220,6 @@ void hot_exec_elf(uint64_t pid, void* file) {//HERE remember to add some sort of
 	// new_cr3 -= hhdm_offset;
 	asm volatile ("mov %0, %%cr3" :: "r"(new_cr3 - hhdm_offset));
 	volatile thread_context* t = create_thread(pid, userspace_run_elf);
-	kprintf("%llx %d\n", new_cr3, t->pid);
     t->elf_entry = load_elf(file, new_cr3);
 	t->elf_file = file;
 	t->cr3 = (uint64_t*) (new_cr3);

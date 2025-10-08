@@ -12,7 +12,7 @@ uint64_t starting_address;
 uint8_t last_alloced_frame;
 uint64_t hhdm_offset;
 
-uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
+uint64_t alloc_frame(void) {//can only allocate usable memmaps for now. not wrapping with irq_disable_save() because this gets called before interrupts are enabled
     // starting_address = memmap_arr[0].base + 300000;//first 100k is self reserved for alloc_frame()'s bitmap
     struct usable_memmaps_region* current = &memmap_arr[0];
     // while (current->next != NULL) {
@@ -33,59 +33,62 @@ uint64_t alloc_frame(void) {//can only allocate usable memmaps for now
 }
 
 //does NOT clear the allocated section
-uint64_t alloc_frame_no_clear(void) {//can only allocate usable memmaps for now
-    return alloc_frame();
-    // starting_address = memmap_arr[0].base + 300000;//first 100k is self reserved for alloc_frame()'s bitmap
-    struct usable_memmaps_region* current = &memmap_arr[0];
-    // while (current->next != NULL) {
-    while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
-        for (uint64_t i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
-            if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
-                current->frame_bitmap[i] = 0x01;
-                last_alloced_frame = i;//idek if this is even supposed to be here atp
-                //HERE removed memset because it was causing page faults. it honestly shouldn't matter though because we don't know the page map that we're currently using so we probably shouldn't touch the memory itself
-                // memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
-                // kprintln("page allocated successfully");
-                return current->base + (i * 4096);
-            }
-        }
-        current = current->next;
-    }
-	kprintln("no more frames to allocate. returning 0");
-    return 0;
-}
+// uint64_t alloc_frame_no_clear(void) {//can only allocate usable memmaps for now
+//     return alloc_frame();
+//     // starting_address = memmap_arr[0].base + 300000;//first 100k is self reserved for alloc_frame()'s bitmap
+//     struct usable_memmaps_region* current = &memmap_arr[0];
+//     // while (current->next != NULL) {
+//     while (current != NULL) {//fix to reoccuring mistake that leads to off by one error. there's no next because we want to land on the last element, and the loop checks the next element which is the last element before jumping to it
+//         for (uint64_t i = 0; i < current->length / 4096; i++) {//hopefully there's no off by 1 error
+//             if ((current->frame_bitmap[i] == 0x00) && (current->type == 0)) {
+//                 current->frame_bitmap[i] = 0x01;
+//                 last_alloced_frame = i;//idek if this is even supposed to be here atp
+//                 //HERE removed memset because it was causing page faults. it honestly shouldn't matter though because we don't know the page map that we're currently using so we probably shouldn't touch the memory itself
+//                 // memset((void*)(current->base + hhdm_offset + (i * 4096)), 0x00, 4096);//clear the now initialized frame's memory
+//                 // kprintln("page allocated successfully");
+//                 return current->base + (i * 4096);
+//             }
+//         }
+//         current = current->next;
+//     }
+// 	kprintln("no more frames to allocate. returning 0");
+//     return 0;
+// }
 
-void* pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value regardless of if it was successful or not so the depending functions don't take in undefined values
-    bool irq;//HERE should probably change this because we're trying to allocate a contiguous chunks by disabling interupts but it might be really costly because this might be slow
-    irq_disable_save(&irq);
-    if (size == 0) {
-        irq_restore(&irq);
-        return NULL;//always remember to assert this
-    }
-    if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
-        irq_restore(&irq);
-        return (void*) alloc_frame_no_clear();
-    }
-    else {
-        if (size % PAGE_SIZE_DEFINED == 0) {
-            uint64_t ret = alloc_frame_no_clear();
-            for (int i = 1; i < (size / PAGE_SIZE_DEFINED); i++) {
-                alloc_frame_no_clear();
-            }
-            irq_restore(&irq);
-            return (void*) ret;
-        }
-        else {
-            uint64_t ret = alloc_frame_no_clear();
-            for (int i = 1; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
-                alloc_frame_no_clear();
-            }
-            irq_restore(&irq);
-            return (void*) ret;
-        }
-    }
 
-}
+//HERE do not use this because it doesn't give us a contiguous chunk
+// uint64_t pmm_alloc_bytes(uint64_t size) {//make sure we're ALWAYS returning a value regardless of if it was successful or not so the depending functions don't take in undefined values
+//     bool irq;//HERE should probably change this because we're trying to allocate a contiguous chunks by disabling interupts but it might be really costly because this might be slow
+//     irq_disable_save(&irq);
+//     if (size == 0) {
+//         kprintf("pmm_alloc_bytes(): cannot allocate 0 (zero) bytes. returning UINT64_MAX/-1\n");//not sure if we should have zero or 0
+//         irq_restore(&irq);
+//         return UINT64_MAX;//always remember to assert this
+//     }
+//     if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
+//         uint64_t ret = alloc_frame();
+//         irq_restore(&irq);//this is so alloc_frame() is not preempted
+//         return ret;
+//     }
+//     else {
+//         if (size % PAGE_SIZE_DEFINED == 0) {
+//             uint64_t ret = alloc_frame_no_clear();
+//             for (int i = 1; i < (size / PAGE_SIZE_DEFINED); i++) {
+//                 alloc_frame_no_clear();
+//             }
+//             irq_restore(&irq);
+//             return (void*) ret;
+//         }
+//         else {
+//             uint64_t ret = alloc_frame_no_clear();
+//             for (int i = 1; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
+//                 alloc_frame_no_clear();
+//             }
+//             irq_restore(&irq);
+//             return (void*) ret;
+//         }
+//     }
+// }
 
 uint8_t* memmap_bitmap;
 
@@ -286,23 +289,28 @@ uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_a
     // return 0ULL;
 }
 
-int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag) {//map size bytes starting from arg
+//allocates a page and maps it to a contiguous range
+int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag) {//map size bytes starting from arg
     //make sure that we always have a call to map_page() or at least do something with the thread's mapping array whenever we call this
+    //not completely sure if we should wrap this in irq_disable_save()
     if (size == 0) {
         return EINVAL;//always remember to assert this
     }
-    if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
-        if ((virt_address & 0xfff + size) > PAGE_SIZE_DEFINED) {
 
-        }
-        uint64_t ret = map_page(pml4_address, phys_address, virt_address, permissions);
+    size += virt_address & 0xfff;//we need the actual total size from the lowest address because that's what we're calculating off of
+
+    if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
+
+        uint64_t phys_page = alloc_frame();
+        uint64_t ret = map_page(pml4_address, phys_page, virt_address, permissions);
         get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;//map_page returns the index for the struct
         return 0;
     }
     else {
         if (size % PAGE_SIZE_DEFINED == 0) {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED); i++) {
-                uint64_t ret = map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t phys_page = alloc_frame();
+                uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
                 get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
 
             }
@@ -310,7 +318,8 @@ int map_page_bytes(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_
         }
         else {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
-                uint64_t ret = map_page(pml4_address, phys_address + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t phys_page = alloc_frame();
+                uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
                 get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
             }
             return 0;

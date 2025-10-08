@@ -94,15 +94,12 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
             uint64_t segment_start;
             if (phdr->p_memsz < 4096) {
                 segment_start = alloc_frame();
-                kprintf("%llx %llx\n", segment_start, (uint64_t) phdr->p_vaddr);
                 //can't call get_current_thread()->pid here because scheduling might not have started yet. it currently hasn't
-                // assert(false);
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
-                // change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
+                change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
-                assert(false);
                 segment_start = alloc_frame();
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
@@ -116,7 +113,6 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
                 }
             }
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
-                assert(false);
                 segment_start = alloc_frame();
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
@@ -145,20 +141,15 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
     
     //HERE REMEMBER TO FREE THE PHYSICAL FRAMES WHEN YOU'RE DONE
 
-    kprintf("%llx\n", cr3);
-
     Elf64_Ehdr* ehdr = file->data;
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
             if (phdr->p_memsz < 4096) {
-                // assert(false);
-                kprintf("%llx %d %llx\n", virt_to_phys_page(phdr->p_vaddr, cr3), get_current_thread()->pid, phdr->p_vaddr);
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));//need to free before we unmap because we need to still be able to translate it
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
             }
             else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
-                assert(false);
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
                 for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
@@ -167,7 +158,6 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
                 }
             }
             else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
-                assert(false);
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
                 for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {

@@ -45,7 +45,7 @@ void syscall_asm(uint64_t num);
 
 struct map_page_bytes_args {
             uint64_t* cr3;
-            uint64_t phys_address;
+            // uint64_t phys_address;//not used
             uint64_t virt_address;
             uint64_t permissions;
             uint64_t size;
