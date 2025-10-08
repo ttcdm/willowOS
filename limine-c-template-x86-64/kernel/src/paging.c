@@ -125,24 +125,22 @@ void free_frame(uint64_t phys_address) {//pretty sure this works. may have to al
     // return;
     bool irq;
     irq_disable_save(&irq);
-    if (phys_address & 0xfff != 0) {
+    // assert((phys_address & 0xfffull) != 0);
+    if ((phys_address & 0xfffull) != 0) {//HERE always remember the brackets
+        kprintf("free_frame(): non 4kib aligned input address\n");
+        assert(false);
         return;
     }
+
     struct usable_memmaps_region* current = &memmap_arr[0];
     while (current != NULL) {//sorta wastes an iteration at the beginning but oh well
         if (current->next != NULL) {
             if ((phys_address >= current->base) && (phys_address < current->next->base)) {
                 if (current->frame_bitmap[(phys_address - current->base) / 4096] == 0) {
-                    kprintf("free_frame(): frame already free\n");
-                    while (1);
+                    kprintf("free_frame(): frame already free at address. faulty address: %llx\n", phys_address);
+                    assert(false);
                 }
                 current->frame_bitmap[(phys_address - current->base) / 4096] = 0;
-                static int a = 0;
-                a++;
-                if (a == 9) {
-                    kprintf("\n%ld\n", (phys_address - current->base) / 4096);
-                    // while (1);
-                }
                 irq_restore(&irq);
                 return;
             }
@@ -222,6 +220,9 @@ uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_a
     uint64_t pd_index = (virt_address >> 21) & 0x1FF;
     uint64_t pt_index = (virt_address >> 12) & 0x1FF;
     // uint64_t offset = virt_address & 0xFFF;
+
+
+    //we actually end up mapping the page instead of the address only because invlpg uses the page that the address is in
 
     page_struct* pml4 = (void*)pml4_address;
     uint64_t pml4_entry = pml4->entries[pml4_index];
@@ -337,7 +338,8 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address) {
     uint64_t pd_entry = pd->entries[pd_index];
 
     page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
-    free_frame(pd->entries[pd_index]);//HERE may have an issue with reallocating a freed frame but not 100% sure
+    //we do not free the frame because it contains other entries
+    // free_frame(pd->entries[pd_index] & ~0xfff);//HERE always remember to pass in the actual thing without the permissions. may have an issue with reallocating a freed frame but not 100% sure
     pt->entries[pt_index] = (uint64_t) NULL;
     asm volatile ("invlpg (%0)" :: "r" (virt_address) : "memory");
 
@@ -417,5 +419,10 @@ uint64_t virt_to_phys(uint64_t virt_address, uint64_t cr3) {//REMEMBER TO USE TH
     page_struct* pt = (page_struct*)((pd_entry & ~0xfff) + hhdm_offset);
     uint64_t* pt_entry = &pt->entries[pt_index];
 
-    return (uint64_t) ((uint64_t*) ((uint64_t) *pt_entry & ~0xfff) + offset);
+    return (uint64_t) (((uint64_t) (*pt_entry & ~0xfff)) + offset);//HERE always remember to double check for if you're doing pointer arithmetic or normal arithmetic
+
+}
+
+uint64_t virt_to_phys_page(uint64_t virt_address, uint64_t cr3) {//always try to only write once??? and that you can just call the underlying function
+    return virt_to_phys(virt_address, cr3) & ~0xfff;
 }

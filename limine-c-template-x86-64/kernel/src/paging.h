@@ -35,6 +35,7 @@ void unmap_page(uint64_t* pml4_address, uint64_t virt_address);
 void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions);
 
 uint64_t virt_to_phys(uint64_t virt_address, uint64_t cr3);
+uint64_t virt_to_phys_page(uint64_t virt_address, uint64_t cr3);//returns 4kib aligned phys address of page
 
 struct usable_memmaps_region {
 	uint64_t base;

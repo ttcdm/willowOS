@@ -203,7 +203,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
     if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
         kprintf("syscall7: memset clear failed\n");
-        while (1);
+        assert(false);
     }
     
     if (mmap_args->virt_address == 31) {

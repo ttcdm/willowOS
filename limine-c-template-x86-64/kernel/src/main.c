@@ -216,7 +216,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
     
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
         if (memmap_request.response->entries[i]->length >= 0x800000) {
-            memmap_bitmap = memmap_request.response->entries[i]->length;
+            memmap_bitmap = (uint8_t*) memmap_request.response->entries[i]->base;
             break;
         }
     }
@@ -300,7 +300,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
         current = current->next;
     }
     // kprint("number of usable memmaps (1 indexed): ");
-    kprintln_uint64(usable_memmaps_number);
+    // kprintln_uint64(usable_memmaps_number);
 
     // kprintln("initialized memmaps");
     return &memmap_arr[0];
@@ -492,9 +492,9 @@ void kmain(void) {
 
     init_physical_memory();//make sure this is called first
 
-    kprintf("%llx", alloc_frame());
+    // kprintf("%llx", alloc_frame());
 
-    while (1);
+    // while (1);
 
     init_paging();
 

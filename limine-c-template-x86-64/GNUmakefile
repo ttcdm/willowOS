@@ -3,7 +3,7 @@ MAKEFLAGS += -rR
 .SUFFIXES:
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-QEMUFLAGS := -m 128M
+QEMUFLAGS := -m 2G
 
 override IMAGE_NAME := template
 

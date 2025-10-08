@@ -148,7 +148,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // hot_create_and_push_user_thread(14, gen3);
 
             for (int i = 0; i < 30; i++) {
-                // hot_exec_elf(i, exec_fd);
+                hot_exec_elf(i, exec_fd);
                 // hot_exec_elf(i+15, test_a);
                 // hot_create_and_push_thread(i, gen2);
             }
