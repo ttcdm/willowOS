@@ -698,15 +698,16 @@ void print_queue() {
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
+	#define VERBOSE
 	#ifdef VERBOSE
-	kprintf_interruptable("\n||| ");
+	// kprintf_interruptable("\n||| ");
 	// while (current_thread) {
 	for (int i = 0; i < num_threads+1; i++) {
-		if (i == num_threads) kprintf_interruptable("||| ");
-		kprintf_interruptable("%d ", current_thread->pid);
-		current_thread = current_thread->next_thread;
+		// if (i == num_threads) kprintf_interruptable("||| ");
+		// kprintf_interruptable("%d ", current_thread->pid);
+		current_thread = current_thread->next_thread->next_thread;
 	}
-	kprintf_interruptable("|||\n");
+	// kprintf_interruptable("|||\n");
 	#endif
 	irq_restore(&irq);
 }
