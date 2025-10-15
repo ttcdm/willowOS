@@ -76,7 +76,7 @@ void test_a() {
         // syscall_yield();
         // syscall_test();
         // syscall_yield();
-        test_b();
+        // test_b();
 
         // syscall_yield();
 

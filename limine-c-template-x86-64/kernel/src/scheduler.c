@@ -695,6 +695,7 @@ volatile thread_context* get_thread_by_pid(uint64_t pid) {
 }
 
 void print_queue() {
+	return;
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
