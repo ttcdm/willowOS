@@ -349,7 +349,7 @@ void reschedule() {
 		if (next_thread->pid == next_thread->prev_thread->pid) {
 			return;
 		}
-		#ifdef VERBOSE
+		#ifdef SCHEDULER_VERBOSE
 		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", current_thread->pid, next_thread->pid);
 		#endif
 		current_thread->last_run_time = tsc_read_ns();
@@ -698,7 +698,7 @@ void print_queue() {
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
-	#ifdef VERBOSE
+	#ifdef SCHEDULER_VERBOSE
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
 	for (int i = 0; i < num_threads+1; i++) {

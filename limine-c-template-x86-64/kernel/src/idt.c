@@ -83,7 +83,7 @@ void thread_interrupter_handler(struct interrupt_frame* frame) {//72?? stack ove
     asm volatile ("cli");
     // volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
 
-    #ifdef VERBOSE
+    #ifdef SCHEDULER_VERBOSE
     kprintf_interruptable("\nthread interrupted\n");
     #endif
     volatile thread_context* current_thread = get_current_thread();

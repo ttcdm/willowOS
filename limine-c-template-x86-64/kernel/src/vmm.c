@@ -128,7 +128,7 @@ uint64_t* kmalloc(uint64_t size) {
 				// kprint("allocated heap at index: ");
                 // kprintln_uint64(index);
 
-                #ifdef VERBOSE
+                #ifdef VMM_VERBOSE
                 kprintf_interruptable("allocated heap at index: %llu\n", index);
                 #endif
                 
@@ -166,7 +166,7 @@ void kfree(uint64_t* virt_address) {
     // kprint_uint64(alloc_length_node);
     // kprint(" starting index: ");
     // kprintln_uint64(index);
-    #ifdef VERBOSE
+    #ifdef VMM_VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
     #endif
     irq_restore(&irq);
@@ -194,7 +194,7 @@ void kfree_interruptable(uint64_t* virt_address) {
     // kprint(" starting index: ");
     // kprintln_uint64(index);
     irq_restore(&irq);
-    #ifdef VERBOSE
+    #ifdef VMM_VERBOSE
     kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", alloc_length_node, index);
     #endif
 }

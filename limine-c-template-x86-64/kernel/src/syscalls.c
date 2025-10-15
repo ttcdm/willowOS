@@ -70,7 +70,7 @@ void test_a() {
     // syscall_log("abc %d %d", aa, b);
 
     while (1) {
-        // syscall_log("hi from test_a");
+        syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
         test_b();
@@ -79,7 +79,7 @@ void test_a() {
         i++;
         if (i == 1) i = 0;
         // kprint("hi");
-        return;
+        // return;
     }
 
     
