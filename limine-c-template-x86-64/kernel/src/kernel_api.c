@@ -12,13 +12,13 @@
 #include "uacpi/kernel_api.h"
 
 // // REQUIRED ALLOCATION
-// void *uacpi_kernel_alloc(uacpi_size size) {
-//     // return your_kmalloc(size);
-// }
+void *uacpi_kernel_alloc(uacpi_size size) {
+    return (void*) kmalloc_byte(size);
+}
 
-// void uacpi_kernel_free(void *ptr) {
-//     // your_kfree(ptr);
-// }
+void uacpi_kernel_free(void *ptr) {
+    kfree((uint64_t*) ptr);
+}
 
 // // OPTIONAL BUT RECOMMENDED
 // void *uacpi_kernel_map(uacpi_phys_addr phys, uacpi_size size) {
