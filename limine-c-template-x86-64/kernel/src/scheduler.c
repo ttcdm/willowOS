@@ -433,6 +433,9 @@ void scheduler_return() {//basically pthread_exit
 				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 			}
 
+			kfree((uint64_t*) temp->fd_table);
+			kfree((uint64_t*) ((struct oa_hash*) (temp->fd_table))->buckets);
+
 			running_thread = actual_running_thread;
 
 			discard_thread(temp);
@@ -476,6 +479,9 @@ void scheduler_return() {//basically pthread_exit
 			if (temp->mappings.mapped_virt_addresses_array[i].used == 0) continue;
 			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 		}
+
+		kfree((uint64_t*) temp->fd_table);
+		kfree((uint64_t*) ((struct oa_hash*) (temp->fd_table))->buckets);
 
 		running_thread = actual_running_thread;
 
@@ -699,6 +705,13 @@ void print_queue() {
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
+	for (int i = 0; i < num_threads+1; i++) {
+		int x = current_thread->pid;
+		kprintf("%d ", x);
+		current_thread = current_thread->next_thread;
+	}
+	irq_restore(&irq);
+	return;
 	#ifdef SCHEDULER_VERBOSE
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
