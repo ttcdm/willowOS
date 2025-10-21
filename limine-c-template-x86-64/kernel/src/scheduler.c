@@ -169,6 +169,7 @@ thread_context* insert_thread(thread_context* left_thread, thread_context* new_t
 
 thread_context* discard_thread(thread_context* thread) {
 	//stitches back together the doubly linked list
+	// if (thread == thread->next_thread);
 	thread->prev_thread->next_thread = thread->next_thread;
 	thread->next_thread->prev_thread = thread->prev_thread;
 
@@ -371,6 +372,9 @@ void scheduler_return() {//basically pthread_exit
 	//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
 	//if this whole thing is uninterruptable it's actually a pretty long process so maybe we should have several sections where it's interruptable so we still maintain normal thread scheduling times
 	asm volatile ("cli");
+
+	kprintf("\n\n\nHIHIHI\n\n\n");
+
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 
 

@@ -16,7 +16,7 @@
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
-#define THREAD_QUANTUM 10//not sure if quantum is the right word
+#define THREAD_QUANTUM 5//not sure if quantum is the right word
 
 typedef struct mapped_virt_addresses {
 	uint64_t virt_address;

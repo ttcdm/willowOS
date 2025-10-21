@@ -175,7 +175,9 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
 
 //this function is for getting both elfs and whatever functions/stuff you want into userspace
 void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but i'm not 100% sure
-    asm volatile ("cli");
+    // asm volatile ("cli");
+    bool irq;
+    irq_disable_save(&irq);
     volatile thread_context* t = get_current_thread();
     assert(t != NULL);
     // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
@@ -195,7 +197,8 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     
     // kprintf_interruptable("\npid: %d\n", t->pid);
     // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
+    // irq_restore(&irq);
     if (t->elf_entry != NULL) jump_to_user(t->elf_entry, t->stack_base);
 
-    asm volatile ("sti");
+    // asm volatile ("sti");
 }
