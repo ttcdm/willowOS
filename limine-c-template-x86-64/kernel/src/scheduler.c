@@ -373,7 +373,7 @@ void scheduler_return() {//basically pthread_exit
 	//if this whole thing is uninterruptable it's actually a pretty long process so maybe we should have several sections where it's interruptable so we still maintain normal thread scheduling times
 	asm volatile ("cli");
 
-	kprintf("\n\n\nHIHIHI\n\n\n");
+	// kprintf("\n\n\nHIHIHI\n\n\n");
 
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 
