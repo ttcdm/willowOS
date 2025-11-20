@@ -300,7 +300,13 @@ void itoa_reverse(char s[])
 }
 
 
-uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data) {//currently no protection against trying to find a file that doens't exist
+//HERE i think that this function is unnecessary and it just calls the normal tar_lookup
+int tar_lookup_bin(char* tarball, char* filename, char** file_data) {//currently no protection against trying to find a file that doens't exist
+    
+    int ret = tar_lookup(tarball, filename, file_data);//remember to not get mixed up between int and uint64
+    return ++ret;
+
+    /*
     uint64_t a_size = tar_lookup((unsigned char*) tarball, filename, file_data);
 
     char a_str[13];          // 12 digits + null terminator
@@ -314,6 +320,7 @@ uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data) {//curr
     b_size++;//idk why but b_size seems to be one less than the actual size
 
     return b_size;//HERE B_SIZE HAS BEEN INCREMENTED BY ONE
+    */
 }
 
 //stolen from nyaux

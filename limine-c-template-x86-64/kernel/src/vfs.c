@@ -137,8 +137,23 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // init_loader(exec_fd);
 
             
-            hot_exec_elf(0, exec_fd);
-            hot_create_and_push_user_thread(1, test_a);
+
+            void* testt_ptr;
+            b_size = tar_lookup_bin(tarball, "testt", (char**) &testt_ptr);
+            root->vnode_ops->vnode_create(root, "testt", b_size);
+            vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
+
+            vfs_fd_t* testt_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "testt", 0);
+            testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
+
+
+
+
+            hot_exec_elf(480, testt_fd);
+
+
+            // hot_exec_elf(0, exec_fd);
+            // hot_create_and_push_user_thread(1, test_a);
             // hot_create_and_push_user_thread(2, test_a);
             // hot_exec_elf(3, exec_fd);
             // hot_create_and_push_thread(4, gen2);
@@ -148,15 +163,15 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // hot_create_and_push_user_thread(14, gen3);
 
             for (int i = 6; i < 100-90; i++) {//because 5 gets created
-                hot_exec_elf(i, exec_fd);
+                // hot_exec_elf(i, exec_fd);
                 // hot_exec_elf(i+15, test_a);
                 // hot_create_and_push_thread(i, gen2);
             }
             for (int i = 100; i < 200-90; i++) {
-                hot_create_and_push_thread(i, gen2);
+                // hot_create_and_push_thread(i, gen2);
             }
             for (int i = 200; i < 300-90; i++) {
-                hot_create_and_push_user_thread(i, test_a);
+                // hot_create_and_push_user_thread(i, test_a);
             }
             while (1) reschedule();
             

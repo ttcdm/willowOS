@@ -278,7 +278,7 @@ void reschedule() {
 	// disable_preemption();
 	asm volatile ("cli");
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
-	print_queue();
+	// print_queue();
 
 	scheduling_started = 1;
 
@@ -709,6 +709,7 @@ void print_queue() {
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
+	/*
 	for (int i = 0; i < num_threads+1; i++) {
 		int x = current_thread->pid;
 		kprintf("%d ", x);
@@ -716,6 +717,7 @@ void print_queue() {
 	}
 	irq_restore(&irq);
 	return;
+	*/
 	#ifdef SCHEDULER_VERBOSE
 	kprintf_interruptable("\n||| ");
 	// while (current_thread) {
