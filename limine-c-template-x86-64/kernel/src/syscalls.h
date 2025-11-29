@@ -76,6 +76,7 @@ int syscall13(uint64_t num, size_t size, void **pointer);
 int syscall14(uint64_t num, void *pointer);
 int syscall15(uint64_t num, struct fmt_args* args_struct);
 int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscall
+int syscall17(uint64_t num, char* str, size_t len);//kprintf() wrapper
 
 
 

@@ -139,7 +139,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             
 
             void* testt_ptr;
-            b_size = tar_lookup_bin(tarball, "testt", (char**) &testt_ptr);
+            b_size = tar_lookup_bin(tarball, "test", (char**) &testt_ptr);
             root->vnode_ops->vnode_create(root, "testt", b_size);
             vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
 
@@ -151,8 +151,10 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 
             hot_exec_elf(480, testt_fd);
 
+            // syscall17(2, "hi", 2);
 
-            hot_exec_elf(0, exec_fd);
+
+            // hot_exec_elf(0, exec_fd);
             // hot_create_and_push_user_thread(1, test_a);
             // hot_create_and_push_user_thread(2, test_a);
             // hot_exec_elf(3, exec_fd);

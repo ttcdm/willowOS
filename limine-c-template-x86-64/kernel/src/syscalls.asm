@@ -2,6 +2,7 @@ extern test_a
 extern syscall_switcher
 extern syscall_user_thread_exit
 
+;ALWAYS REMEMBER TO ADD TO THIS LIST
 extern syscall0
 extern syscall1
 extern syscall2
@@ -19,7 +20,9 @@ extern syscall13
 extern syscall14
 extern syscall15
 extern syscall16
+extern syscall17
 
+;ALWAYS REMEMBER TO ADD TO THIS LIST
 section .data
 syscall_array:
     dq syscall0
@@ -39,6 +42,7 @@ syscall_array:
     dq syscall14
     dq syscall15
     dq syscall16
+    dq syscall17
 
 ; .length: dq ($ - syscall_array) / 8;number of elements in the syscall array
 

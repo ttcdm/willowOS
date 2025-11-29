@@ -334,6 +334,21 @@ int syscall16(uint64_t num, thread_context** thread) {//get_current_thread_sysca
     return 0;
 }
 
+int syscall17(uint64_t num, char* str, size_t len) {
+    bool irq_status;
+    irq_disable_save(&irq_status);
+
+    
+
+    acquire_mutex(&ft_ctx_mutex);
+    flanterm_write(ft_ctx, "hihi", 4);
+    flanterm_write(ft_ctx, str, 2);
+    release_mutex(&ft_ctx_mutex);
+
+    irq_restore(&irq_status);
+    return 0;
+}
+
 
 int syscall_log(char* fmt, ...) {//15
     int ret;
