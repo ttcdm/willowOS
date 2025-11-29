@@ -338,11 +338,8 @@ int syscall17(uint64_t num, char* str, size_t len) {
     bool irq_status;
     irq_disable_save(&irq_status);
 
-    
-
     acquire_mutex(&ft_ctx_mutex);
-    flanterm_write(ft_ctx, "hihi", 4);
-    flanterm_write(ft_ctx, str, 2);
+    flanterm_write(ft_ctx, str, len);
     release_mutex(&ft_ctx_mutex);
 
     irq_restore(&irq_status);
