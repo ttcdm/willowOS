@@ -102,8 +102,11 @@ int sys_anon_free(void *pointer, size_t size);
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window);//we're using 8 byte signed int as a replacement for off_t. hopefully it's fine
 int sys_vm_unmap(void *pointer, size_t size);
 
+
+typedef int64_t time_t;
+int sys_clock_get(int clock, time_t *secs, long *nanos);
 //we're replacing time_t with uint64_t
-int sys_clock_get(int clock, uint64_t *secs, long *nanos);
+// int sys_clock_get(int clock, uint64_t *secs, long *nanos);
 
 int sys_tcb_set(void *pointer);
 

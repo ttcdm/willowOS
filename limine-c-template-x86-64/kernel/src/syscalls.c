@@ -567,7 +567,7 @@ int sys_vm_unmap(void *pointer, size_t size) {//8
 }
 
 //HERE remember to fill these in
-int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
+int sys_clock_get(int clock, time_t *secs, long *nanos) {
     int ret;
     //HERE add num as well
 }
@@ -589,6 +589,7 @@ int sys_read(int fd, void *buf, size_t count, size_t *bytes_read) {
 }
 
 int sys_write(int fd, const void *buf, size_t count, size_t *bytes_written) {
+    syscall_log((char*) buf);
     return 0;
 }
 
@@ -602,14 +603,16 @@ int sys_close(int fd) {
 }
 
 void sys_libc_log(const char *message) {
-    // syscall_log(message);
+    syscall_log((char*) message);
 }
 
 [[noreturn]] void sys_libc_panic() {
     while (1);
 }
 
+//HERE not sure if this is the correct implementation
 [[noreturn]] void sys_exit(int status) {
+    syscall_user_thread_exit();
     while (1);
 }
 
