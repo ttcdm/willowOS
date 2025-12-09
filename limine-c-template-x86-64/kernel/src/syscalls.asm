@@ -120,7 +120,7 @@ syscall_handler:
 
     call get_current_thread
     ;HERE hardcoding values of indexing into the thread context struct
-    mov rax, qword [rax + 0x48]
+    mov rax, qword [rax + 0x40]
 
     xchg rsp, rax ; switch stack pointers
 
