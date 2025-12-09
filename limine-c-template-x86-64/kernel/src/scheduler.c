@@ -534,6 +534,10 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->elf_file = NULL;
 	new_thread->status[4] = 0;
 
+	//fs and gs (mmio?)
+	new_thread->fs_base = 0;
+	new_thread->gs_base = 0;
+
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;
 	//i should probably use max_mappings instead of hardcoding it to 8 but oh well

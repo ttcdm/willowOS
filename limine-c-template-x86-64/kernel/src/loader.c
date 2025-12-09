@@ -16,32 +16,32 @@ void init_loader(vfs_fd_t* file) {
     //     Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
     //     if (phdr->p_type == 1)  {//PT_LOAD
     //         uint64_t segment_start;
-    //         if (phdr->p_memsz < 4096) {
+    //         if (phdr->p_filesz < 4096) {
     //             segment_start = alloc_frame();
     //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
     //         }
-    //         else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
+    //         else if (phdr->p_filesz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
     //             segment_start = alloc_frame();
     //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
-    //             for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
+    //             for (uint64_t j = 0; j < ((phdr->p_filesz / 4096) - 1); j++) {
     //                 uint64_t next_frame = alloc_frame();
     //                 map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
     //                 change_page_map((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
     //             }
     //         }
-    //         else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
+    //         else if ((phdr->p_filesz % 4096 != 0) && (phdr->p_filesz > 4096)) {//i think this overlaps with the if block above it
     //             segment_start = alloc_frame();
     //             map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
     //             change_page_map((uint64_t) phdr->p_vaddr, 0b111);
 
-    //             for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
+    //             for (uint64_t j = 1; j < (phdr->p_filesz / 4096) + 1; j++) {
     //                 uint64_t next_frame = alloc_frame();
     //                 map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
 
@@ -92,37 +92,38 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
             uint64_t segment_start;
-            if (phdr->p_memsz < 4096) {
+            if (phdr->p_filesz < 4096) {
                 segment_start = alloc_frame();
                 //can't call get_current_thread()->pid here because scheduling might not have started yet. it currently hasn't
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
                 change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);//HERE we have to change page map to also make sure that the parent entries are also mapped with the same permissions. ALWAYS REMEMBER TO CHECK THE PARENT ENTRIES
             }
-            else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
+            else if (phdr->p_filesz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 segment_start = alloc_frame();
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
                 change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
-
-                for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
+                
+                for (uint64_t j = 0; j < ((phdr->p_filesz / 4096) - 1); j++) {
                     uint64_t next_frame = alloc_frame();
                     map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
 
                     change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)), 0b111);
                 }
             }
-            else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
+            else if ((phdr->p_filesz % 4096 != 0) && (phdr->p_filesz > 4096)) {//i think this overlaps with the if block above it
                 segment_start = alloc_frame();
                 map_page((uint64_t*) cr3, segment_start, (uint64_t) phdr->p_vaddr, 0b111);
 
                 change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr, 0b111);
-
-                for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
+                
+                for (uint64_t j = 1; j < (phdr->p_filesz / 4096) + 1; j++) {
                     uint64_t next_frame = alloc_frame();
                     map_page((uint64_t*) cr3, next_frame, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
 
                     change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j), 0b111);
+
                 }
             }
 
@@ -130,6 +131,9 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
             //HERE remember to reread the docs and calculate the offsets correctly
             memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
 
+            if (phdr->p_memsz > phdr->p_filesz) {
+                memset((void*) ((uint64_t)phdr->p_vaddr + phdr->p_filesz), 0, phdr->p_memsz - phdr->p_filesz);
+            }
         }
 
     }
@@ -145,22 +149,22 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3) {
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
-            if (phdr->p_memsz < 4096) {
+            if (phdr->p_filesz < 4096) {
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));//need to free before we unmap because we need to still be able to translate it
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
             }
-            else if (phdr->p_memsz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
+            else if (phdr->p_filesz % 4096 == 0) {//it doesn't matter that the physical frames aren't contiguous because the virtual addresses are contiguous and it takes care of it so you can just memcpy everything in one go
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
-                for (uint64_t j = 0; j < ((phdr->p_memsz / 4096) - 1); j++) {
+                for (uint64_t j = 0; j < ((phdr->p_filesz / 4096) - 1); j++) {
                     free_frame(virt_to_phys_page((uint64_t) phdr->p_vaddr + (4096 * (j + 1)), cr3));
                     unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * (j + 1)));
                 }
             }
-            else if ((phdr->p_memsz % 4096 != 0) && (phdr->p_memsz > 4096)) {//i think this overlaps with the if block above it
+            else if ((phdr->p_filesz % 4096 != 0) && (phdr->p_filesz > 4096)) {//i think this overlaps with the if block above it
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));
                 unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr);
-                for (uint64_t j = 1; j < (phdr->p_memsz / 4096) + 1; j++) {
+                for (uint64_t j = 1; j < (phdr->p_filesz / 4096) + 1; j++) {
                     free_frame(virt_to_phys_page((uint64_t) phdr->p_vaddr + (4096 * j), cr3));
                     unmap_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + (4096 * j));
                 }
@@ -201,4 +205,89 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     if (t->elf_entry != NULL) jump_to_user(t->elf_entry, t->stack_base);
 
     // asm volatile ("sti");
+}
+
+
+//credit salernos
+
+#define AT_NULL   0
+#define AT_IGNORE 1
+#define AT_EXECFD 2
+#define AT_PHDR   3
+#define AT_PHENT  4
+#define AT_PHNUM  5
+#define AT_PAGESZ 6
+#define AT_BASE   7
+#define AT_FLAGS  8
+#define AT_ENTRY  9
+#define AT_NOTELF 10
+#define AT_UID    11
+#define AT_EUID   12
+#define AT_GID    13
+#define AT_EGID
+
+uintptr_t com_sys_elf64_prepare_stack(com_elf_data_t elf_data,
+                                      size_t         stack_end_phys,
+                                      size_t         stack_end_virt,
+                                      char *const    argv[],
+                                      char *const    envp[]) {
+#define PUSH(x) *(--stackptr) = (x)
+    // uintptr_t *stackptr       = (uintptr_t *)ARCH_PHYS_TO_HHDM(stack_end_phys),
+    // uintptr_t *stackptr       = (uintptr_t *) (stack_end_phys + hhdm_offset),
+        uintptr_t* stackptr = (uintptr_t*) stack_end_phys,
+
+              *orig           = stackptr;
+    size_t envc               = 0;
+
+
+    for (; envp[envc]; envc++) {
+        size_t len = strlen(envp[envc]) + 1;
+        stackptr   = (uintptr_t *)((uintptr_t)stackptr - len);
+        memcpy(stackptr, envp[envc], len);
+    }
+
+    size_t argc = 0;
+    for (; argv[argc]; argc++) {
+        size_t len = strlen(argv[argc]) + 1;
+        stackptr   = (uintptr_t *)((uintptr_t)stackptr - len);
+        memcpy(stackptr, argv[argc], len);
+    }
+
+    stackptr = (uintptr_t *)((uintptr_t)stackptr & (~0xF));
+    if (((argc + envc + 1) & 1) != 0) {
+        stackptr--;
+    }
+
+    PUSH(0);
+    PUSH(0);
+
+    PUSH(elf_data.entry);
+    PUSH(AT_ENTRY);
+
+    PUSH(elf_data.phdr);
+    PUSH(AT_PHDR);
+
+    PUSH(elf_data.phent_sz);
+    PUSH(AT_PHENT);
+
+    PUSH(elf_data.phent_num);
+    PUSH(AT_PHNUM);
+
+    uintptr_t off = 0;
+
+    PUSH(0);
+    stackptr -= envc;
+    for (size_t i = 0; i < envc; i++) {
+        stackptr[i] = stack_end_virt - (off += strlen(envp[i]) + 1);
+    }
+
+    PUSH(0);
+    stackptr -= argc;
+    for (size_t i = 0; i < argc; i++) {
+        stackptr[i] = stack_end_virt - (off += strlen(argv[i]) + 1);
+    }
+
+    PUSH(argc);
+    return stack_end_virt - ((uintptr_t)orig - (uintptr_t)stackptr);
+#undef PUSH
 }

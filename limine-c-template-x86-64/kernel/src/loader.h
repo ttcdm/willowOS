@@ -22,8 +22,27 @@ void unload_elf(vfs_fd_t* file, uint64_t cr3);
 void userspace_run_elf();
 
 
-//https://man7.org/linux/man-pages/man5/elf.5.html
+//credit salernos
 
+typedef struct {
+    uintptr_t entry;
+    size_t    phdr;
+    size_t    phent_sz;
+    size_t    phent_num;
+    char      interpreter_path[64];
+} com_elf_data_t;
+
+uintptr_t com_sys_elf64_prepare_stack(com_elf_data_t elf_data,
+                                      size_t         stack_end_phys,
+                                      size_t         stack_end_virt,
+                                      char *const    argv[],
+                                      char *const    envp[]);
+
+
+
+
+
+//https://man7.org/linux/man-pages/man5/elf.5.html
 
 #define EI_NIDENT 16
 typedef uint64_t Elf64_Addr;

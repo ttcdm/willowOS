@@ -346,6 +346,13 @@ int syscall17(uint64_t num, char* str, size_t len) {
     return 0;
 }
 
+int syscall18(uint64_t num, void* pointer) {
+    //mmio fs address
+    wrmsr(0xC0000100, (uint64_t) pointer);
+    return 0;
+}
+
+
 
 int syscall_log(char* fmt, ...) {//15
     int ret;
@@ -572,8 +579,11 @@ int sys_clock_get(int clock, time_t *secs, long *nanos) {
     //HERE add num as well
 }
 
-int sys_tcb_set(void *pointer) {
+int sys_tcb_set(void *pointer) {//18
     int ret;
+    uint64_t num = 18;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer): "memory");
+    return ret;
 }
 
 

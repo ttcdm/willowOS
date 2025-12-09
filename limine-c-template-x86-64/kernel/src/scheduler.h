@@ -53,6 +53,10 @@ typedef struct thread_context_declared {
 	// uint64_t cr3[512];
 	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
 
+	//fs and gs (mmio?)
+	uint64_t fs_base;
+	uint64_t gs_base;
+
 	struct thread_context_declared* next_thread;
 	struct thread_context_declared* prev_thread;
 

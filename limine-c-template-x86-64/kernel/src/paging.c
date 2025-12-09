@@ -303,7 +303,7 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
 
         uint64_t phys_page = alloc_frame();
         uint64_t ret = map_page(pml4_address, phys_page, virt_address, permissions);
-        get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;//map_page returns the index for the struct
+        if (scheduling_started) get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;//map_page returns the index for the struct
         return 0;
     }
     else {
@@ -311,7 +311,7 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED); i++) {
                 uint64_t phys_page = alloc_frame();
                 uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
-                get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
+                if (scheduling_started) get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
 
             }
             return 0;
@@ -320,7 +320,7 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
                 uint64_t phys_page = alloc_frame();
                 uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
-                get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
+                if (scheduling_started) get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
             }
             return 0;
         }
