@@ -134,6 +134,7 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
 
             //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
             //HERE remember to reread the docs and calculate the offsets correctly
+            memset((void*) phdr->p_vaddr, 0, phdr->p_memsz);
             memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
 
             // map_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + phdr->p_filesz, (uint64_t) phdr->p_vaddr + phdr->p_filesz, 0b111);
@@ -198,12 +199,16 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     bool irq;
     irq_disable_save(&irq);
     volatile thread_context* t = get_current_thread();
+    
     assert(t != NULL);
-    // t->stack_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
+    //remember to always allocate both a user and kernel stack for each thread
+    t->user_rsp = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
     for (size_t i = 0; i < 5; i++) {
         //maybe i should have a stack in the lower half only but idk
-        change_page_map(t->cr3, (((uint64_t) t->stack_base) - THREAD_STACK_SIZE) + (i*4000), 0b111);
+        change_page_map(t->cr3, (((uint64_t) t->user_rsp) - THREAD_STACK_SIZE) + (i*4000), 0b111);
     }
+
+    memset(t->user_rsp - THREAD_STACK_SIZE, 0, THREAD_STACK_SIZE);
 
     //this is kinda dirty but oh well
     // change_page_map(t->cr3, (uint64_t) t, 0b111);//map the entire thread context struct. not sure if it's needed but just in case. also might be bad for safety but idk
@@ -219,14 +224,17 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
 
     };
     
-    // com_sys_elf64_prepare_stack(elf_data, ((uint64_t) t->stack_base) - THREAD_STACK_SIZE, ((uint64_t) t->stack_base) - THREAD_STACK_SIZE, NULL, NULL);
+    
+    char* const argv[] = {};
+    char* const envp[] = {};
+    com_sys_elf64_prepare_stack(elf_data, ((uint64_t) t->user_rsp), ((uint64_t) t->user_rsp), argv, envp);
 
 
     
     // kprintf_interruptable("\npid: %d\n", t->pid);
     // jump_to_user(t->elf_entry, (void*) (((uint64_t) t->stack_base) - THREAD_STACK_SIZE));
     // irq_restore(&irq);
-    if (t->elf_entry != NULL) jump_to_user(t->elf_entry, t->stack_base);
+    if (t->elf_entry != NULL) jump_to_user(t->elf_entry, t->user_rsp);
 
     // asm volatile ("sti");
 }
@@ -258,7 +266,8 @@ uintptr_t com_sys_elf64_prepare_stack(com_elf_data_t elf_data,
 #define PUSH(x) *(--stackptr) = (x)
     // uintptr_t *stackptr       = (uintptr_t *)ARCH_PHYS_TO_HHDM(stack_end_phys),
     // uintptr_t *stackptr       = (uintptr_t *) (stack_end_phys + hhdm_offset),
-        uintptr_t* stackptr = (uintptr_t*) stack_end_phys,
+        // uintptr_t* stackptr = (uintptr_t*) stack_end_phys,
+    uintptr_t* stackptr = (uintptr_t*) stack_end_virt,
 
               *orig           = stackptr;
     size_t envc               = 0;
@@ -312,6 +321,19 @@ uintptr_t com_sys_elf64_prepare_stack(com_elf_data_t elf_data,
     }
 
     PUSH(argc);
+
+
+    uintptr_t* temp = stackptr;
+
+    stackptr -= 300;
+    for (int i = 0; i < 100; i++) {
+        PUSH(0xDEADBEEFCAFEBABE);
+    }
+
+    stackptr = temp;
+
+
+
     return stack_end_virt - ((uintptr_t)orig - (uintptr_t)stackptr);
 #undef PUSH
 }

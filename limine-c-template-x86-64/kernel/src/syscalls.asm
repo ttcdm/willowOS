@@ -1,6 +1,7 @@
 extern test_a
 extern syscall_switcher
 extern syscall_user_thread_exit
+extern get_current_thread
 
 ;ALWAYS REMEMBER TO ADD TO THIS LIST
 extern syscall0
@@ -89,6 +90,41 @@ jump_to_user:
 syscall_handler:
     cli
 
+    call get_current_thread
+    ;HERE hardcoding values of indexing into the thread context struct
+    mov rsp, qword [rax + 0x48]
+
+
+
+    ; CREDIT: Mathewnd/Astral
+    ; on entry, interrupts are disabled automatically by SCE
+    ; registers:
+    ;   rcx = user rip
+    ;   r11 = user rflags
+    ;   
+    ;   rax = syscall number
+    ;   rdi = arg1
+    ;   rsi = arg2
+    ;   rdx = arg3
+
+
+    ;   r10 = arg4
+    ;   r8  = arg5
+    ;   r9  = arg6
+
+    ; saving the syscall number on cr2 is cursed but we need this extra register
+    ; and taking a page fault here would result in a triple fault anyways
+    ; because it's still using the user stack
+    mov  cr2, rax
+    ; rax can be used just fine now
+
+    call get_current_thread
+    ;HERE hardcoding values of indexing into the thread context struct
+    mov rax, qword [rax + 0x48]
+
+    xchg rsp, rax ; switch stack pointers
+
+    ;we save USER rsp here in rax because of xchg
     push rax
 
     push rbx
@@ -117,10 +153,16 @@ syscall_handler:
     push r14
     push r15
 
+
+
+
     ;i used nyaux's syscall handler as inspiration
     call [syscall_array + rdi * 8]
     
     cli
+
+
+
 
     pop r15
     pop r14
@@ -148,6 +190,7 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    pop rax
+    ;restore rsp via the first pushed rax
+    pop rsp
 
     o64 sysret

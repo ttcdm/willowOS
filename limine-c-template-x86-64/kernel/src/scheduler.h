@@ -39,7 +39,10 @@ typedef struct thread_context_declared {
 
 	uint64_t pid;
 	void (*thread_entry)(void);
+
 	uint64_t* stack_base;
+	uint64_t* user_rsp;
+
 	uint64_t* return_rsp;
 	uint64_t misaligned_by;
 	uint64_t* current_rsp;
