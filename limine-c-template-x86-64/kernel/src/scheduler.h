@@ -41,7 +41,10 @@ typedef struct thread_context_declared {
 	void (*thread_entry)(void);
 
 	uint64_t* stack_base;
+	//HERE make sure that this stays here
 	uint64_t* user_rsp;
+	//HERE make sure that this also stays here, as stuff relies on hardcoded offsets
+	uint8_t ssefxsave[512];//sse stuff
 
 	uint64_t* return_rsp;
 	uint64_t misaligned_by;

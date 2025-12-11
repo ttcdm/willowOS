@@ -192,7 +192,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     mmap_args->cr3 = get_current_thread()->cr3;
     // kprintf("syscall7 %llx %llx %llx\n", mmap_args->virt_address, mmap_args->size, mmap_args->flag);
     mmap_args->error = map_range(mmap_args->cr3, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
-    memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
+    memset((uint64_t*) mmap_args->virt_address, 0, mmap_args->size);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
     if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
         kprintf("syscall7: memset clear failed\n");
         assert(false);
@@ -447,6 +447,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     //     return EPERM;
     // }
 
+    sys_libc_log("\n\nsys_vm_map called\n\n\n");
 
 
     uint64_t perm = 0;

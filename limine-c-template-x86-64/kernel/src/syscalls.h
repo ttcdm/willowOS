@@ -112,6 +112,26 @@ int sys_clock_get(int clock, time_t *secs, long *nanos);
 int sys_tcb_set(void *pointer);
 
 
+//HERE hopefully replacing these types won't cause any misalignments and/or other errors with mlibc
+//replaced mode_t with int
+int sys_open(const char *pathname, int flags, int mode, int *fd);
+//replaced ssize_t with size_t
+int sys_read(int fd, void *buf, size_t count, size_t *bytes_read);
+
+int sys_write(int fd, const void *buf, size_t count, size_t *bytes_written);
+
+//replaced off_t with int64_t
+int sys_seek(int fd, int64_t offset, int whence, int64_t *new_offset);
+
+int sys_close(int fd);
+
+void sys_libc_log(const char *message);
+
+//__attribute__((noreturn))
+[[noreturn]] void sys_libc_panic();
+
+
+
 
 //temp linux abi stuff for mlibc
 

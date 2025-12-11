@@ -526,6 +526,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->current_rsp = NULL;
 	new_thread->current_misaligned_by = 0;
 	// new_thread->rip = NULL;
+	new_thread->user_rsp = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 	new_thread->prev_thread = NULL;
@@ -537,6 +538,8 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	//fs and gs (mmio?)
 	new_thread->fs_base = 0;
 	new_thread->gs_base = 0;
+
+	memset(&(new_thread->ssefxsave), 0, 512);
 
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;

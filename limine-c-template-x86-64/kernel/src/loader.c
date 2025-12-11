@@ -202,7 +202,9 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     
     assert(t != NULL);
     //remember to always allocate both a user and kernel stack for each thread
-    t->user_rsp = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
+    //remember that we allocate 16000 bytes and not not 16kib
+    uint64_t* user_stack = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);
+    t->user_rsp = user_stack;//new stack and the rsp is set to the top of the stack
     for (size_t i = 0; i < 5; i++) {
         //maybe i should have a stack in the lower half only but idk
         change_page_map(t->cr3, (((uint64_t) t->user_rsp) - THREAD_STACK_SIZE) + (i*4000), 0b111);
@@ -225,6 +227,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     };
     
     
+    //from salernos
     char* const argv[] = {};
     char* const envp[] = {};
     com_sys_elf64_prepare_stack(elf_data, ((uint64_t) t->user_rsp), ((uint64_t) t->user_rsp), argv, envp);

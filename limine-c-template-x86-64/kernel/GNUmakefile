@@ -60,8 +60,6 @@ override CFLAGS += \
     -m64 \
     -march=x86-64 \
     -mno-80387 \
-    -mno-sse \
-    -mno-sse2 \
     -mno-mmx \
     -mno-red-zone \
     -mcmodel=kernel

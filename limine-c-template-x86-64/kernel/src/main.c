@@ -529,6 +529,20 @@ void kmain(void) {
     // uint64_t ist0 = alloc_frame();
     // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ist0, 0x11000000+0x1000-1, 0b111);
 
+
+    //init sse and sse2 stuff
+    //inline asm taken straight from chatgpt
+    //logic taken from salernos
+    uint64_t cr0;
+    asm volatile ("mov %%cr0, %0": "=r"(cr0): : "memory");//read cr0
+    cr0 = (cr0 & ~(1 << 2)) | (1 << 1);
+    asm volatile ("mov %0, %%cr0":: "r"(cr0): "memory");//write cr0
+
+    uint64_t cr4;
+    asm volatile ("mov %%cr4, %0": "=r"(cr4): : "memory");//read cr4
+    cr4 = cr4 | (3 << 9);
+    asm volatile ("mov %0, %%cr4":: "r"(cr4): "memory");//write cr4
+
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
