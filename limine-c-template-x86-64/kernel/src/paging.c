@@ -299,6 +299,8 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
 
     size += virt_address & 0xfff;//we need the actual total size from the lowest address because that's what we're calculating off of
 
+    // virt_address &= ~0xfff;//i don't think we need this beacuse size already reaches into the correct last page. also map_page() already aligns it for us
+
     if (size <= PAGE_SIZE_DEFINED) {//always remember to set the value you're comparing size to to the intended value
 
         uint64_t phys_page = alloc_frame();
@@ -310,7 +312,7 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
         if (size % PAGE_SIZE_DEFINED == 0) {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED); i++) {
                 uint64_t phys_page = alloc_frame();
-                uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t ret = map_page(pml4_address, phys_page, virt_address + (i*PAGE_SIZE_DEFINED), permissions);
                 if (scheduling_started) get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
 
             }
@@ -319,7 +321,7 @@ int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permission
         else {
             for (int i = 0; i < (size / PAGE_SIZE_DEFINED) + 1; i++) {
                 uint64_t phys_page = alloc_frame();
-                uint64_t ret = map_page(pml4_address, phys_page + (i * PAGE_SIZE_DEFINED), virt_address + (i*PAGE_SIZE_DEFINED), permissions);
+                uint64_t ret = map_page(pml4_address, phys_page, virt_address + (i*PAGE_SIZE_DEFINED), permissions);
                 if (scheduling_started) get_current_thread()->mappings.mapped_virt_addresses_array[ret].flag = flag;
             }
             return 0;

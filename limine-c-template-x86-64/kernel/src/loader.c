@@ -94,6 +94,12 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
         Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
+
+
+            //just pass in the actual address instead of the aligned one because we need the offset if it's misaligned because map_range() needs it because it does the alignment for us
+            map_range((uint64_t*) cr3, (uint64_t) (phdr->p_vaddr), 0b111, phdr->p_memsz, 0b111);
+
+            /*
             uint64_t segment_start;
             if (phdr->p_memsz < 4096) {
                 segment_start = alloc_frame();
@@ -131,10 +137,12 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
 
                 }
             }
+            */
 
             //copy from file data + offset of code contents or something from the start of the file and we copy that to p_vaddr
             //HERE remember to reread the docs and calculate the offsets correctly
-            memset((void*) phdr->p_vaddr, 0, phdr->p_memsz);
+            // memset((void*) phdr->p_vaddr, 0, phdr->p_memsz);
+            memset((void*) (phdr->p_vaddr & ~0xfff), 0, phdr->p_memsz + (phdr->p_vaddr & 0xfff));
             memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
 
             // map_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + phdr->p_filesz, (uint64_t) phdr->p_vaddr + phdr->p_filesz, 0b111);
