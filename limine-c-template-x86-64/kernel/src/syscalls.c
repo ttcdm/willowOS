@@ -634,3 +634,7 @@ int get_current_thread_syscall(thread_context** thread) {//16
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(thread): "memory");
     return ret;
 }
+
+int sys_isatty(int fd) {
+    while (1);
+}

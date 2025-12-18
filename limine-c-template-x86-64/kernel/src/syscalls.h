@@ -130,7 +130,9 @@ void sys_libc_log(const char *message);
 //__attribute__((noreturn))
 [[noreturn]] void sys_libc_panic();
 
+[[noreturn]] void sys_exit(int status);
 
+int sys_isatty(int fd);
 
 
 //temp linux abi stuff for mlibc
