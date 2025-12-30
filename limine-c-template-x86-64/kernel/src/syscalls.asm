@@ -138,7 +138,7 @@ syscall_handler:
     push r11
     push rcx
 
-    push rax
+    ;we do NOT push rax again
     push rbx
     push rcx
     push rdx
@@ -179,7 +179,7 @@ syscall_handler:
     pop rdx
     pop rcx
     pop rbx
-    pop rax
+    ;we do NOT pop rax because rax is currently storing our ret
 
     pop rcx
     pop r11

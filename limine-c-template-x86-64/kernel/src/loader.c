@@ -240,6 +240,9 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     char* const envp[] = {};
     com_sys_elf64_prepare_stack(elf_data, ((uint64_t) t->user_rsp), ((uint64_t) t->user_rsp), argv, envp);
 
+    kprintf("elf rsp: %llx\n", t->user_rsp);
+    kprintf("elf rsp: %llx\n", t->user_rsp + THREAD_STACK_SIZE);
+
 
     
     // kprintf_interruptable("\npid: %d\n", t->pid);

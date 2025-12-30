@@ -296,7 +296,9 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
 }
 
 int syscall13(uint64_t num, size_t size, void **pointer) {
+    kprintf("%llx\n", size);
     *pointer = (void*) kmalloc_byte(size);
+    change_page_map_range(get_current_thread()->cr3, *pointer, (uint64_t) size, 0b111);
     return 0;
 }
 
@@ -583,6 +585,7 @@ int sys_clock_get(int clock, time_t *secs, long *nanos) {
 int sys_tcb_set(void *pointer) {//18
     int ret;
     uint64_t num = 18;
+    syscall_log("\n\nsys_tcb_set called\n\n");
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer): "memory");
     return ret;
 }
@@ -636,5 +639,6 @@ int get_current_thread_syscall(thread_context** thread) {//16
 }
 
 int sys_isatty(int fd) {
-    while (1);
+    // while (1);
+    return 0;
 }

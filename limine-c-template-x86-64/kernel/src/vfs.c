@@ -147,7 +147,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
 
 
-
+            // syscall_log("hi");
 
             hot_exec_elf(480, testt_fd);
 

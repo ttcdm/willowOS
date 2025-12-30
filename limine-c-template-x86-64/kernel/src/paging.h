@@ -33,6 +33,7 @@ uint64_t map_page(uint64_t* pml4_address, uint64_t phys_address, uint64_t virt_a
 int map_range(uint64_t* pml4_address, uint64_t virt_address, uint64_t permissions, uint64_t size, uint64_t flag);
 void unmap_page(uint64_t* pml4_address, uint64_t virt_address);
 void change_page_map(uint64_t* cr3, uint64_t virt_address, uint64_t permissions);
+int change_page_map_range(uint64_t* cr3, uint64_t virt_address, uint64_t size, uint64_t permissions);
 
 uint64_t virt_to_phys(uint64_t virt_address, uint64_t cr3);
 uint64_t virt_to_phys_page(uint64_t virt_address, uint64_t cr3);//returns 4kib aligned phys address of page
