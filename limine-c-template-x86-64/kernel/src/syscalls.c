@@ -36,7 +36,7 @@ void test_a() {
     // syscall_test();
     uint64_t syscall_num = 1;
 
-    return;
+    // return;
 
 
     // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
@@ -357,6 +357,8 @@ int syscall18(uint64_t num, void* pointer) {
 }
 
 
+//HERE the code under this line should be 1:1 with generic.cpp for mlibc sysdeps aside from the possible type mismatches, i.e., mode_t vs int, off_t vs int64_t, and so on
+
 
 int syscall_log(char* fmt, ...) {//15
     int ret;
@@ -416,6 +418,9 @@ int sys_futex_wake(int *pointer) {//12
 int sys_anon_allocate(size_t size, void **pointer) {//13
     int ret;
     uint64_t num = 13;
+
+    sys_libc_log("sys_anon_allocate called\n");
+
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(size), "d"(pointer): "memory");
     return ret;
 }
@@ -431,6 +436,10 @@ int sys_anon_free(void *pointer, size_t size) {//14
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {//7
     int ret;
     uint64_t num = 7;
+
+    // syscall_log("\n\nsyscall_log and sys_vm_map called\n\n");
+    // sys_libc_log("HERE sys_vm_map called\n");
+    sys_libc_log("sys_vm_map called\n");
 
     //we don't have permissions for file access yet so we're just gonna ignore prot
 
@@ -451,7 +460,6 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
     //     return EPERM;
     // }
 
-    sys_libc_log("\n\nsys_vm_map called\n\n\n");
 
 
     uint64_t perm = 0;
@@ -523,6 +531,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         //it should be fine passing the struct that's on the stack since the branch hasn't exited yet
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
         // assert(mmap_args.error == 0);
+        //because we can't have printf here i guess
         if (mmap_args.error != 0) {
             return mmap_args.error;
         }
@@ -579,6 +588,7 @@ int sys_vm_unmap(void *pointer, size_t size) {//8
 }
 
 //HERE remember to fill these in
+//also we define time_t as int64_t inside willowOS but here idk if we should
 int sys_clock_get(int clock, time_t *secs, long *nanos) {
     int ret;
     //HERE add num as well
@@ -587,7 +597,7 @@ int sys_clock_get(int clock, time_t *secs, long *nanos) {
 int sys_tcb_set(void *pointer) {//18
     int ret;
     uint64_t num = 18;
-    syscall_log("\n\nsys_tcb_set called\n\n");
+    syscall_log("sys_tcb_set called\n");
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer): "memory");
     return ret;
 }
