@@ -36,6 +36,8 @@ void test_a() {
     // syscall_test();
     uint64_t syscall_num = 1;
 
+    return;
+
 
     // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
     // asm volatile ("syscall");
@@ -298,7 +300,7 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
 int syscall13(uint64_t num, size_t size, void **pointer) {
     // kprintf("%llx\n", size);
     *pointer = (void*) kmalloc_byte(size);
-    change_page_map_range(get_current_thread()->cr3, *pointer, (uint64_t) size, 0b111);
+    change_page_map_range(get_current_thread()->cr3, (uint64_t)*pointer, (uint64_t) size, 0b111);
     return 0;
 }
 

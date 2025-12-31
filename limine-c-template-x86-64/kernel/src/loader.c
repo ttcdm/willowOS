@@ -1,5 +1,6 @@
 #include <loader.h>
 #include <scheduler.h>
+#include <syscalls.h>
 
 void init_loader(vfs_fd_t* file) {
     kprintf("loader init\n");
@@ -227,6 +228,14 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
     // change_page_map(t->cr3, (uint64_t) get_current_thread, 0b111);
 
     t->status[4] = 1;//userspace = true
+
+    
+    if (t->elf_file == NULL) {
+        //this is for functions that're run in userspace. this replaces the stuff in syscalls.asm before
+        t->user_rsp--;//i think we pre decrement here because we're not supposed to write to the highest addressed, i.e., pass the bottom of the stack?? so we decrement first to allocate the space for the value but i'm not exactly sure
+        *((uint64_t*) t->user_rsp) = (uint64_t) &syscall_user_thread_exit;
+    }
+
 
 
     // com_elf_data_t* elf_data = (com_elf_data_t*) kmalloc_byte(sizeof(com_elf_data_t));

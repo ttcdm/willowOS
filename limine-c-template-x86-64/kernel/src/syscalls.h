@@ -80,7 +80,7 @@ int syscall17(uint64_t num, char* str, size_t len);//kprintf() wrapper
 int syscall18(uint64_t num, void* pointer);
 
 
-
+int syscall_user_thread_exit(void);
 int syscall_log(char* fmt, ...);
 int syscall_test(void);
 int syscall_yield(void);

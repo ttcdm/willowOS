@@ -60,6 +60,7 @@ void gen1() {
 
 int aaa = 0;
 void gen2() {
+	return;
 	// kprintf_interruptable("hi");
 	// static int aaa = 0;//not sure if this is safe for multiple cores
 	aaa += 2;
@@ -578,7 +579,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 
 void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then scheduler_return runs. the function never actually exits or something idk
 	*sp -= 1;//apparently it moves it by 8 bytes for each index
-	**sp = (uint64_t) scheduler_return;//basically pthread_exit i think
+	**sp = (uint64_t) scheduler_return;//basically pthread_exit i think. this is just for functions that are ran in kernelspace
 	*sp -= 1;
 	**sp = (uint64_t) disable_preemption;
 	*sp -= 1;
