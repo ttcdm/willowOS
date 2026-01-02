@@ -76,91 +76,148 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             }
 
             root->vnode_ops->vnode_create(root, "hi2.txt", b_size);
-            vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi2.txt");
-            vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
+            // vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi2.txt");
+            // vnode_t* f = vfs_resolve_path(root, "hi2.txt");
+            // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
+            // f->vnode_ops->vnode_wr(fd, file_data, b_size, 0);
+
+            // char* buffer1 = (char*) kmalloc_byte(b_size);
+            // f->vnode_ops->vnode_rd(fd, buffer1, b_size, 0);//remember to always read with offset 0 if you wanna read from the beginning
+
+
+
+
+
+            
+
+            kprintf("\n\n\n");
+
+            vnode_t* current_dir = root;
+            
+            current_dir = root->vnode_ops->vnode_mkdir(current_dir, "test dir 4");
+            vnode_t* fff = current_dir;
+            current_dir = root->vnode_ops->vnode_mkdir(current_dir, "test dir 5");
+            vnode_t* ff = root->vnode_ops->vnode_create(current_dir, "hihi.txt", 128);//always remember to include the size for it as well
+
+
+            kprintf("%llx\n", ff->vnode_data);
+
+
+            // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
+            vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open_file(ff->vnode_data, 0);
             f->vnode_ops->vnode_wr(fd, file_data, b_size, 0);
 
-            char* buffer1 = (char*) kmalloc_byte(b_size);
-            f->vnode_ops->vnode_rd(fd, buffer1, b_size, 0);//remember to always read with offset 0 if you wanna read from the beginning
 
-            kprintf("%s\n", buffer1);
+            vnode_t* f = vfs_resolve_path(root, "/");
+            // kprintf("%llx\n", f->vnode_data);
+            tmpfs_list_files(f->vnode_data);
+
+            kprintf("\n\n\n");
+
+            // char* buffer1 = (char*) kmalloc_byte(b_size);
+            // f->vnode_ops->vnode_rd(fd, buffer1, b_size, 0);//remember to always read with offset 0 if you wanna read from the beginning
 
 
-            char* file_data1 = (char*) kmalloc_byte(8);
-            b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
-
-
-            for (int i = 0; i < 5; i++) {
-                char strn[8];
-                itoa(i, strn);
-                root->vnode_ops->vnode_create(root, strn, 100);
-                
-                root->vnode_ops->vnode_remove(root, ((tmpfs_header_t*) root->vnode_ops->vnode_lookup(root, strn)->vnode_data)->name);
+            for (int i = 0; i < 100; i++) {
+                // kprintf("\n");
             }
+            // kprintf("%s\n", buffer1);
 
-            // for (int i = 0; i < 1200; i++) {
-            //     if (i % 2 == 0) {
-            //         char strn[8];
-            //         itoa(i, strn);
-            //         root->vnode_ops->vnode_remove(root, root->vnode_ops->vnode_lookup(root, strn));
-            //     }
+            
+
+
+            
+
+            // while (1);
+
+
+            // char* file_data1 = (char*) kmalloc_byte(8);
+            // b_size = tar_lookup_bin(tarball, "bye.txt", &file_data1);
+
+
+            // for (int i = 0; i < 5; i++) {
+            //     char strn[8];
+            //     itoa(i, strn);
+            //     root->vnode_ops->vnode_create(root, strn, 100);
+                
+            //     root->vnode_ops->vnode_remove(root, ((tmpfs_header_t*) root->vnode_ops->vnode_lookup(root, strn)->vnode_data)->name);
             // }
 
-            root->vnode_ops->vnode_create(root, "bye2.txt", b_size);
-            vnode_t* f1 = root->vnode_ops->vnode_lookup(root, "bye2.txt");
-            vfs_fd_t* fd1 = (vfs_fd_t*) tmpfs_open(root->vnode_data, "bye2.txt", 0);
+            // // for (int i = 0; i < 1200; i++) {
+            // //     if (i % 2 == 0) {
+            // //         char strn[8];
+            // //         itoa(i, strn);
+            // //         root->vnode_ops->vnode_remove(root, root->vnode_ops->vnode_lookup(root, strn));
+            // //     }
+            // // }
+
+            // root->vnode_ops->vnode_create(root, "bye2.txt", b_size);
+            // vnode_t* f1 = root->vnode_ops->vnode_lookup(root, "bye2.txt");
+            // vfs_fd_t* fd1 = (vfs_fd_t*) tmpfs_open(root->vnode_data, "bye2.txt", 0);
 
 
             
-            f1->vnode_ops->vnode_wr(fd1, file_data1, b_size, 0);
+            // f1->vnode_ops->vnode_wr(fd1, file_data1, b_size, 0);
 
-            buffer1 = (char*) krealloc_byte((uint64_t*) buffer1, b_size);
-            f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
+            // buffer1 = (char*) krealloc_byte((uint64_t*) buffer1, b_size);
+            // f1->vnode_ops->vnode_rd(fd1, buffer1, b_size, 0);
 
-            tmpfs_close((tmpfs_fd_t*) fd1);
+            // tmpfs_close((tmpfs_fd_t*) fd1);
 
-            //HERE always make sure that the string is null terminated when you print it. i think it works here because the memory was originally all zeros so the string was automatically null terminated
-            kprintf("%s\n", buffer1);
+            // //HERE always make sure that the string is null terminated when you print it. i think it works here because the memory was originally all zeros so the string was automatically null terminated
+            // kprintf("%s\n", buffer1);
 
-            // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
+            // // f->vnode_ops->vnode_rd(fd, buffer, b_size, 0);
 
 
 
-            void* exec_ptr = (void*) kmalloc_byte(8);
-            b_size = tar_lookup_bin(tarball, "a.out", (char**) &exec_ptr);
-            root->vnode_ops->vnode_create(root, "a.out", b_size);
-            vnode_t* exec_file = root->vnode_ops->vnode_lookup(root, "a.out");
+            // void* exec_ptr = (void*) kmalloc_byte(8);
+            // b_size = tar_lookup_bin(tarball, "a.out", (char**) &exec_ptr);
+            // root->vnode_ops->vnode_create(root, "a.out", b_size);
+            // vnode_t* exec_file = root->vnode_ops->vnode_lookup(root, "a.out");
 
-            vfs_fd_t* exec_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "a.out", 0);
-            exec_file->vnode_ops->vnode_wr(exec_fd, exec_ptr, b_size, 0);
+            // vfs_fd_t* exec_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "a.out", 0);
+            // exec_file->vnode_ops->vnode_wr(exec_fd, exec_ptr, b_size, 0);
 
-            // init_loader(exec_fd);
+            // // init_loader(exec_fd);
 
             
 
-            void* testt_ptr;
-            b_size = tar_lookup_bin(tarball, "test", (char**) &testt_ptr);
-            root->vnode_ops->vnode_create(root, "testt", b_size);
-            vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
+            // void* testt_ptr;
+            // b_size = tar_lookup_bin(tarball, "test", (char**) &testt_ptr);
+            // root->vnode_ops->vnode_create(root, "testt", b_size);
+            // vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
 
-            vfs_fd_t* testt_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "testt", 0);
-            testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
+            // vfs_fd_t* testt_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "testt", 0);
+            // testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
+
+
+
+            // vnode_t* hi2 = vfs_resolve_path("hi2.txt", root);
+            // ((tmpfs_file_t*) hi2->vnode_data)->
+            // char* buf = (char*) kmalloc_byte(20);
+            
+            // root->vnode_ops->vnode_rd
+            // for (int j = 0; j < b_size; j++) {
+            //     kprintf("%c", buf[j]);
+            // }
+
 
 
             // syscall_log("hi");
 
-            hot_exec_elf(480, testt_fd);
+            // hot_exec_elf(480, testt_fd);
             // hot_exec_elf(481, testt_fd);
             // syscall17(2, "hi", 2);
 
 
             // hot_exec_elf(0, exec_fd);
-            hot_create_and_push_user_thread(1, test_a);
+            // hot_create_and_push_user_thread(1, test_a);
             // hot_create_and_push_user_thread(2, test_a);
             // hot_exec_elf(3, exec_fd);
-            hot_create_and_push_thread(4, gen2);
+            // hot_create_and_push_thread(4, gen2);
             // hot_create_and_push_thread(6, gen2);
-            // hot_create_and_push_thread(12, gen3);
+            hot_create_and_push_thread(12, gen3);
             // hot_create_and_push_thread(13, gen3);
             // hot_create_and_push_user_thread(14, gen3);
 
@@ -189,9 +246,29 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 }
 
 //make this non tmpfs specific
-int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode) {
+int vfs_fdopen(char* path, uint8_t mode) {
+    if (!scheduling_started) {
+        kprintf("vfs_fd_open(): scheduling not started\n");
+        return -1;
+    }
+    //HERE we're using tmpfs root as our root fs/root vnode or something. i think that this is okay
+    vnode_t* f;
+    if (path[0] == '/') {
+        f = vfs_resolve_path(tmpfs_root, path);
+    }
+    else {
+        strcat(path, get_current_thread()->current_dir);
+        kprintf("path: %s\n", path);
+        f = vfs_resolve_path(tmpfs_root, path);
+    }
+    assert(f != NULL);
+    
+    void* fd = NULL;
 
-    tmpfs_fd_t* fd = (tmpfs_fd_t*) tmpfs_open(dir, name, mode);
+    if (f->vnode_vfsmountedhere->type == TMPFS) {
+        fd = (void*) tmpfs_open_file(f->vnode_data, mode);
+    }
+    
     if (fd == NULL) {
         return -1;
     }
@@ -283,7 +360,29 @@ void vnode_unmount_vfs(vnode_t* parent_vnode, char* name) {
     //or we can use an array approach and set the vfs to null but it'll also mean we need to implement realloc first
 }
 
+//if the path starts with a '/' we assume that it's an absolute path and tmpfs_root (for now) will be used instead of root_dir
+vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path) {
+    assert(path != NULL);
+    //no check against non null terminated strings
+    if (path[0] == '/') {//i think and i hope that the original value that was passed into this function doesn't get changed by changing the arg here
+        root_dir = tmpfs_root;//HERE we're using tmpfs_root as our root vnode for lookups for now. i'm not sure if we have a root vnode for all vfs's if that's even a thing
+    }
+    
+    vnode_t* ret = root_dir;
+    char* save;
+    //HERE use strtok_r instead of strtok because it's reenetrant and thread safe i think
+    path = strdup(path);//not sure why but strdup was needed to make it work
+    char* tok = strtok_r(path, "/", &save);
+    while (tok != NULL) {
+        //HERE remember to increase the reference count of each vnode
+        ret = root_dir->vnode_ops->vnode_lookup(ret, tok);
+        tok = strtok_r(NULL, "/", &save);
+    }
+    kfree((uint64_t*) path);
+    return ret;
 
+
+}
 
 
 // IMPLEMENT THESE AS SYSCALLS

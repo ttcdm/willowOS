@@ -68,6 +68,8 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 void tmpfs_not_available(void);
 
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode);
+tmpfs_fd_t* tmpfs_open_file(tmpfs_file_t* file, uint8_t mode);//opens the file object directly instead of looking it up
+
 void tmpfs_close(tmpfs_fd_t* fd);
 void* tmpfs_lookup(tmpfs_directory_t* dir, char* name);
 

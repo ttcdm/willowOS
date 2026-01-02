@@ -27,7 +27,9 @@ typedef struct tmpfs_directory tmpfs_directory_t;//we forward declare it. hopefu
 
 extern vnode_t* tmpfs_root;//tmpfs root vnode
 
-enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };
+enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };//vnode types
+
+enum fs_type { TMPFS };//fs types
 
 struct vnode {
     uint16_t vnode_flag; /* vnode flags */
@@ -68,6 +70,7 @@ struct vfs {
     int vfs_flag;//add other attributes/data ig
     int vfs_bsize;
     void* vfs_data;
+    enum fs_type type;
 };
 
 struct vfs_ops {
@@ -96,8 +99,10 @@ struct vfs_fd {
 
 void init_vfs(volatile struct limine_module_request* module_request);
 
+vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path);
+
 //always remember to use pointers for args where necessary
-int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode);
+int vfs_fdopen(char* path, uint8_t mode);
 int vfs_fdclose(int fd);
 int vfs_close(vfs_fd_t* fd);
 

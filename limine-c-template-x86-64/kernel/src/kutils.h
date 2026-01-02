@@ -112,4 +112,6 @@ int tar_lookup_bin(char* tarball, char* filename, char** file_data);
 uint64_t rdmsr(uint32_t msr);
 void wrmsr(uint32_t msr, uint64_t value);
 
+char *strdup(const char *s);
+
 // struct limine_framebuffer* framebuffer;

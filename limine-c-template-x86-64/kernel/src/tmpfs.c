@@ -29,6 +29,7 @@ vfs_t* init_tmpfs() {
     vfs_ops_t* vops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
     vfs_tmpfs->vfs_ops = vops;
     vfs_tmpfs->vfs_ops->vfs_mount = vnode_mount_vfs;
+    vfs_tmpfs->type = TMPFS;
 
 
     // vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
@@ -351,8 +352,14 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 //HERE remember to use paths ig instead of just names and lookup maybe?
 //maybe also add append or at least some way to get eof
 tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
-    tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
+    return tmpfs_open_file(file, mode);
+}
+
+//opens the file object directly instead of looking it up
+tmpfs_fd_t* tmpfs_open_file(tmpfs_file_t* file, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
+    tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
+
     if (file == NULL) {
         return NULL;
     }
@@ -368,6 +375,7 @@ tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//mayb
     //we always set the position to 0. since this returns a file descriptor, we leave it up to the user or other functions to modify the position
     return fd;
 }
+
 
 void tmpfs_close(tmpfs_fd_t* fd) {
     acquire_mutex(fd->file->header.mutex);

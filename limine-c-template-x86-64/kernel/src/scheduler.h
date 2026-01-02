@@ -63,6 +63,8 @@ typedef struct thread_context_declared {
 	uint64_t fs_base;
 	uint64_t gs_base;
 
+	char* current_dir;
+
 	struct thread_context_declared* next_thread;
 	struct thread_context_declared* prev_thread;
 

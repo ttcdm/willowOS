@@ -36,7 +36,7 @@ void test_a() {
     // syscall_test();
     uint64_t syscall_num = 1;
 
-    // return;
+    return;
 
 
     // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");

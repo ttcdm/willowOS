@@ -180,64 +180,6 @@ void kfree(uint64_t* virt_address) {
     irq_restore(&irq);
 }
 
-void kfree_c(void *ptr) {
-    if (!ptr) return;
-
-    bool irq;
-    irq_disable_save(&irq);
-
-    const uint64_t CHUNK = HEAP_CHUNK_SIZE_DEFINED;
-    const uint64_t BASE  = HEAP_START_VIRT_DEFINED;
-    const uint64_t p     = (uint64_t)ptr;
-
-    // 1) basic sanity: in-range + aligned
-    if (p < BASE || (p - BASE) % CHUNK != 0) {
-        kprintf("kfree: invalid/unaligned ptr=%llx\n", p);
-        irq_restore(&irq);
-        return;
-    }
-
-    // 2) find the head node for this allocation
-    uint64_t index = (p - BASE) / CHUNK;
-    heap_page *cur = heap_page_head;
-    for (uint64_t i = 0; i < index && cur; ++i) cur = cur->next;
-
-    if (!cur) {
-        kprintf("kfree: index out of range (%llu)\n", index);
-        irq_restore(&irq);
-        return;
-    }
-
-    if (cur->status == 0) {
-        kprintf("kfree: double free? (ptr=%llx)\n", p);
-        irq_restore(&irq);
-        return;
-    }
-
-    // must be the head chunk: alloc_length set by kmalloc on head only
-    uint64_t len = cur->alloc_length;
-    if (len == 0) {
-        kprintf("kfree: pointer not at allocation head (ptr=%llx)\n", p);
-        irq_restore(&irq);
-        return;
-    }
-
-    // 3) free exactly `len` chunks
-    heap_page *node = cur;
-    for (uint64_t i = 0; i < len && node; ++i) {
-        node->status = 0;
-        node = node->next;
-    }
-    cur->alloc_length = 0;
-    cur->size = 0;   // optional: clear stored byte-size
-
-    #ifdef VMM_VERBOSE
-    kprintf_interruptable("freed node(s): %llu at starting index: %llu\n", len, index);
-    #endif
-
-    irq_restore(&irq);
-}
-
 
 void kfree_interruptable(uint64_t* virt_address) {
     kfree((uint64_t*) virt_address);

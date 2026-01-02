@@ -97,18 +97,19 @@ void gen3() {
 	}
 	// while (1);
 
-	int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
+	// int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
+	int fd = vfs_fdopen("/test dir 4/test dir 5/hihi.txt", 0);
 	char* buf = (char*) kmalloc_byte(1024);
-	tmpfs_fd_read_from_file(fd, buf, 128, 0);
+	// tmpfs_fd_read_from_file(fd, buf, 128, 0);
 	// buf[127] = '\0';
 	// kprintf("%s\n", buf);
-	char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
-	tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
+	// char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
+	// tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
 	
 	tmpfs_fd_read_from_file(fd, buf, 256, 0);
 	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
 	for (int i = 0; i < 256; i++) {
-		// kprintf("%c", buf[i]);
+		kprintf("%c", buf[i]);
 	}
 
 	vfs_fdclose(fd);
@@ -539,6 +540,8 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	//fs and gs (mmio?)
 	new_thread->fs_base = 0;
 	new_thread->gs_base = 0;
+
+	new_thread->current_dir = "/";
 
 	memset(&(new_thread->ssefxsave), 0, 512);
 
