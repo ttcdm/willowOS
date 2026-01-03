@@ -68,17 +68,17 @@ vfs_t* init_tmpfs() {
     tmpfs_create_file(test_dir_1, "test file", 4096);
 
     tmpfs_fd_t* f = tmpfs_open(test_dir_1, "test file", 0);
-    tmpfs_write_to_file(f, "hello world", 11, 0);
+    tmpfs_pwrite_to_file(f, "hello world", 11, 0);
 
     char* buffer = (char*) kmalloc_byte(4096);
     
-    tmpfs_read_from_file(f, buffer, 11, 0);
+    tmpfs_pread_from_file(f, buffer, 11, 0);
     kprintf("%s\n", buffer);
-    tmpfs_write_to_file(f, "hello world", 11, 11);
-    tmpfs_read_from_file(f, buffer, 64, 0);
+    tmpfs_pwrite_to_file(f, "hello world", 11, 11);
+    tmpfs_pread_from_file(f, buffer, 64, 0);
     kprintf("%s\n", buffer);
     tmpfs_close(f);
-    tmpfs_read_from_file(f, buffer, 64, 0);
+    tmpfs_pread_from_file(f, buffer, 64, 0);
 
     tmpfs_directory_t* temp = tmpfs_lookup(root_dir, "test dir 1");
     kprintf("%s\n", temp->header.name);
@@ -313,7 +313,7 @@ void tmpfs_list_files(tmpfs_directory_t* dir) {//remember that it's files and no
     }
     kprintf("---\n");
 }
-void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {//these should probably support fopen fseek ftell and such
+void tmpfs_pwrite_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {//these should probably support fopen fseek ftell and such
     //remember to add support for different modes
     if (offset + size > file->size) {
         void* new_file = kmalloc_byte(offset+size);
@@ -333,7 +333,7 @@ void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t o
 
 }
 
-size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {//MUST INITIALIZE BUFFER TO FILL
+size_t tmpfs_pread_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {//MUST INITIALIZE BUFFER TO FILL
     //remember to add protection against reading past the end of the file if there isn't already
     if (offset >= file->size) {
         return 1;
@@ -351,13 +351,13 @@ size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_
 
 //HERE remember to use paths ig instead of just names and lookup maybe?
 //maybe also add append or at least some way to get eof
-tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
+tmpfs_fd_t* tmpfs_open(tmpfs_directory_t* dir, char* name, int mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_file_t* file = (tmpfs_file_t*) tmpfs_lookup(dir, name);
     return tmpfs_open_file(file, mode);
 }
 
 //opens the file object directly instead of looking it up
-tmpfs_fd_t* tmpfs_open_file(tmpfs_file_t* file, uint8_t mode) {//maybe add safeguard against opening a file when it's already open
+tmpfs_fd_t* tmpfs_open_file(tmpfs_file_t* file, int mode) {//maybe add safeguard against opening a file when it's already open
     tmpfs_fd_t* fd = (tmpfs_fd_t*) kmalloc_byte(sizeof(tmpfs_fd_t));//changed from kmalloc to kmalloc_byte. might've been an earlier typo
 
     if (file == NULL) {
@@ -446,11 +446,11 @@ void vnode_tmpfs_delete_directory_no_orphan(vnode_t* vnode, char* name) {
 }
 
 void vnode_tmpfs_write_to_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
-    tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
+    tmpfs_pwrite_to_file((tmpfs_fd_t*) file, data, size, offset);
 }
 
 size_t vnode_tmpfs_read_from_file(vfs_fd_t* file, void* data, uint64_t size, uint64_t offset) {
-    return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
+    return tmpfs_pread_from_file((tmpfs_fd_t*) file, data, size, offset);
 }
 
 void tmpfs_fd_write_to_file(int fd, void* data, uint64_t size, uint64_t offset) {
@@ -460,7 +460,7 @@ void tmpfs_fd_write_to_file(int fd, void* data, uint64_t size, uint64_t offset) 
     tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
     assert(file != NULL);
     kfree((uint64_t*) buf);
-    tmpfs_write_to_file((tmpfs_fd_t*) file, data, size, offset);
+    tmpfs_pwrite_to_file((tmpfs_fd_t*) file, data, size, offset);
 }
 
 size_t tmpfs_fd_read_from_file(int fd, void* data, uint64_t size, uint64_t offset) {
@@ -470,7 +470,7 @@ size_t tmpfs_fd_read_from_file(int fd, void* data, uint64_t size, uint64_t offse
     tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
     assert(file != NULL);
     kfree((uint64_t*) buf);
-    return tmpfs_read_from_file((tmpfs_fd_t*) file, data, size, offset);
+    return tmpfs_pread_from_file((tmpfs_fd_t*) file, data, size, offset);
 }
 
 

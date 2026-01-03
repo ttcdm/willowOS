@@ -23,6 +23,7 @@ extern syscall15
 extern syscall16
 extern syscall17
 extern syscall18
+extern syscall19
 
 ;ALWAYS REMEMBER TO ADD TO THIS LIST
 section .data
@@ -46,6 +47,7 @@ syscall_array:
     dq syscall16
     dq syscall17
     dq syscall18
+    dq syscall19
 
 ; .length: dq ($ - syscall_array) / 8;number of elements in the syscall array
 

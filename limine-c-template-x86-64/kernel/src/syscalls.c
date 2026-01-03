@@ -152,24 +152,24 @@ asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(a), "c"(b), "r8"
 
 
 
-int syscall0(uint64_t num) {//open
+int syscall0(uint64_t num) {
     return 0;
 }
 
-int syscall1(uint64_t num) {//close
+int syscall1(uint64_t num) {
     kprintf("syscall1\n");
     while (1);
 }
 
-int syscall2(uint64_t num) {//read
+int syscall2(uint64_t num) {
     return 0;
 }
 
-int syscall3(uint64_t num) {//write
+int syscall3(uint64_t num) {
     return 0;
 }
 
-int syscall4(size_t num) {//seek
+int syscall4(size_t num) {
     return 0;
 }
 
@@ -338,7 +338,7 @@ int syscall16(uint64_t num, thread_context** thread) {//get_current_thread_sysca
     return 0;
 }
 
-int syscall17(uint64_t num, char* str, size_t len) {
+int syscall17(uint64_t num, char* str, size_t len) {//another logging syscall
     bool irq_status;
     irq_disable_save(&irq_status);
 
@@ -350,12 +350,32 @@ int syscall17(uint64_t num, char* str, size_t len) {
     return 0;
 }
 
-int syscall18(uint64_t num, void* pointer) {
+int syscall18(uint64_t num, void* pointer) {//sys_tcb_set
     //mmio fs address
     wrmsr(0xC0000100, (uint64_t) pointer);
     return 0;
 }
 
+int syscall19(uint64_t num, char* path, int flags, int mode, int* fd) {//open
+    *fd = vfs_fdopen(path, flags, mode);//i should probably return an errno instead of the fd
+    return 0;
+}
+int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read) {
+    return 0;
+}
+
+int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written) {
+    return 0;
+}
+
+int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset) {
+    return 0;
+}
+
+int syscall23(uint64_t num, int fd) {
+    vfs_fdclose(fd);
+    return 0;
+}
 
 //HERE the code under this line should be 1:1 with generic.cpp for mlibc sysdeps aside from the possible type mismatches, i.e., mode_t vs int, off_t vs int64_t, and so on
 
@@ -606,11 +626,20 @@ int sys_tcb_set(void *pointer) {//18
 //HERE hopefully replacing these types won't cause any misalignments and/or other errors with mlibc
 //replaced mode_t with int
 int sys_open(const char *pathname, int flags, int mode, int *fd) {
-    return 0;
+    int ret;
+    uint64_t num = 18;
+    syscall_log("sys_tcb_set called\n");
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r8"(fd) : "memory");//i think this is right
+
+    return ret;
 }
 
 //replaced ssize_t with size_t
 int sys_read(int fd, void *buf, size_t count, size_t *bytes_read) {
+    vfs_fd_t* file = vfs_int_fd_to_fs_fd(fd);
+    if (file->type == TMPFS) {
+        // tmpfs_pread_from_file(file, buf, count, bytes_read);
+    }
     return 0;
 }
 

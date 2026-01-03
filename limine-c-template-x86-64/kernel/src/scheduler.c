@@ -98,7 +98,7 @@ void gen3() {
 	// while (1);
 
 	// int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
-	int fd = vfs_fdopen("/test dir 4/test dir 5/hihi.txt", 0);
+	int fd = vfs_fdopen("test dir 4/test dir 5/hihi.txt", 0, 0);
 	char* buf = (char*) kmalloc_byte(1024);
 	// tmpfs_fd_read_from_file(fd, buf, 128, 0);
 	// buf[127] = '\0';

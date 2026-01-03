@@ -246,7 +246,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 }
 
 //make this non tmpfs specific
-int vfs_fdopen(char* path, uint8_t mode) {
+int vfs_fdopen(char* path, int flags, int mode) {
     if (!scheduling_started) {
         kprintf("vfs_fd_open(): scheduling not started\n");
         return -1;
@@ -257,9 +257,12 @@ int vfs_fdopen(char* path, uint8_t mode) {
         f = vfs_resolve_path(tmpfs_root, path);
     }
     else {
+        path = strdup(path);
         strcat(path, get_current_thread()->current_dir);
         kprintf("path: %s\n", path);
         f = vfs_resolve_path(tmpfs_root, path);
+        kfree((uint64_t*) path);
+        path = NULL;
     }
     assert(f != NULL);
     
@@ -380,8 +383,16 @@ vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path) {
     }
     kfree((uint64_t*) path);
     return ret;
+}
 
-
+vfs_fd_t* vfs_int_fd_to_fs_fd(int fd) {
+    struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
+    char* buf = (char*) kmalloc_byte(64);
+    int len = npf_snprintf(buf, 64, "%d", fd);
+    vfs_fd_t* file = (vfs_fd_t*) oa_hash_get(ht, buf, len);
+    assert(file != NULL);
+    kfree((uint64_t*) buf);
+    return file;
 }
 
 

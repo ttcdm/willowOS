@@ -84,10 +84,11 @@ struct vfs_ops {
 };
 
 struct vfs_fd {
+    enum fs_type type;//HERE right now these must have 1:1 correspondence tmpfs_fd_t. we should honestly have a generic struct that stores the specific fd's for each type of fs for each fd
     void* data;
     uint64_t size;
     uint64_t position;
-    uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
+    int mode;//0 for read, 1 for write from beginning, 2 for append
     void* file;//pointer to actual file descriptor thing
 };
 
@@ -100,9 +101,10 @@ struct vfs_fd {
 void init_vfs(volatile struct limine_module_request* module_request);
 
 vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path);
+vfs_fd_t* vfs_int_fd_to_fs_fd(int fd);
 
 //always remember to use pointers for args where necessary
-int vfs_fdopen(char* path, uint8_t mode);
+int vfs_fdopen(char* path, int flaggs, int mode);
 int vfs_fdclose(int fd);
 int vfs_close(vfs_fd_t* fd);
 
