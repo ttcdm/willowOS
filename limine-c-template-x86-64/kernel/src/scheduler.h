@@ -121,3 +121,7 @@ void gen0();
 void gen1();
 void gen2();
 void gen3();
+
+extern uint64_t new_pid;
+extern mutex_t new_pid_mutex;//defined inside scheduler.c and i'm not sure if this is supposed to be here
+extern uint64_t get_new_pid();//defined inside kutils.h

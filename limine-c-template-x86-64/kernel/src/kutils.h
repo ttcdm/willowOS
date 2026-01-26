@@ -26,6 +26,8 @@ extern struct flanterm_context* ft_ctx;
 typedef struct mutex mutex_t;//forward declaration because we can't include mutex.h or else we'll get circular inclusions. i hope nothing breaks
 extern mutex_t ft_ctx_mutex;
 
+uint64_t get_new_pid();
+
 size_t kstrlen(char* msg);
 
 void kprintf(char* fmt, ...);

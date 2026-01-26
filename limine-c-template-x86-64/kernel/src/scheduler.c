@@ -741,3 +741,14 @@ void print_queue() {
 	#endif
 	irq_restore(&irq);
 }
+
+
+uint64_t new_pid = 0;//HERE pids start from 1
+mutex_t new_pid_mutex = {.object = &new_pid, .locked = 0};
+
+uint64_t get_new_pid() {
+	acquire_mutex(&new_pid_mutex);
+	new_pid++;
+	release_mutex(&new_pid_mutex);
+	return new_pid;
+}

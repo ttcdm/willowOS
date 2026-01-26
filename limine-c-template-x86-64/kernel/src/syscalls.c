@@ -627,9 +627,15 @@ int sys_tcb_set(void *pointer) {//18
 //replaced mode_t with int
 int sys_open(const char *pathname, int flags, int mode, int *fd) {
     int ret;
-    uint64_t num = 18;
-    syscall_log("sys_tcb_set called\n");
-    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r8"(fd) : "memory");//i think this is right
+    uint64_t num = 19;
+    syscall_log("sys_open called\n");
+    register uint64_t r8 asm("r8") = (uint64_t) fd;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r"(r8) : "memory");//i think this is right
+
+    /*
+    register uint64_t r8 asm("r8") = fd;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r"(r8) : "rcx", "r11");
+    */
 
     return ret;
 }
