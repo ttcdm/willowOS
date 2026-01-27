@@ -19,6 +19,8 @@ typedef struct vnode_ops vnode_ops_t;
 typedef struct vfs vfs_t;
 typedef struct vfs_ops vfs_ops_t;
 typedef struct vfs_fd vfs_fd_t;
+typedef struct vfs_file vfs_file_t;
+typedef struct vfs_file_ops vfs_file_ops_t;
 
 typedef struct vfs_fd_table vfs_fd_table_t;
 // extern vfs_fd_table_t;
@@ -92,6 +94,23 @@ struct vfs_fd {
     void* file;//pointer to actual file descriptor thing
 };
 
+
+struct vfs_file {
+    vnode_t* vnode;
+    mutex_t* mutex;//not sure if this should be on the stack or on the heap
+    vfs_file_ops_t* file_ops;
+    
+    
+};
+
+
+
+struct vfs_file_ops {
+
+};
+
+
+
 // struct vfs_fd_table {
 //     // OA_HASH_ATTRS(mut);
 
@@ -101,7 +120,7 @@ struct vfs_fd {
 void init_vfs(volatile struct limine_module_request* module_request);
 
 vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path);
-vfs_fd_t* vfs_int_fd_to_fs_fd(int fd);
+vfs_file_t* vfs_int_fd_to_vfs_file(int fd);
 
 //always remember to use pointers for args where necessary
 int vfs_fdopen(char* path, int flaggs, int mode);

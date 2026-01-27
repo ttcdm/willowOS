@@ -642,10 +642,10 @@ int sys_open(const char *pathname, int flags, int mode, int *fd) {
 
 //replaced ssize_t with size_t
 int sys_read(int fd, void *buf, size_t count, size_t *bytes_read) {
-    vfs_fd_t* file = vfs_int_fd_to_fs_fd(fd);
-    if (file->type == TMPFS) {
-        // tmpfs_pread_from_file(file, buf, count, bytes_read);
-    }
+    vfs_file_t* file = vfs_int_fd_to_vfs_file(fd);
+    // if (file->type == TMPFS) {
+    //     // tmpfs_read_from_file(file, buf, count, bytes_read);
+    // }
     return 0;
 }
 

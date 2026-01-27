@@ -391,11 +391,11 @@ vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path) {
     return ret;
 }
 
-vfs_fd_t* vfs_int_fd_to_fs_fd(int fd) {
+vfs_file_t* vfs_int_fd_to_vfs_file(int fd) {
     struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
     char* buf = (char*) kmalloc_byte(64);
     int len = npf_snprintf(buf, 64, "%d", fd);
-    vfs_fd_t* file = (vfs_fd_t*) oa_hash_get(ht, buf, len);
+    vfs_file_t* file = (vfs_file_t*) oa_hash_get(ht, buf, len);
     assert(file != NULL);
     kfree((uint64_t*) buf);
     return file;

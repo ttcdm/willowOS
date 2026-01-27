@@ -63,8 +63,8 @@ void tmpfs_delete_directory(tmpfs_directory_t* dir, char* name);
 void tmpfs_delete_directory_no_orphan(tmpfs_directory_t* dir, char* name);
 
 void tmpfs_list_files(tmpfs_directory_t* dir);//remember that it's files and not file. also maybe make this list directoreis as well?
-void tmpfs_pwrite_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);//these should probably support fopen fseek ftell and such
-size_t tmpfs_pread_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);
+void tmpfs_write_to_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);//these should probably support fopen fseek ftell and such
+size_t tmpfs_read_from_file(tmpfs_fd_t* file, void* data, uint64_t size, uint64_t offset);
 
 void tmpfs_not_available(void);
 
