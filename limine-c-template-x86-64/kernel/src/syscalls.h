@@ -78,7 +78,12 @@ int syscall15(uint64_t num, struct fmt_args* args_struct);
 int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscall
 int syscall17(uint64_t num, char* str, size_t len);//kprintf() wrapper
 int syscall18(uint64_t num, void* pointer);//sys_tcb_set
-int syscall19(uint64_t num, char* path, int flags, int mode, int* fd);//open
+int syscall19(uint64_t num, char* path, int flags, int mode, int* fd);//sys_open
+int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read);//sys_read
+int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written);//sys_write
+int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset);//sys_seek
+int syscall23(uint64_t num, int fd);//close
+
 
 
 int syscall_user_thread_exit(void);

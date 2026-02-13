@@ -360,15 +360,15 @@ int syscall19(uint64_t num, char* path, int flags, int mode, int* fd) {//open
     *fd = vfs_fdopen(path, flags, mode);//i should probably return an errno instead of the fd
     return 0;
 }
-int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read) {
+int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read) {//read
     return 0;
 }
 
-int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written) {
+int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written) {//write
     return 0;
 }
 
-int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset) {
+int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset) {//seek
     return 0;
 }
 

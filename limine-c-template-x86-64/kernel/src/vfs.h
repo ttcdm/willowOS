@@ -8,11 +8,23 @@
 #include <kutils.h>
 #include <vmm.h>
 #include <tsc.h>
+#include <mutex.h>
 
 // #include "./oa_hash/oa_hash.h"
 
 
 //taken from https://www.cs.fsu.edu/~awang/courses/cop5611_s2024/vnode.pdf
+
+/*
+
+so basically what's going on here is that we have
+
+int fd->struct file->vnode->fs specific data
+
+
+
+*/
+
 
 typedef struct vnode vnode_t;
 typedef struct vnode_ops vnode_ops_t;
@@ -54,8 +66,8 @@ struct vnode {
 struct vnode_ops {//HERE remember to always match the return types to prevent errors
     size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
     void (*vnode_wr)();
-    size_t (*vnode_fd_rd)();
-    void (*vnode_fd_wr)();
+    // size_t (*vnode_fd_rd)();
+    // void (*vnode_fd_wr)();
     int (*vnode_ioctl)();
     vnode_t* (*vnode_lookup)();
     vnode_t* (*vnode_create)();
@@ -97,18 +109,54 @@ struct vfs_fd {
 
 struct vfs_file {
     vnode_t* vnode;
-    mutex_t* mutex;//not sure if this should be on the stack or on the heap
+    mutex_t mutex;//not sure if this should be on the stack or on the heap
     vfs_file_ops_t* file_ops;
+    int flags;//HERE linux kernel source uses unsigned int for flags. not sure why. we're gonna use int for now tho
+    int mode;//HERE i couldn't figure out what fmode_t was defined as so we're gonna assume that it's int for now
+    uint64_t position;
+    char* abs_path;
     
+
+    //i don't think the file needs to know about these two things esp the latter one
+    // uint64_t size;
+    // enum fs_type type;
     
 };
 
 
 
 struct vfs_file_ops {
+    //for reference
+    // size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
+    // void (*vnode_wr)();
+    // size_t (*vnode_fd_rd)();
+    // void (*vnode_fd_wr)();
+    // int (*vnode_ioctl)();
+    // vnode_t* (*vnode_lookup)();
+    // vnode_t* (*vnode_create)();
+    // void (*vnode_remove)();
+    // void* (*vnode_mkdir)();
+    // void (*vnode_rmdir)();
+    // void (*vnode_rmdir_no_orphan)();
+
+    size_t (*pread)(vfs_file_t* file, void* buf, uint64_t size, uint64_t offset);
+    size_t (*fd_pread)(int fd, void* buf, uint64_t size, uint64_t offset);
+    void (*pwrite)(vfs_file_t* file, void* data, uint64_t size, uint64_t offset);
+    void (*fd_pwrite)(int fd, void* data, uint64_t size, uint64_t offset);
+    int (*fd_open)(char* path, int flags, int mode);
+    int (*fd_close)(int fd);
 
 };
 
+
+size_t pread(vfs_file_t* file, void* buf, uint64_t size, uint64_t offset);
+size_t fd_pread(int fd, void* buf, uint64_t size, uint64_t offset);
+
+void pwrite(vfs_file_t* file, void* data, uint64_t size, uint64_t offset);
+void fd_pwrite(int fd, void* data, uint64_t size, uint64_t offset);
+
+int fd_open(char* path, int flags, int mode);
+int fd_close(int fd);
 
 
 // struct vfs_fd_table {
@@ -123,7 +171,7 @@ vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path);
 vfs_file_t* vfs_int_fd_to_vfs_file(int fd);
 
 //always remember to use pointers for args where necessary
-int vfs_fdopen(char* path, int flaggs, int mode);
+int vfs_fdopen(char* path, int flags, int mode);
 int vfs_fdclose(int fd);
 int vfs_close(vfs_fd_t* fd);
 
