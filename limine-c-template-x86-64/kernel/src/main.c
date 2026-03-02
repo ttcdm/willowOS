@@ -56,20 +56,20 @@ static volatile LIMINE_BASE_REVISION(3);
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
@@ -78,10 +78,13 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
+
+#define LIMINE_MP_REQUEST_X86_64_X2APIC (1 << 0)
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_mp_request mp_request = {
     .id = LIMINE_MP_REQUEST,
-    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+    .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
+    .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
 // __attribute__((used, section(".limine_requests")))
@@ -92,7 +95,7 @@ static volatile struct limine_mp_request mp_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_module_request module_request = {
     .id = LIMINE_MODULE_REQUEST,
-    .revision = 0
+    .revision = 3
 };
 
 
