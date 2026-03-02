@@ -106,7 +106,8 @@ void gen3() {
 	// char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
 	// tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
 	
-	tmpfs_fd_read_from_file(fd, buf, 256, 0);
+	// tmpfs_fd_read_from_file(fd, buf, 256, 0);
+	fd_pread(fd, buf, 256, 0);
 	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
 	for (int i = 0; i < 256; i++) {
 		kprintf("%c", buf[i]);

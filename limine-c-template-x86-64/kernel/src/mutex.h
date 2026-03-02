@@ -7,7 +7,7 @@
 
 #include <kutils.h>
 #include <vmm.h>
-#include <scheduler.h>
+// #include <scheduler.h>
 
 
 // https://www.ibm.com/docs/en/xl-c-and-cpp-aix/16.1.0?topic=functions-sync-bool-compare-swap
@@ -24,6 +24,10 @@ bool release_mutex(mutex_t* mutex);
 // //need to put this here because of circular includes or something
 // extern bool GLOBAL_SCHED_OBJECT;
 // extern mutex_t GLOBAL_SCHED_QUEUE_LOCK;
+
+
+//not sure why i need to forward declare this now. i didn't need to before but now the compiler is complaining
+typedef struct thread_context_declared thread_context;
 
 typedef struct futex_queue {
     int* pointer;

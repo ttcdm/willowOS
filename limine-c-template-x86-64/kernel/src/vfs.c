@@ -35,7 +35,9 @@ void init_vfs(volatile struct limine_module_request* module_request) {
     root->vnode_ops->vnode_create(root, "hi.txt", 4096);
     tmpfs_list_files(root->vnode_data);
     vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi.txt");
-    vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi.txt", 0);
+    // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi.txt", 0);
+    vfs_fd_t* fd = NULL;
+    assert(fd != NULL);
     f->vnode_ops->vnode_wr(fd, "asadf", 6, 0);
     char buffer[256];
     f->vnode_ops->vnode_rd(fd, buffer, 6, 1);//REMEMBER TO USE THE APPROPRIATE VNODE FOR THE VNODE OPS OR IT WILL PAGE FAULT
@@ -104,7 +106,9 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 
 
             // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi2.txt", 0);
-            vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open_file(ff->vnode_data, 0);
+            // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open_file(ff->vnode_data, 0);
+            vfs_fd_t* fd = NULL;
+            assert(fd != NULL);
             f->vnode_ops->vnode_wr(fd, file_data, b_size, 0);
 
 
@@ -251,6 +255,39 @@ void init_vfs(volatile struct limine_module_request* module_request) {
     // vnode_unmount_vfs
 }
 
+
+
+
+
+size_t pread(vfs_file_t* file, void* buf, uint64_t size, uint64_t offset) {
+    return file->vnode->vnode_ops->vnode_rd(file->vnode, buf, size, offset);
+}
+
+size_t fd_pread(int fd, void* buf, uint64_t size, uint64_t offset) {
+    vfs_file_t* file = vfs_int_fd_to_vfs_file(fd);
+    return file->vnode->vnode_ops->vnode_rd(file->vnode, buf, size, offset);
+}
+
+void pwrite(vfs_file_t* file, void* data, uint64_t size, uint64_t offset) {
+    file->vnode->vnode_ops->vnode_wr(file->vnode, data, size, offset);
+}
+void fd_pwrite(int fd, void* data, uint64_t size, uint64_t offset) {
+    vfs_file_t* file = vfs_int_fd_to_vfs_file(fd);
+    file->vnode->vnode_ops->vnode_wr(file->vnode, data, size, offset);
+}
+
+int fd_open(char* path, int flags, int mode) {
+    return vfs_fdopen(path, flags, mode);
+}
+int fd_close(int fd) {
+    vfs_fdclose(fd);
+}
+
+
+
+
+
+
 //make this non tmpfs specific
 int vfs_fdopen(char* path, int flags, int mode) {
     if (!scheduling_started) {
@@ -258,25 +295,31 @@ int vfs_fdopen(char* path, int flags, int mode) {
         return -1;
     }
     //HERE we're using tmpfs root as our root fs/root vnode or something. i think that this is okay
-    vnode_t* f;
+    vnode_t* v;
     if (path[0] == '/') {
-        f = vfs_resolve_path(tmpfs_root, path);
+        v = vfs_resolve_path(tmpfs_root, path);
     }
     else {
         path = strdup(path);
         strcat(path, get_current_thread()->current_dir);
         kprintf("path: %s\n", path);
-        f = vfs_resolve_path(tmpfs_root, path);
+        v = vfs_resolve_path(tmpfs_root, path);
         kfree((uint64_t*) path);
         path = NULL;
     }
-    assert(f != NULL);
+    assert(v != NULL);
     
-    void* fd = NULL;
 
-    if (f->vnode_vfsmountedhere->type == TMPFS) {
-        fd = (void*) tmpfs_open_file(f->vnode_data, mode);
-    }
+    vfs_file_t* fd = (vfs_file_t*) kmalloc_byte(sizeof(vfs_file_t));
+
+    fd->mode = mode;
+    fd->flags = flags;
+    fd->file_ops = (vfs_file_ops_t*) kmalloc_byte(sizeof(vfs_file_ops_t));
+    fd->mutex = (mutex_t) {0, NULL};//i hope that this is allowed lmao
+    fd->position = 0;
+    fd->vnode = v;
+    fd->abs_path = NULL;//not sure if we should use relative path or abs path. relative path would probably be better
+
     
     if (fd == NULL) {
         return -1;
@@ -345,10 +388,17 @@ int vfs_fdclose(int fd) {
     struct oa_hash* ht = (struct oa_hash*) get_current_thread()->fd_table;
     char* buf = (char*) kmalloc_byte(64);
     int len = npf_snprintf(buf, 64, "%d", fd);
-    tmpfs_fd_t* file = (tmpfs_fd_t*) oa_hash_get(ht, buf, len);
+    vfs_file_t* file = (vfs_file_t*) oa_hash_get(ht, buf, len);
     oa_hash_remove(ht, buf, len);
     kfree((uint64_t*) buf);
-    tmpfs_close(file);
+    
+    if (file != NULL) {
+        if (file->abs_path != NULL) kfree((uint64_t*) file->abs_path);
+        if (file->file_ops != NULL) kfree((uint64_t*) file->file_ops);
+        kfree((uint64_t*) file);
+    }
+
+
 }
 
 int vfs_close(vfs_fd_t* fd) {
