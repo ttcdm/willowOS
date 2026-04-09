@@ -717,28 +717,20 @@ volatile thread_context* get_thread_by_pid(uint64_t pid) {
 }
 
 void print_queue() {
-	// return;
+	return;
 	bool irq;
 	irq_disable_save(&irq);
 	volatile thread_context* current_thread = running_thread;
-	/*
-	for (int i = 0; i < num_threads+1; i++) {
-		int x = current_thread->pid;
-		kprintf("%d ", x);
-		current_thread = current_thread->next_thread;
-	}
-	irq_restore(&irq);
-	return;
-	*/
-	#ifdef SCHEDULER_VERBOSE
-	kprintf_interruptable("\n||| ");
+	#define VERBOSE
+	#ifdef VERBOSE
+	// kprintf_interruptable("\n||| ");
 	// while (current_thread) {
-	for (int i = 0; i < num_threads+10; i++) {
-		if (i == num_threads) kprintf_interruptable("||| ");
-		kprintf_interruptable("%d ", current_thread->pid);
-		current_thread = current_thread->next_thread;
+	for (int i = 0; i < num_threads+1; i++) {
+		// if (i == num_threads) kprintf_interruptable("||| ");
+		// kprintf_interruptable("%d ", current_thread->pid);
+		current_thread = current_thread->next_thread->next_thread;
 	}
-	kprintf_interruptable("|||\n");
+	// kprintf_interruptable("|||\n");
 	#endif
 	irq_restore(&irq);
 }

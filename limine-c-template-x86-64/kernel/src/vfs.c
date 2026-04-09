@@ -186,35 +186,6 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // // init_loader(exec_fd);
 
             
-
-            // void* testt_ptr;
-            // b_size = tar_lookup_bin(tarball, "test", (char**) &testt_ptr);
-            // root->vnode_ops->vnode_create(root, "testt", b_size);
-            // vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
-
-            // vfs_fd_t* testt_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "testt", 0);
-            // testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
-
-
-
-            // vnode_t* hi2 = vfs_resolve_path("hi2.txt", root);
-            // ((tmpfs_file_t*) hi2->vnode_data)->
-            // char* buf = (char*) kmalloc_byte(20);
-            
-            // root->vnode_ops->vnode_rd
-            // for (int j = 0; j < b_size; j++) {
-            //     kprintf("%c", buf[j]);
-            // }
-
-
-
-            // syscall_log("hi");
-
-            // hot_exec_elf(480, testt_fd);
-            // hot_exec_elf(481, testt_fd);
-            // syscall17(2, "hi", 2);
-
-
             // hot_exec_elf(0, exec_fd);
             // hot_create_and_push_user_thread(1, test_a);
             // hot_create_and_push_user_thread(2, test_a);
@@ -231,17 +202,16 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // hot_create_and_push_thread(13, gen3);
             // hot_create_and_push_user_thread(14, gen3);
 
-            for (int i = 6; i < 100-90; i++) {//because 5 gets created
-                // hot_exec_elf(i, exec_fd);
+            for (int i = 3; i < 100-90; i++) {
+                hot_exec_elf(i, exec_fd);
                 // hot_exec_elf(i+15, test_a);
                 // hot_create_and_push_thread(i, gen2);
             }
-            for (int i = 100; i < 200-90-5; i++) {
-                // hot_create_and_push_thread(i, gen2);
-                // hot_exec_elf(i, testt_fd);
+            for (int i = 102; i < 200-90; i++) {
+                hot_create_and_push_thread(i, gen2);
             }
             for (int i = 200; i < 300-90; i++) {
-                // hot_create_and_push_user_thread(i, test_a);
+                hot_create_and_push_user_thread(i, test_a);
             }
             while (1) reschedule();
             
