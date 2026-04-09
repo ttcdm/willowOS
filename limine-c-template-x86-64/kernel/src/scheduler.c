@@ -60,6 +60,7 @@ void gen1() {
 
 int aaa = 0;
 void gen2() {
+	return;
 	// kprintf_interruptable("hi");
 	// static int aaa = 0;//not sure if this is safe for multiple cores
 	aaa += 2;
@@ -96,18 +97,20 @@ void gen3() {
 	}
 	// while (1);
 
-	int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
+	// int fd = vfs_fdopen(tmpfs_root->vnode_data, "bye2.txt", 0);
+	int fd = vfs_fdopen("test dir 4/test dir 5/hihi.txt", 0, 0);
 	char* buf = (char*) kmalloc_byte(1024);
-	tmpfs_fd_read_from_file(fd, buf, 128, 0);
+	// tmpfs_fd_read_from_file(fd, buf, 128, 0);
 	// buf[127] = '\0';
 	// kprintf("%s\n", buf);
-	char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
-	tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
+	// char buf1[] = "\nhelloworldhelloworldfjdkslafjdkla\n\n\nfjdsa";
+	// tmpfs_fd_write_to_file(fd, buf1, sizeof(buf1), 128);
 	
-	tmpfs_fd_read_from_file(fd, buf, 256, 0);
+	// tmpfs_fd_read_from_file(fd, buf, 256, 0);
+	fd_pread(fd, buf, 256, 0);
 	// kprintf("%s\n", buf);//if we just directly print it we won't get the entire thing since there's null chars littered in it i think
 	for (int i = 0; i < 256; i++) {
-		// kprintf("%c", buf[i]);
+		kprintf("%c", buf[i]);
 	}
 
 	vfs_fdclose(fd);
@@ -169,6 +172,7 @@ thread_context* insert_thread(thread_context* left_thread, thread_context* new_t
 
 thread_context* discard_thread(thread_context* thread) {
 	//stitches back together the doubly linked list
+	// if (thread == thread->next_thread);
 	thread->prev_thread->next_thread = thread->next_thread;
 	thread->next_thread->prev_thread = thread->prev_thread;
 
@@ -277,7 +281,7 @@ void reschedule() {
 	// disable_preemption();
 	asm volatile ("cli");
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
-	print_queue();
+	// print_queue();
 
 	scheduling_started = 1;
 
@@ -349,7 +353,7 @@ void reschedule() {
 		if (next_thread->pid == next_thread->prev_thread->pid) {
 			return;
 		}
-		#ifdef VERBOSE
+		#ifdef SCHEDULER_VERBOSE
 		kprintf_interruptable("\nswitching from thread %d to thread %d at reschedule\n", current_thread->pid, next_thread->pid);
 		#endif
 		current_thread->last_run_time = tsc_read_ns();
@@ -371,6 +375,9 @@ void scheduler_return() {//basically pthread_exit
 	//HERE remember to figure out if you need a way to return to kernelspace via a syscall something for scheduler_return() to run
 	//if this whole thing is uninterruptable it's actually a pretty long process so maybe we should have several sections where it's interruptable so we still maintain normal thread scheduling times
 	asm volatile ("cli");
+
+	// kprintf("\n\n\nHIHIHI\n\n\n");
+
 	asm volatile ("mov %0, %%cr3" :: "r"(((uint64_t) pml4_address_virt_glob) - hhdm_offset));
 
 
@@ -433,6 +440,9 @@ void scheduler_return() {//basically pthread_exit
 				unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 			}
 
+			kfree((uint64_t*) temp->fd_table);
+			kfree((uint64_t*) ((struct oa_hash*) (temp->fd_table))->buckets);
+
 			running_thread = actual_running_thread;
 
 			discard_thread(temp);
@@ -477,6 +487,9 @@ void scheduler_return() {//basically pthread_exit
 			unmap_page(temp->cr3, temp->mappings.mapped_virt_addresses_array[i].virt_address);
 		}
 
+		kfree((uint64_t*) temp->fd_table);
+		kfree((uint64_t*) ((struct oa_hash*) (temp->fd_table))->buckets);
+
 		running_thread = actual_running_thread;
 
 		discard_thread(temp);
@@ -516,6 +529,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->current_rsp = NULL;
 	new_thread->current_misaligned_by = 0;
 	// new_thread->rip = NULL;
+	new_thread->user_rsp = NULL;
 	new_thread->stack_base = thread_base;
 	new_thread->next_thread = NULL;
 	new_thread->prev_thread = NULL;
@@ -523,6 +537,14 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	new_thread->elf_entry = NULL;
 	new_thread->elf_file = NULL;
 	new_thread->status[4] = 0;
+
+	//fs and gs (mmio?)
+	new_thread->fs_base = 0;
+	new_thread->gs_base = 0;
+
+	new_thread->current_dir = "/";
+
+	memset(&(new_thread->ssefxsave), 0, 512);
 
 	new_thread->mappings.num_mappings = 0;
 	new_thread->mappings.max_mappings = 8;
@@ -561,7 +583,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 
 void start_thread(uint64_t **sp, void *entry) {//thread_entry runs and then scheduler_return runs. the function never actually exits or something idk
 	*sp -= 1;//apparently it moves it by 8 bytes for each index
-	**sp = (uint64_t) scheduler_return;//basically pthread_exit i think
+	**sp = (uint64_t) scheduler_return;//basically pthread_exit i think. this is just for functions that are ran in kernelspace
 	*sp -= 1;
 	**sp = (uint64_t) disable_preemption;
 	*sp -= 1;
@@ -711,4 +733,15 @@ void print_queue() {
 	// kprintf_interruptable("|||\n");
 	#endif
 	irq_restore(&irq);
+}
+
+
+uint64_t new_pid = 0;//HERE pids start from 1
+mutex_t new_pid_mutex = {.object = &new_pid, .locked = 0};
+
+uint64_t get_new_pid() {
+	acquire_mutex(&new_pid_mutex);
+	new_pid++;
+	release_mutex(&new_pid_mutex);
+	return new_pid;
 }

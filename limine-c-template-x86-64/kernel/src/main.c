@@ -56,20 +56,20 @@ static volatile LIMINE_BASE_REVISION(3);
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
@@ -78,10 +78,13 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
+
+#define LIMINE_MP_REQUEST_X86_64_X2APIC (1 << 0)
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_mp_request mp_request = {
     .id = LIMINE_MP_REQUEST,
-    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+    .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
+    .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
 // __attribute__((used, section(".limine_requests")))
@@ -92,7 +95,7 @@ static volatile struct limine_mp_request mp_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_module_request module_request = {
     .id = LIMINE_MODULE_REQUEST,
-    .revision = 0
+    .revision = 3
 };
 
 
@@ -332,6 +335,16 @@ size_t kstrlen(char* msg) {
     return s;
 }
 
+//taken from musl
+//remember to always free the returned string
+char *strdup(const char *s)
+{
+	size_t l = strlen(s);
+	char *d = (char*) kmalloc_byte(l+1);
+	if (!d) return NULL;
+	return memcpy(d, s, l+1);
+}
+
 void kprint(char* msg) {
     // asm volatile ("cli");
     uint64_t s = kstrlen(msg);
@@ -528,6 +541,20 @@ void kmain(void) {
 
     // uint64_t ist0 = alloc_frame();
     // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ist0, 0x11000000+0x1000-1, 0b111);
+
+
+    //init sse and sse2 stuff
+    //inline asm taken straight from chatgpt
+    //logic taken from salernos
+    uint64_t cr0;
+    asm volatile ("mov %%cr0, %0": "=r"(cr0): : "memory");//read cr0
+    cr0 = (cr0 & ~(1 << 2)) | (1 << 1);
+    asm volatile ("mov %0, %%cr0":: "r"(cr0): "memory");//write cr0
+
+    uint64_t cr4;
+    asm volatile ("mov %%cr4, %0": "=r"(cr4): : "memory");//read cr4
+    cr4 = cr4 | (3 << 9);
+    asm volatile ("mov %0, %%cr4":: "r"(cr4): "memory");//write cr4
 
     pic_disable();//we disable the pic and set up the local apic (lapic)
 

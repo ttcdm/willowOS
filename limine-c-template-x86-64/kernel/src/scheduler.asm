@@ -1,4 +1,5 @@
 extern swap_to_user_gs
+extern get_current_thread
 
 
 
@@ -70,6 +71,10 @@ cli
     push r14
     push r15
 
+    call get_current_thread
+    fxsave [rax + 0x50]
+    
+
     ;call push_all_regs
 
     ; mov rax, rsp
@@ -77,6 +82,10 @@ cli
     mov rsp, rsi
 
     ;call pop_all_regs
+
+    call get_current_thread
+    fxrstor [rax + 0x50]
+
 
     pop r15
     pop r14

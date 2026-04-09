@@ -26,6 +26,8 @@ extern struct flanterm_context* ft_ctx;
 typedef struct mutex mutex_t;//forward declaration because we can't include mutex.h or else we'll get circular inclusions. i hope nothing breaks
 extern mutex_t ft_ctx_mutex;
 
+uint64_t get_new_pid();
+
 size_t kstrlen(char* msg);
 
 void kprintf(char* fmt, ...);
@@ -107,9 +109,11 @@ void itoa_reverse(char s[]);
 extern struct limine_memmap_entry** usable_memmaps_pointer;
 extern uint64_t usable_memmaps_amount;
 
-uint64_t tar_lookup_bin(char* tarball, char* filename, char** file_data);
+int tar_lookup_bin(char* tarball, char* filename, char** file_data);
 
 uint64_t rdmsr(uint32_t msr);
 void wrmsr(uint32_t msr, uint64_t value);
+
+char *strdup(const char *s);
 
 // struct limine_framebuffer* framebuffer;

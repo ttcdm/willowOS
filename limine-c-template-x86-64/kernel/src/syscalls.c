@@ -36,6 +36,8 @@ void test_a() {
     // syscall_test();
     uint64_t syscall_num = 1;
 
+    return;
+
 
     // asm volatile ("mov %0, %%rax" :: "r" (syscall_num) : "rax");
     // asm volatile ("syscall");
@@ -155,24 +157,24 @@ asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer), "d"(a), "c"(b), "r8"
 
 
 
-int syscall0(uint64_t num) {//open
+int syscall0(uint64_t num) {
     return 0;
 }
 
-int syscall1(uint64_t num) {//close
+int syscall1(uint64_t num) {
     kprintf("syscall1\n");
     while (1);
 }
 
-int syscall2(uint64_t num) {//read
+int syscall2(uint64_t num) {
     return 0;
 }
 
-int syscall3(uint64_t num) {//write
+int syscall3(uint64_t num) {
     return 0;
 }
 
-int syscall4(size_t num) {//seek
+int syscall4(size_t num) {
     return 0;
 }
 
@@ -197,7 +199,7 @@ int syscall7(uint64_t num, struct map_page_bytes_args* mmap_args) {//vm map
     mmap_args->cr3 = get_current_thread()->cr3;
     // kprintf("syscall7 %llx %llx %llx\n", mmap_args->virt_address, mmap_args->size, mmap_args->flag);
     mmap_args->error = map_range(mmap_args->cr3, mmap_args->virt_address, mmap_args->permissions, mmap_args->size, mmap_args->flag);//HERE maybe not hint?
-    memset((uint64_t*) mmap_args->virt_address, 0, 0x1000);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
+    memset((uint64_t*) mmap_args->virt_address, 0, mmap_args->size);//this only zeros the size and not the entire page(s) but it probably shouldn't matter??
     if (((uint64_t*) mmap_args->virt_address)[256] != 0) {
         kprintf("syscall7: memset clear failed\n");
         assert(false);
@@ -301,7 +303,9 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
 }
 
 int syscall13(uint64_t num, size_t size, void **pointer) {
+    // kprintf("%llx\n", size);
     *pointer = (void*) kmalloc_byte(size);
+    change_page_map_range(get_current_thread()->cr3, (uint64_t)*pointer, (uint64_t) size, 0b111);
     return 0;
 }
 
@@ -338,6 +342,47 @@ int syscall16(uint64_t num, thread_context** thread) {//get_current_thread_sysca
     *thread = get_current_thread();
     return 0;
 }
+
+int syscall17(uint64_t num, char* str, size_t len) {//another logging syscall
+    bool irq_status;
+    irq_disable_save(&irq_status);
+
+    acquire_mutex(&ft_ctx_mutex);
+    flanterm_write(ft_ctx, str, len);
+    release_mutex(&ft_ctx_mutex);
+
+    irq_restore(&irq_status);
+    return 0;
+}
+
+int syscall18(uint64_t num, void* pointer) {//sys_tcb_set
+    //mmio fs address
+    wrmsr(0xC0000100, (uint64_t) pointer);
+    return 0;
+}
+
+int syscall19(uint64_t num, char* path, int flags, int mode, int* fd) {//open
+    *fd = vfs_fdopen(path, flags, mode);//i should probably return an errno instead of the fd
+    return 0;
+}
+int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read) {//read
+    return 0;
+}
+
+int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written) {//write
+    return 0;
+}
+
+int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset) {//seek
+    return 0;
+}
+
+int syscall23(uint64_t num, int fd) {
+    vfs_fdclose(fd);
+    return 0;
+}
+
+//HERE the code under this line should be 1:1 with generic.cpp for mlibc sysdeps aside from the possible type mismatches, i.e., mode_t vs int, off_t vs int64_t, and so on
 
 
 int syscall_log(char* fmt, ...) {//15
@@ -398,6 +443,9 @@ int sys_futex_wake(int *pointer) {//12
 int sys_anon_allocate(size_t size, void **pointer) {//13
     int ret;
     uint64_t num = 13;
+
+    sys_libc_log("sys_anon_allocate called\n");
+
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(size), "d"(pointer): "memory");
     return ret;
 }
@@ -413,6 +461,10 @@ int sys_anon_free(void *pointer, size_t size) {//14
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window) {//7
     int ret;
     uint64_t num = 7;
+
+    // syscall_log("\n\nsyscall_log and sys_vm_map called\n\n");
+    // sys_libc_log("HERE sys_vm_map called\n");
+    sys_libc_log("sys_vm_map called\n");
 
     //we don't have permissions for file access yet so we're just gonna ignore prot
 
@@ -504,6 +556,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t off
         //it should be fine passing the struct that's on the stack since the branch hasn't exited yet
         asm volatile("syscall" : "=a"(map_page_ret): "D"(num), "S"(&mmap_args): "memory");
         // assert(mmap_args.error == 0);
+        //because we can't have printf here i guess
         if (mmap_args.error != 0) {
             return mmap_args.error;
         }
@@ -560,28 +613,49 @@ int sys_vm_unmap(void *pointer, size_t size) {//8
 }
 
 //HERE remember to fill these in
-int sys_clock_get(int clock, uint64_t *secs, long *nanos) {
+//also we define time_t as int64_t inside willowOS but here idk if we should
+int sys_clock_get(int clock, time_t *secs, long *nanos) {
     int ret;
     //HERE add num as well
 }
 
-int sys_tcb_set(void *pointer) {
+int sys_tcb_set(void *pointer) {//18
     int ret;
+    uint64_t num = 18;
+    syscall_log("sys_tcb_set called\n");
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pointer): "memory");
+    return ret;
 }
 
 
 //HERE hopefully replacing these types won't cause any misalignments and/or other errors with mlibc
 //replaced mode_t with int
 int sys_open(const char *pathname, int flags, int mode, int *fd) {
-    return 0;
+    int ret;
+    uint64_t num = 19;
+    syscall_log("sys_open called\n");
+    register uint64_t r8 asm("r8") = (uint64_t) fd;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r"(r8) : "memory");//i think this is right
+
+    /*
+    register uint64_t r8 asm("r8") = fd;
+    asm volatile("syscall" : "=a"(ret): "D"(num), "S"(pathname), "d"(flags), "c"(mode), "r"(r8) : "rcx", "r11");
+    */
+
+    return ret;
 }
 
 //replaced ssize_t with size_t
 int sys_read(int fd, void *buf, size_t count, size_t *bytes_read) {
+    vfs_file_t* file = vfs_int_fd_to_vfs_file(fd);
+    // if (file->type == TMPFS) {
+    //     // tmpfs_read_from_file(file, buf, count, bytes_read);
+    // }
     return 0;
 }
 
 int sys_write(int fd, const void *buf, size_t count, size_t *bytes_written) {
+    syscall_log((char*) buf);
     return 0;
 }
 
@@ -595,14 +669,16 @@ int sys_close(int fd) {
 }
 
 void sys_libc_log(const char *message) {
-    // syscall_log(message);
+    syscall_log((char*) message);
 }
 
 [[noreturn]] void sys_libc_panic() {
     while (1);
 }
 
+//HERE not sure if this is the correct implementation
 [[noreturn]] void sys_exit(int status) {
+    syscall_user_thread_exit();
     while (1);
 }
 
@@ -612,4 +688,9 @@ int get_current_thread_syscall(thread_context** thread) {//16
     uint64_t num = 16;
     asm volatile("syscall" : "=a"(ret): "D"(num), "S"(thread): "memory");
     return ret;
+}
+
+int sys_isatty(int fd) {
+    // while (1);
+    return 0;
 }

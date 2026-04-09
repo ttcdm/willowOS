@@ -76,9 +76,17 @@ int syscall13(uint64_t num, size_t size, void **pointer);
 int syscall14(uint64_t num, void *pointer);
 int syscall15(uint64_t num, struct fmt_args* args_struct);
 int syscall16(uint64_t num, thread_context** thread);//get_current_thread_syscall
+int syscall17(uint64_t num, char* str, size_t len);//kprintf() wrapper
+int syscall18(uint64_t num, void* pointer);//sys_tcb_set
+int syscall19(uint64_t num, char* path, int flags, int mode, int* fd);//sys_open
+int syscall20(uint64_t num, int fd, void *buf, size_t count, size_t *bytes_read);//sys_read
+int syscall21(uint64_t num, int fd, const void *buf, size_t count, size_t *bytes_written);//sys_write
+int syscall22(uint64_t num, int fd, int64_t offset, int whence, int64_t *new_offset);//sys_seek
+int syscall23(uint64_t num, int fd);//close
 
 
 
+int syscall_user_thread_exit(void);
 int syscall_log(char* fmt, ...);
 int syscall_test(void);
 int syscall_yield(void);
@@ -101,11 +109,36 @@ int sys_anon_free(void *pointer, size_t size);
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, int64_t offset, void **window);//we're using 8 byte signed int as a replacement for off_t. hopefully it's fine
 int sys_vm_unmap(void *pointer, size_t size);
 
+
+typedef int64_t time_t;
+int sys_clock_get(int clock, time_t *secs, long *nanos);
 //we're replacing time_t with uint64_t
-int sys_clock_get(int clock, uint64_t *secs, long *nanos);
+// int sys_clock_get(int clock, uint64_t *secs, long *nanos);
 
 int sys_tcb_set(void *pointer);
 
+
+//HERE hopefully replacing these types won't cause any misalignments and/or other errors with mlibc
+//replaced mode_t with int
+int sys_open(const char *pathname, int flags, int mode, int *fd);
+//replaced ssize_t with size_t
+int sys_read(int fd, void *buf, size_t count, size_t *bytes_read);
+
+int sys_write(int fd, const void *buf, size_t count, size_t *bytes_written);
+
+//replaced off_t with int64_t
+int sys_seek(int fd, int64_t offset, int whence, int64_t *new_offset);
+
+int sys_close(int fd);
+
+void sys_libc_log(const char *message);
+
+//__attribute__((noreturn))
+[[noreturn]] void sys_libc_panic();
+
+[[noreturn]] void sys_exit(int status);
+
+int sys_isatty(int fd);
 
 
 //temp linux abi stuff for mlibc

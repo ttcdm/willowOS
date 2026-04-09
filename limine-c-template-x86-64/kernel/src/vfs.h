@@ -8,17 +8,31 @@
 #include <kutils.h>
 #include <vmm.h>
 #include <tsc.h>
+#include <mutex.h>
 
 // #include "./oa_hash/oa_hash.h"
 
 
 //taken from https://www.cs.fsu.edu/~awang/courses/cop5611_s2024/vnode.pdf
 
+/*
+
+so basically what's going on here is that we have
+
+int fd->struct file->vnode->fs specific data
+
+
+
+*/
+
+
 typedef struct vnode vnode_t;
 typedef struct vnode_ops vnode_ops_t;
 typedef struct vfs vfs_t;
 typedef struct vfs_ops vfs_ops_t;
 typedef struct vfs_fd vfs_fd_t;
+typedef struct vfs_file vfs_file_t;
+typedef struct vfs_file_ops vfs_file_ops_t;
 
 typedef struct vfs_fd_table vfs_fd_table_t;
 // extern vfs_fd_table_t;
@@ -27,7 +41,9 @@ typedef struct tmpfs_directory tmpfs_directory_t;//we forward declare it. hopefu
 
 extern vnode_t* tmpfs_root;//tmpfs root vnode
 
-enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };
+enum vtype { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VBAD };//vnode types
+
+enum fs_type { TMPFS };//fs types
 
 struct vnode {
     uint16_t vnode_flag; /* vnode flags */
@@ -50,8 +66,8 @@ struct vnode {
 struct vnode_ops {//HERE remember to always match the return types to prevent errors
     size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
     void (*vnode_wr)();
-    size_t (*vnode_fd_rd)();
-    void (*vnode_fd_wr)();
+    // size_t (*vnode_fd_rd)();
+    // void (*vnode_fd_wr)();
     int (*vnode_ioctl)();
     vnode_t* (*vnode_lookup)();
     vnode_t* (*vnode_create)();
@@ -68,6 +84,7 @@ struct vfs {
     int vfs_flag;//add other attributes/data ig
     int vfs_bsize;
     void* vfs_data;
+    enum fs_type type;
 };
 
 struct vfs_ops {
@@ -81,12 +98,66 @@ struct vfs_ops {
 };
 
 struct vfs_fd {
+    enum fs_type type;//HERE right now these must have 1:1 correspondence tmpfs_fd_t. we should honestly have a generic struct that stores the specific fd's for each type of fs for each fd
     void* data;
     uint64_t size;
     uint64_t position;
-    uint8_t mode;//0 for read, 1 for write from beginning, 2 for append
+    int mode;//0 for read, 1 for write from beginning, 2 for append
     void* file;//pointer to actual file descriptor thing
 };
+
+
+struct vfs_file {
+    vnode_t* vnode;
+    mutex_t mutex;//not sure if this should be on the stack or on the heap
+    vfs_file_ops_t* file_ops;
+    int flags;//HERE linux kernel source uses unsigned int for flags. not sure why. we're gonna use int for now tho
+    int mode;//HERE i couldn't figure out what fmode_t was defined as so we're gonna assume that it's int for now
+    uint64_t position;
+    char* abs_path;
+    
+
+    //i don't think the file needs to know about these two things esp the latter one
+    // uint64_t size;
+    // enum fs_type type;
+    
+};
+
+
+
+struct vfs_file_ops {
+    //for reference
+    // size_t (*vnode_rd)();//not sure if i'm supposed to populate the args
+    // void (*vnode_wr)();
+    // size_t (*vnode_fd_rd)();
+    // void (*vnode_fd_wr)();
+    // int (*vnode_ioctl)();
+    // vnode_t* (*vnode_lookup)();
+    // vnode_t* (*vnode_create)();
+    // void (*vnode_remove)();
+    // void* (*vnode_mkdir)();
+    // void (*vnode_rmdir)();
+    // void (*vnode_rmdir_no_orphan)();
+
+    size_t (*pread)(vfs_file_t* file, void* buf, uint64_t size, uint64_t offset);
+    size_t (*fd_pread)(int fd, void* buf, uint64_t size, uint64_t offset);
+    void (*pwrite)(vfs_file_t* file, void* data, uint64_t size, uint64_t offset);
+    void (*fd_pwrite)(int fd, void* data, uint64_t size, uint64_t offset);
+    int (*fd_open)(char* path, int flags, int mode);
+    int (*fd_close)(int fd);
+
+};
+
+
+size_t pread(vfs_file_t* file, void* buf, uint64_t size, uint64_t offset);
+size_t fd_pread(int fd, void* buf, uint64_t size, uint64_t offset);
+
+void pwrite(vfs_file_t* file, void* data, uint64_t size, uint64_t offset);
+void fd_pwrite(int fd, void* data, uint64_t size, uint64_t offset);
+
+int fd_open(char* path, int flags, int mode);
+int fd_close(int fd);
+
 
 // struct vfs_fd_table {
 //     // OA_HASH_ATTRS(mut);
@@ -96,8 +167,11 @@ struct vfs_fd {
 
 void init_vfs(volatile struct limine_module_request* module_request);
 
+vnode_t* vfs_resolve_path(vnode_t* root_dir, char* path);
+vfs_file_t* vfs_int_fd_to_vfs_file(int fd);
+
 //always remember to use pointers for args where necessary
-int vfs_fdopen(tmpfs_directory_t* dir, char* name, uint8_t mode);
+int vfs_fdopen(char* path, int flags, int mode);
 int vfs_fdclose(int fd);
 int vfs_close(vfs_fd_t* fd);
 

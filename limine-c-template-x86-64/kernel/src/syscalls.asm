@@ -1,7 +1,9 @@
 extern test_a
 extern syscall_switcher
 extern syscall_user_thread_exit
+extern get_current_thread
 
+;ALWAYS REMEMBER TO ADD TO THIS LIST
 extern syscall0
 extern syscall1
 extern syscall2
@@ -19,7 +21,11 @@ extern syscall13
 extern syscall14
 extern syscall15
 extern syscall16
+extern syscall17
+extern syscall18
+extern syscall19
 
+;ALWAYS REMEMBER TO ADD TO THIS LIST
 section .data
 syscall_array:
     dq syscall0
@@ -39,6 +45,9 @@ syscall_array:
     dq syscall14
     dq syscall15
     dq syscall16
+    dq syscall17
+    dq syscall18
+    dq syscall19
 
 ; .length: dq ($ - syscall_array) / 8;number of elements in the syscall array
 
@@ -65,12 +74,8 @@ jump_to_user:
     mov rcx, rdi
     mov r11, 0x202
     mov rsp, rsi;not sure if i'm supposed to have brackets around rsi
-    sub rsp, 4096;//HERE not sure if we should keep this
-    sub rsp, 1
-    mov qword [rsp], syscall_user_thread_exit
 
     o64 sysret
-
 
 
 ;put syscall_handler into LSTAR msr before calling syscall
@@ -78,6 +83,42 @@ jump_to_user:
 syscall_handler:
     cli
 
+    call get_current_thread
+    ;HERE hardcoding values of indexing into the thread context struct
+    ; mov rsp, qword [rax + 0x48];save user rsp
+    mov [rax + 0x48], qword rsp
+
+
+
+    ; CREDIT: Mathewnd/Astral
+    ; on entry, interrupts are disabled automatically by SCE
+    ; registers:
+    ;   rcx = user rip
+    ;   r11 = user rflags
+    ;   
+    ;   rax = syscall number
+    ;   rdi = arg1
+    ;   rsi = arg2
+    ;   rdx = arg3
+
+
+    ;   r10 = arg4
+    ;   r8  = arg5
+    ;   r9  = arg6
+
+    ; saving the syscall number on cr2 is cursed but we need this extra register
+    ; and taking a page fault here would result in a triple fault anyways
+    ; because it's still using the user stack
+    mov  cr2, rax
+    ; rax can be used just fine now
+
+    call get_current_thread
+    ;HERE hardcoding values of indexing into the thread context struct
+    mov rax, qword [rax + 0x40];kernel rsp
+
+    xchg rsp, rax ; switch stack pointers
+
+    ;we save USER rsp here in rax because of xchg
     push rax
 
     push rbx
@@ -90,7 +131,7 @@ syscall_handler:
     push r11
     push rcx
 
-    push rax
+    ;we do NOT push rax again
     push rbx
     push rcx
     push rdx
@@ -106,10 +147,16 @@ syscall_handler:
     push r14
     push r15
 
+
+
+
     ;i used nyaux's syscall handler as inspiration
     call [syscall_array + rdi * 8]
     
     cli
+
+
+
 
     pop r15
     pop r14
@@ -125,7 +172,7 @@ syscall_handler:
     pop rdx
     pop rcx
     pop rbx
-    pop rax
+    ;we do NOT pop rax because rax is currently storing our ret
 
     pop rcx
     pop r11
@@ -137,6 +184,7 @@ syscall_handler:
     pop rbp
     pop rbx
 
-    pop rax
+    ;restore rsp via the first pushed rax
+    pop rsp
 
     o64 sysret

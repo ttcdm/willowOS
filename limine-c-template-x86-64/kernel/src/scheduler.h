@@ -16,7 +16,7 @@
 
 
 #define THREAD_STACK_SIZE 16000//16kb stack for each thread. i don't think it overflows because 16k starts at 0 so we end up with 15999 as the last thing
-#define THREAD_QUANTUM 30//not sure if quantum is the right word
+#define THREAD_QUANTUM 5//not sure if quantum is the right word
 
 typedef struct mapped_virt_addresses {
 	uint64_t virt_address;
@@ -39,7 +39,13 @@ typedef struct thread_context_declared {
 
 	uint64_t pid;
 	void (*thread_entry)(void);
+
 	uint64_t* stack_base;
+	//HERE make sure that this stays here
+	uint64_t* user_rsp;
+	//HERE make sure that this also stays here, as stuff relies on hardcoded offsets
+	uint8_t ssefxsave[512];//sse stuff
+
 	uint64_t* return_rsp;
 	uint64_t misaligned_by;
 	uint64_t* current_rsp;
@@ -52,6 +58,12 @@ typedef struct thread_context_declared {
 	vfs_fd_table_t* fd_table;
 	// uint64_t cr3[512];
 	uint64_t* cr3;//HERE MAKE SURE CR3 IS 4KIB ALIGNED; virt_address of cr3
+
+	//fs and gs (mmio?)
+	uint64_t fs_base;
+	uint64_t gs_base;
+
+	char* current_dir;
 
 	struct thread_context_declared* next_thread;
 	struct thread_context_declared* prev_thread;
@@ -109,3 +121,7 @@ void gen0();
 void gen1();
 void gen2();
 void gen3();
+
+extern uint64_t new_pid;
+extern mutex_t new_pid_mutex;//defined inside scheduler.c and i'm not sure if this is supposed to be here
+extern uint64_t get_new_pid();//defined inside kutils.h
