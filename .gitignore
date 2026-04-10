@@ -56,3 +56,7 @@ dkms.conf
 *.opendb
 *.vsidx
 /limine-c-template-x86-64/qemu-log
+./limine-c-template-x86-64/iso_contents/boot/kernel
+limine-c-template-x86-64/iso_contents/boot/kernel
+./limine-c-template-x86_64/iso_contents
+.DS_Store

@@ -4,4 +4,4 @@ bsdtar -x -f template.iso -C iso_contents
 
 nm iso_contents/boot/kernel | grep kmain
 readelf -S iso_contents/boot/kernel | grep debug
-gdb iso_contents/boot/kernel
+gdb -ex "target remote localhost:1234" iso_contents/boot/kernel

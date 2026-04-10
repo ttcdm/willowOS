@@ -16,9 +16,9 @@ void hpet_reset() {
 
 static void hpet_setup(uint64_t addr) {
     map_page((uint64_t*) pml4_address_virt_glob, addr, addr, 0b11);
-    hpet_regs = (volatile struct HPET_registers*) addr;
+    hpet_regs = (struct HPET_registers*) addr;//gcc says to not use volatile with struct
 
-    uint64_t hpet_period = hpet_regs->capabilities >> 32;
+    // uint64_t hpet_period = hpet_regs->capabilities >> 32;//gcc says unused variable
 
     hpet_regs->configuration = 1;
 

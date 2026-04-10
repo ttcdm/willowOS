@@ -28,6 +28,8 @@ void print_heap(uint64_t length);
 uint64_t* kmalloc_byte(uint64_t size);
 uint64_t* kmalloc_byte_interruptable(uint64_t size);
 
+uint64_t* krealloc_byte(uint64_t* virt_address, uint64_t size);
+
 typedef struct heap_page_virt {
     uint8_t status;//0 for free and 1 for used
     uint64_t size;

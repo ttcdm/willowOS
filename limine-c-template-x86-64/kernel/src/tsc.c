@@ -7,7 +7,7 @@
 
 uint64_t tsc_freq;
 
-static inline uint64_t rdtsc() {//https://wiki.osdev.org/Inline_Assembly/Examples#RDTSC
+uint64_t rdtsc() {//https://wiki.osdev.org/Inline_Assembly/Examples#RDTSC
     uint32_t low, high;
     asm volatile("rdtsc":"=a"(low), "=d"(high));
     return ((uint64_t)high << 32) | low;
@@ -30,10 +30,10 @@ uint64_t tsc_ticks_to_ns(uint64_t ticks) {
 }
 
 void tsc_init() {
-    uint64_t ten_ms = 10000000;
+    // uint64_t ten_ms = 10000000;
     uint64_t tsc_start = tsc_read();
     //timer_wait_ns(ten_ms);
-    kpass(10);
+    kpass(10);//not sure if we're supposed to use kpass here but oh well
     uint64_t tsc_end = tsc_read();
 
     // 10 ms * 100 = 1 s, tsc_freq in Hz
