@@ -59,6 +59,8 @@ extern thread_interrupter_handler
 extern thread_sleep_handler
 extern ps2_keyboard_handler
 
+extern swap_to_user_or_kernel_gs;
+
 
 isr_no_err_stub 0
 isr_no_err_stub 1
@@ -376,12 +378,21 @@ isr_stub_67:
     iretq
 
 isr_stub_72:
+    ; swap_to_kernel_gs
+    ; mov rdi, cs
+    ; and rdi, 0x3
+    ; mov rsi, 0x1
+    ; call swap_to_user_or_kernel_gs
     push_reg
     mov rdi, rsp
     sub rsp, 8
     call thread_interrupter_handler
     add rsp, 8
     pop_reg
+    ; mov rdi, cs
+    ; and rdi, 0x3
+    ; mov rsi, 0x0
+    ; call swap_to_user_or_kernel_gs
     iretq
 
 isr_stub_80:

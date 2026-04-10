@@ -73,11 +73,11 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
     // Encode the low 32 bits
     descriptor |= (limit & 0xFFFF);             // Lower 16 bits of limit
     descriptor |= (base & 0xFFFF) << 16;        // Lower 16 bits of base
-    descriptor |= ((base >> 16) & 0xFF) << 32;  // Middle 8 bits of base
+    descriptor |= ((uint64_t)((base >> 16) & 0xFF)) << 32;  // Middle 8 bits of base
     descriptor |= ((uint64_t)access) << 40;     // Access byte
 
     // Encode the high 32 bits
-    descriptor |= ((limit >> 16) & 0xF) << 48;  // Upper 4 bits of limit
+    descriptor |= ((uint64_t) ((limit >> 16) & 0xF)) << 48;  // Upper 4 bits of limit
     descriptor |= ((uint64_t)(flags & 0xF)) << 52; // Flags (granularity, size)
     descriptor |= ((uint64_t)(base >> 24) & 0xFF) << 56; // Upper 8 bits of base
 
@@ -88,6 +88,24 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index) {//chatgpt generated
+
+    // uint64_t low = 0;
+    // low |= (limit & 0xFFFF);                        // Bits 0–15: limit (low)
+    // low |= (base & 0xFFFFFF) << 16;                 // Bits 16–39: base (low 24 bits)
+    // low |= (uint64_t)0x89 << 40;                    // Bits 40–47: access byte (Present | TSS type)
+
+    // low |= ((uint64_t)(limit >> 16) & 0xF) << 48;   // Bits 48–51: limit (high 4 bits)
+    // low |= ((uint64_t)0x0) << 52;                   // Bits 52–55: flags (0x0 = no granularity, no 32-bit segment)
+    // // optional: use 0x4 or 0x8 if you want AVL or 64-bit segment flag
+
+    // low |= ((uint64_t)(base >> 24) & 0xFF) << 56;   // Bits 56–63: base (next 8 bits)
+
+    // uint64_t high = (base >> 32) & 0xFFFFFFFFULL;   // Upper 32 bits of base address
+
+    // gdt_table[index] = low;
+    // gdt_table[index + 1] = high;
+
+
     uint64_t low = 0;
     low |= (limit & 0xFFFF);                // Lower 16 bits of limit
     low |= (base & 0xFFFFFF) << 16;         // Lower 24 bits of base
@@ -143,17 +161,17 @@ void load_tss() {//chatgpt generated
     asm volatile("ltr %%ax" : : "a"(0x28)); // 0x28: Selector for TSS descriptor (GDT entry 5)
 }
 
-void output_gdt_entries(uint64_t* gdt_table, size_t entry_count) {//chatgpt generated
-    char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
-    /*
-    for (size_t i = 0; i < entry_count; i++) {
-        uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
-        flanterm_write(ft_ctx, "GDT Entry ", 10);
-        flanterm_write(ft_ctx, buffer, 18); // Write the hex value
-        flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
-    }
-    */
-}
+// void output_gdt_entries(uint64_t* gdt_table, size_t entry_count) {//chatgpt generated
+//     // char buffer[19]; // Buffer for the hexadecimal representation (18 chars + null terminator)
+//     /*
+//     for (size_t i = 0; i < entry_count; i++) {
+//         uint64_to_hex(gdt_table[i], buffer); // Convert the GDT entry to hex
+//         flanterm_write(ft_ctx, "GDT Entry ", 10);
+//         flanterm_write(ft_ctx, buffer, 18); // Write the hex value
+//         flanterm_write(ft_ctx, "\n", 1);    // Newline for readability
+//     }
+//     */
+// }
 
 
 // A simple fault handler (will halt the CPU for now)
@@ -197,24 +215,31 @@ void fault_handler() {//chatgpt generated
 
 
 
-
+/*
+f2 and 92 is data
+fa and 9a is code
+*/
 void setup_gdt(uint64_t* gdt_table) {//chatgpt generated
     gdt_table[0] = 0;
     gdt_table[1] = create_descriptor(0, 0xFFFFF, 0x9a, 0x0a);
     gdt_table[2] = create_descriptor(0, 0xFFFFF, 0x92, 0x0c);
-    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);//the limit may need to larger: https://github.com/limine-bootloader/limine/blob/v8.x/PROTOCOL.md under the machine state at entry
-    gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
+    
+    gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c);
+    gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a);//the limit may need to larger: https://github.com/limine-bootloader/limine/blob/v8.x/PROTOCOL.md under the machine state at entry
+
+    // gdt_table[3] = create_descriptor(0, 0xFFFFF, 0xfa, 0x0a); // user code
+    // gdt_table[4] = create_descriptor(0, 0xFFFFF, 0xf2, 0x0c); // user data
 }
 
 void setup_tss(struct TSS* tss, uint64_t* gdt_table) {//chatgpt generated
     memset(tss, 0, sizeof(tss));
     tss->rsp[0] = 0x1000000; // Kernel stack pointer for privilege level 0//80000
-    tss->ist[0] = 0x1100000; // Example IST stack pointer/90000
+    tss->ist[1] = 0x11000000; // Example IST stack pointer/90000
     tss->iomap_base = sizeof(tss); // End of TSS structure
-    create_tss_descriptor((uint64_t)tss, sizeof(*tss) - 1, gdt_table, 5);//for gdt_5
+    create_tss_descriptor((uint64_t)tss, sizeof(*tss), gdt_table, 5);//for gdt_5
 
 }
 
-void change_tss(struct TSS* tss, uint64_t rsp) {//technically i don't need to pass it in since it's global
-    tss->rsp[0] = rsp;
+void change_tss(struct TSS* tss, uint64_t* rsp) {//technically i don't need to pass it in since it's global
+    tss->rsp[0] = (uint64_t) rsp;
 }

@@ -12,13 +12,13 @@
 #include "uacpi/kernel_api.h"
 
 // // REQUIRED ALLOCATION
-// void *uacpi_kernel_alloc(uacpi_size size) {
-//     // return your_kmalloc(size);
-// }
+void *uacpi_kernel_alloc(uacpi_size size) {
+    return (void*) kmalloc_byte(size);
+}
 
-// void uacpi_kernel_free(void *ptr) {
-//     // your_kfree(ptr);
-// }
+void uacpi_kernel_free(void *ptr) {
+    kfree((uint64_t*) ptr);
+}
 
 // // OPTIONAL BUT RECOMMENDED
 // void *uacpi_kernel_map(uacpi_phys_addr phys, uacpi_size size) {
@@ -57,6 +57,10 @@ void *uacpi_kernel_map(uacpi_phys_addr addr, uacpi_size len) {//i think this wor
 
 void uacpi_kernel_unmap(void *addr, uacpi_size len) {
     kprintf("\x1b[31mUACPI: unmap not implemented yet\x1b[0m\n");
+    assert(addr != NULL);
+    // unmap_page((uint64_t*) pml4_address_virt_glob, (uint64_t) addr);
+    //HERE there may be an issue with not unmmaping because we might be writing to stuff we don't wanna write to
+    return;
 }
 
 void uacpi_kernel_log(uacpi_log_level level, const uacpi_char* c) {

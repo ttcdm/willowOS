@@ -98,15 +98,15 @@ uint64_t create_descriptor(uint32_t base, uint32_t limit, uint8_t access, uint8_
 
 void create_tss_descriptor(uint64_t base, uint16_t limit, uint64_t* gdt_table, int index);
 
-void change_tss();
+void change_tss(struct TSS* tss, uint64_t* rsp);
 
-extern struct TSS tss;
+extern struct TSS* tss;
 
 
 
 void load_gdt(struct GDTPtr* gdtr, uint64_t* gdt_table);
 void load_tss();
-void output_gdt_entries(uint64_t* gdt_table, size_t entry_count);
+// void output_gdt_entries(uint64_t* gdt_table, size_t entry_count);
 void fault_handler();
 void set_idt_entry(int vector, void (*handler)(), uint16_t selector, uint8_t type_attr);
 void load_idt();
