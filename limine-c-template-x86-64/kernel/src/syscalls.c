@@ -53,7 +53,7 @@ void test_a() {
 		uint64_t* a;
 
         //it breaks in the memset if i use non 4kib aligned addresses but i think that we're only supposed to pass in 4kib aligned stuff. we should probably do a check inside the function(s) for it tho
-		// sys_vm_map((uint64_t*) ((i*0x1000)+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_EXECUTABLE, 0, 0, (void**) &a);
+		sys_vm_map((uint64_t*) ((i*0x1000)+0x1000000), 0x1000, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_EXECUTABLE, 0, 0, (void**) &a);
         // break;
     }
     // thread_context* t;
@@ -72,15 +72,10 @@ void test_a() {
     // syscall_log("abc %d %d", aa, b);
 
     while (1) {
-        // syscall_log("hi from test_a");
-        thread_context* t;
-        // get_current_thread_syscall(&t);
-        // syscall_yield();
+        syscall_log("hi from test_a");
         // syscall_test();
         // syscall_yield();
-        // test_b();
-
-        // syscall_yield();
+        test_b();
 
         int i = 0;
         i++;
