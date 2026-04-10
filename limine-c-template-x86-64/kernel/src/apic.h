@@ -19,7 +19,7 @@
 
 #define PIT_FREQ 1193182//in hz
 
-#define NUM_CORES 4//HERE remember to set this as the # of cores we use
+#define NUM_CORES 64//HERE remember to set this as the # of cores we use. might actually be fine to leave it as more than we have beacuse it's only used to creating arrays and not loops
 
 // https://wiki.osdev.org/8259_PIC#Disabling
 
@@ -34,14 +34,16 @@ void init_ap_lapic(void);
 
 void acpi_parse_rsdp(const void *pRSDP);
 
-void init_mp(struct limine_mp_request* );
+void uacpi_init(void);
+
+void init_mp(struct limine_mp_request* mp_request);
 
 extern const struct MADT* ACPI_MADT;//HERE
 extern const struct HPET* ACPI_HPET;
 
 void start_ap(void);
-volatile extern uint64_t lapic_timer_converted[NUM_CORES];
-volatile extern uint32_t sleep_locks[NUM_CORES];
+// volatile uint64_t lapic_timer_converted[NUM_CORES];//commented because i don't think they're used in other files
+extern volatile uint32_t sleep_locks[NUM_CORES];
 
 void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks);//0 for ms, 1 for ticks
 void lapic_periodic(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks);//0 for ms, 1 for ticks

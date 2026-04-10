@@ -2,6 +2,11 @@
 #include <vmm.h>
 #include <hpet.h>
 
+#include "uacpi/tables.h"
+#include "uacpi/kernel_api.h"
+#include "uacpi/uacpi.h"
+#include "uacpi/acpi.h"
+
 void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %b0, %w1" : : "a"(val), "Nd"(port) : "memory");
 }
@@ -18,15 +23,17 @@ void pic_disable(void) {//https://wiki.osdev.org/8259_PIC#Disabling
     kprintln("pic disabled");
 }
 
+//HERE always remember to change num cores or at least be able to detect the number of cores and allocate accordingly
 volatile uint64_t lapic_timer_converted[NUM_CORES];
 volatile uint32_t sleep_locks[NUM_CORES];
 
 void kpass(size_t ms) {
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    // volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
+    // asm volatile ("sti");//ignore the stuff after this. it broke because we returned before we sti'd at the end of map_page.added sti here because it was somehow breaking probably due to some random cli because map_page returned a value but we never handled it or smth idk
     *lapic_divider = 0b0011;
     *lapic_lvt_timer = (uint32_t)0b00000000000001000010;//one shot with vector 66
     *lapic_initial_count = (ms * lapic_timer_converted[(*lapic_id) >> 24]) / 1000;
@@ -37,10 +44,10 @@ void kpass(size_t ms) {
 }
 
 void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
     *lapic_divider = (uint32_t) divider;
     *lapic_lvt_timer = ((uint32_t) 0b00000000000000000000) | ((uint32_t) (vector));
     if (ms_or_ticks == 0) {
@@ -52,10 +59,10 @@ void lapic_oneshot(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_tick
 }
 
 void lapic_periodic(uint64_t ms, uint8_t vector, uint8_t divider, bool ms_or_ticks) {//0 for ms, 1 for ticks
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
     *lapic_divider = (uint32_t) divider;
     *lapic_lvt_timer = ((uint32_t) 0b00100000000000000000) | ((uint32_t) (vector));
     if (ms_or_ticks == 0) {
@@ -151,7 +158,7 @@ void acpi_parse_rsdp(const void* pRSDP) {
         validate_xsdp(pXSDP);
         map_page((uint64_t*)pml4_address_virt_glob, pXSDP->xsdt_address, pXSDP->xsdt_address, 0b11);
         const struct XSDT* pXSDT = (struct XSDT*) (pXSDP->xsdt_address);
-        kprintln("hi");
+        // kprintln("hi");
         validate_sdt(&pXSDT->h);
         const size_t num_sdts = (pXSDT->h.length - offsetof(struct XSDT, sdt64)) / sizeof(uint64_t);
         for (size_t i = 0; i < num_sdts; ++i) {
@@ -171,13 +178,33 @@ void acpi_parse_rsdp(const void* pRSDP) {
     }
 }
 
+void uacpi_init() {
+    // uint64_t* ts = kmalloc_byte(4096);//don't kmalloc here because test_memory() has hardcoded addresses or something idk
+    char ts[4096];
+    uacpi_setup_early_table_access(ts, 4096);
+    struct uacpi_table uacpi_madt;
+    uacpi_table_find_by_signature("APIC", &uacpi_madt);
+    ACPI_MADT = uacpi_madt.ptr;
+    kprintf("uacpi lapic addr: %llu\n", ACPI_MADT->lapic_addr);
+    struct uacpi_table uacpi_hpet;
+    uacpi_table_find_by_signature("HPET", &uacpi_hpet);
+    ACPI_HPET = uacpi_hpet.ptr;
+    kprintf("hpet register block address %llu\n", ACPI_HPET->address.address);
+}
+
 void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's explicit because i wanted to understand what was going on
-    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
-    kprint("rsdp physical address: ");
-    kprintln_uint64(rsdp_phys_addr);
-    uint64_t rsdp_virt_addr = rsdp_phys_addr;
-    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
-    acpi_parse_rsdp((void*)(rsdp_virt_addr));
+
+    // uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    // kprint("rsdp physical address: ");
+    // kprintln_uint64(rsdp_phys_addr);
+    // uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    // map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+
+    uacpi_init();
+
+
+    // acpi_parse_rsdp((void*)(rsdp_virt_addr));//HERE we use uacpi now instead
+    
     
     //may need to map msr but idk
     uint32_t msr_high;
@@ -195,21 +222,21 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
 
     map_page((uint64_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     //*lapic_svr &= ~0x100;//disable lapic
     *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
     kprintln("local apic enabled");
 
-    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
-    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
-    volatile uint32_t*  lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t*  lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t*  lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
-    volatile uint32_t*  lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    // volatile uint32_t* lapic_lint0 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x350));
+    // volatile uint32_t* lapic_lint1 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x360));
+    volatile uint32_t*  lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t*  lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t*  lapic_current_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x390));
+    volatile uint32_t*  lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
 
     //just refer to the sdm for the layout and stuff in vol 3 ch 2
 
@@ -229,7 +256,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
-        if (a = i) {
+        if (a == i) {//HERE PLEASE REMEMBER TO USE DOUBLE EQUALS INSTEAD OF SINGLE EQUALS
             a = i / ((i * a) + 1);
         }
     }
@@ -250,9 +277,7 @@ void init_bsp_lapic(void) {//this can be rewritten to be a lot cleaner but it's 
     kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
     kprint(" divider: ");
     kprintln_uint64(16);
-    *lapic_initial_count = UINT32_MAX;
-
-
+    *lapic_initial_count = 0;
 }
 
 
@@ -265,24 +290,26 @@ void init_mp(struct limine_mp_request* mp_request) {
     kprint("bsp lapic id: ");
     kprintln_uint64(mp_request->response->bsp_lapic_id);
     // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ap_start_address, (uint64_t) ap_start_address + hhdm_offset, 0b11);
-    for (int i = 0; i < mp_request->response->cpu_count; i++) {
+    for (uint64_t i = 0; i < mp_request->response->cpu_count; i++) {
         struct limine_mp_info** a = mp_request->response->cpus;
         //i don't think it actually matters that i'm writing to the goto address of the bsp because it gets ignored i think
         // map_page((uint64_t*) (pml4_address_virt_glob), (uint64_t) &start_ap, (uint64_t) &start_ap, 0b11);
         a[i]->goto_address = ap_start_address;
-        kpass(1000);//HERE need to wait for the ap to initialize because of shared global variables. gonna implement a spinlock and a sync thing later and a better wait system
+        while (!(smp_ticket == i)) asm volatile ("pause");
+        
+        // kpass(1000);//HERE need to wait for the ap to initialize because of shared global variables. gonna implement a spinlock and a sync thing later and a better wait system
     }
-
-
 }
 
 void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole timer thing calculation thing. we only set the already calculated values here
-    uint64_t rsdp_phys_addr = get_rsdp_physical_address();
-    kprint("rsdp physical address: ");
-    kprintln_uint64(rsdp_phys_addr);
-    uint64_t rsdp_virt_addr = rsdp_phys_addr;
-    map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
-    acpi_parse_rsdp((void*)(rsdp_virt_addr));
+    // uint64_t rsdp_phys_addr = get_rsdp_physical_address();
+    // kprint("rsdp physical address: ");
+    // kprintln_uint64(rsdp_phys_addr);
+    // uint64_t rsdp_virt_addr = rsdp_phys_addr;
+    // map_page((uint64_t*)pml4_address_virt_glob, rsdp_phys_addr, rsdp_virt_addr, 0b11);
+    // acpi_parse_rsdp((void*)(rsdp_virt_addr));//HERE we use uacpi now instead
+
+    uacpi_init();
     
     //may need to map msr but idk
     uint32_t msr_high;
@@ -300,20 +327,20 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     __asm__ volatile("wrmsr" : : "a"(msr_low), "d"(msr_high), "c"(0x1b));
 
     map_page((uint64_t*)pml4_address_virt_glob, ACPI_MADT->lapic_addr, ACPI_MADT->lapic_addr, 0b11);//not sure where to map this
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     //*lapic_svr &= ~0x100;//disable lapic
     *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
 
-    volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-    volatile uint32_t* lapic_lint0 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x350);
-    volatile uint32_t* lapic_lint1 = (uint32_t*)(ACPI_MADT->lapic_addr + 0x360);
-    volatile uint32_t* lapic_lvt_timer = (uint32_t*)(ACPI_MADT->lapic_addr + 0x320);
-    volatile uint32_t* lapic_initial_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x380);
-    volatile uint32_t* lapic_current_count = (uint32_t*)(ACPI_MADT->lapic_addr + 0x390);
-    volatile uint32_t* lapic_divider = (uint32_t*)(ACPI_MADT->lapic_addr + 0x3e0);
-    volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
+    // volatile uint32_t* lapic_lint0 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x350));
+    // volatile uint32_t* lapic_lint1 = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x360));
+    volatile uint32_t* lapic_lvt_timer = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x320));
+    volatile uint32_t* lapic_initial_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x380));
+    volatile uint32_t* lapic_current_count = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x390));
+    volatile uint32_t* lapic_divider = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x3e0));
+    volatile uint32_t* lapic_eoi = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xb0));
     
     //hpet_init();
     hpet_reset();
@@ -326,7 +353,7 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     volatile uint64_t lapic_count_before = *lapic_current_count;
     for (int i = 1; i < 1000000; i++) {//random stuff to pass time
         volatile int a = i * i;
-        if (a = i) {
+        if (a == i) {//HERE PLEASE REMEMBER TO USE DOUBLE EQUALS INSTEAD OF SINGLE EQUALS
             a = i / ((i * a) + 1);
         }
     }
@@ -347,7 +374,6 @@ void init_ap_lapic() {//same thing as init_bsp_lapic() but without the whole tim
     kprint_uint64(lapic_timer_converted[(*lapic_id) >> 24]);
     kprint(" divider: ");
     kprintln_uint64(16);
-    *lapic_initial_count = UINT32_MAX;
+    *lapic_initial_count = 0;
     kprintln("local apic enabled");
 }
-

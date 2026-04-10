@@ -8,14 +8,14 @@ void gen() {
 	// kprint("runtime ");
     // kprintln_uint64(current_thread->total_run_time);
 	// asm volatile ("sti");//enable interrupts and allows control to be passed back to scheduler. this seems kinda wrong to do but it works
-	kprint("\ngen0: hi from thread ");
+	kprint("gen0: hi from thread ");
 	// kpass(1000);
 	while (1){
 		int a = current_thread->pid;
 		// kprint("");
 		//kprint("hi");
 		kprint_uint64(current_thread->pid);
-		for (int i = 0; i < 10000000; i++) {
+		for (int i = 0; i < 1000000; i++) {
 			asm volatile ("nop");
 		}
 		//kpass(200);
@@ -27,7 +27,11 @@ void gen() {
 void gen1() {
 	// asm volatile ("sti");
 	kprint("gen1: hi from thread ");
-
+	while (1) {
+		kprint_uint64(current_thread->pid);
+		//kpass(200);
+		
+	}
 }
 
 void init_scheduler() {
@@ -51,16 +55,12 @@ void init_scheduler() {
 	for (int i = 1; i < num_threads; i++) {
 
 		if (i%2==0) current_thread->next_thread = create_thread(i, gen);
-		if (i%2==1) current_thread->next_thread = create_thread(i, gen1);
+		if (i%2==1) current_thread->next_thread = create_thread(i, gen);
 		//init_thread();
 
 		current_thread = current_thread->next_thread;
 	}
 	current_thread->next_thread = new_thread;
-	//while (1) {
-	//	current_thread = current_thread->next_thread;
-	//	kprintln_uint64(current_thread->pid);
-	//}
 	current_thread = current_thread->next_thread;//so we start on the 1st (1 indexed thread)
 	
 	//for (int i = 0; i < num_threads; i++) {
@@ -70,10 +70,17 @@ void init_scheduler() {
 	//}
 	//asm volatile("int $67");
 	//current_thread = current_thread->next_thread;
-	//scheduler_loop();
-	//asm volatile ("sti");
-	start_thread(current_thread);
+	scheduler_loop();
+	//start_thread(current_thread);
 
+}
+
+void switch_thread_wrapper(uint64_t old_rsp, uint64_t new_rsp) {
+	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	//current_thread = current_thread->next_thread;
+	*lapic_eoi = 0;
+	switch_thread(old_rsp, new_rsp);
+	kprintln("hi");
 }
 
 void scheduler_loop() {
@@ -82,13 +89,12 @@ void scheduler_loop() {
 
 		volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 		volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
-		*lapic_eoi = 0;
 		//lapic_periodic(300, 72, 0b0011, 0);
 
 		//switch_thread((uint64_t)current_thread->next_thread->current_rsp);
-		if (current_thread->total_run_time == 0 || current_thread->next_thread->total_run_time == 0) {
+		if (current_thread->total_run_time == 0) {
 			kprintln("HIHIHIHI");
-			current_thread = current_thread->next_thread;
+			//current_thread = current_thread->next_thread;
 
 			start_thread(current_thread);
 			//switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
@@ -98,11 +104,8 @@ void scheduler_loop() {
 		else {
 			kprintln("BYEBYEBYE");
 			//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
-			//asm volatile ("mov %%rsp, %0 " : "=r"(current_thread->current_rsp) : );
-			switch_thread(current_thread->frame[0], current_thread->frame[1]);
-			current_thread = current_thread->next_thread;
 
-			*lapic_eoi = 0;
+			switch_thread(current_thread->current_rsp, current_thread->next_thread->current_rsp);
 
 		}
 
@@ -111,11 +114,12 @@ void scheduler_loop() {
 	}
 }
 
-void scheduler_return() {
+void scheduler_return() {/*
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
-	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
+	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);*/
 	//*lapic_eoi = 0;
-	kprintln("hi");
+	//kprintln("hi");
+	current_thread = current_thread->next_thread;
 	scheduler_loop();
 
 }
@@ -169,12 +173,12 @@ thread_context* create_thread(uint64_t pid, void (*thread_entry)(void)) {
 }
 
 void start_thread(thread_context* thread) {
-	asm volatile ("sti");//this seems kinda wrong to do but it works
+	//asm volatile ("sti");//this seems kinda wrong to do but it works
 
 	volatile uint32_t* lapic_id = (uint32_t*)(ACPI_MADT->lapic_addr + 0x20);
 	volatile uint32_t* lapic_eoi = (uint32_t*)(ACPI_MADT->lapic_addr + 0xb0);
 	*lapic_eoi = 0;
-	lapic_oneshot(200, 72, 0b0011, 0);
+	lapic_periodic(200, 72, 0b0011, 0);
 
 
 	asm volatile (
@@ -206,7 +210,7 @@ void start_thread(thread_context* thread) {
 	current_thread->start_time = tsc_read_ns();
 	current_thread->last_start_time;
 	uint64_t thread_rsp = ((uint64_t)current_thread->stack_base) + THREAD_STACK_SIZE;//we land on the 15999th index (0 indexed)
-	//current_thread->current_rsp = thread_rsp - (15 * sizeof(uint64_t));
+
 	asm volatile ("mov %0, %%rsp" : : "r"(thread_rsp - (15 * sizeof(uint64_t))));//HERE we subtract by the number of elements we popped because we're still at the default stack pointer and not the modified one after pushing everything during thread initialization
 
 	asm volatile (//i think this actually works because the rsp gets restored after the function call and it'll still be at 15*8 under the top of the stack
@@ -228,6 +232,7 @@ void start_thread(thread_context* thread) {
 		);
 
 	current_thread->thread_entry();
+	// asm volatile ("mov %%rsp, %0 " : "=r"((uint64_t)current_thread->current_rsp) :);
 	
 
 	asm volatile (

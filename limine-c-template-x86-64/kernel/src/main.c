@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include <keyboard.h>
+// #include <keyboard.h>//don't include keyboard.h as we have duplicate functions
 #include <gdt.h>
 #include <idt.h>
 #include <kutils.h>
@@ -12,11 +12,29 @@
 #include <tsc.h>
 #include <hpet.h>
 #include <scheduler.h>
+#include <ioapic.h>
+#include <vfs.h>
+#include <tmpfs.h>
+#include <mutex.h>
+#include <syscalls.h>
+#include <loader.h>
 
 #include <limine.h>
 
 #include <flanterm/flanterm.h>
 #include <flanterm/backends/fb.h>
+
+#define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 0
+#define NANOPRINTF_USE_LARGE_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_WRITEBACK_FORMAT_SPECIFIERS 0
+// #define NANOPRINTF_VISIBILITY_STATIC
+
+#define NANOPRINTF_IMPLEMENTATION
+
+#include <nanoprintf-0.5.4/nanoprintf.h>
 
 
 //TODO: rewrite the chatgpt'd gdt tss and idt
@@ -38,20 +56,20 @@ static volatile LIMINE_BASE_REVISION(3);
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
-    .revision = 0//may need to change it to 3 but idk
+    .revision = 3//may need to change it to 3 but idk
 };
 
 __attribute__((used, section(".limine_requests")))
@@ -60,10 +78,24 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
 };
 
+
+#define LIMINE_MP_REQUEST_X86_64_X2APIC (1 << 0)
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_mp_request mp_request = {
     .id = LIMINE_MP_REQUEST,
-    .revision = 0//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+    .flags = LIMINE_MP_REQUEST_X86_64_X2APIC,
+    .revision = 3//HERE it's physical when it's 0 but the protocol says that it's physical when it's >=3 so idk
+};
+
+// __attribute__((used, section(".limine_requests")))
+// static volatile struct limine_internal_module internal_module = {
+//     .path = "../../tmpfs.tar"
+// };
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_module_request module_request = {
+    .id = LIMINE_MODULE_REQUEST,
+    .revision = 3
 };
 
 
@@ -150,24 +182,61 @@ void clear_framebuffer(struct limine_framebuffer* framebuffer, uint32_t color) {
     }
 }
 
+struct limine_memmap_entry** usable_memmaps_pointer;
+uint64_t usable_memmaps_amount;
+
 struct limine_memmap_entry** usable_memmaps_1_ptr;//HERE we use linked lists now so this shouldn't really matter. (strikethrough) for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish (strikethrough)
 
 
 struct usable_memmaps_region memmap_arr[32];//HERE. might run into issues with statically declaring the amount of memmaps
 
 struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there is.remember that it's plural
-    int usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+    uint64_t usable_memmaps_number = 0;//number of usable memmaps (1 indexed)
+    
+    // uint8_t* memmap_bitmap;
+    uint64_t total_usable_memory;
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//i'm sorry for looping through it twice. there's probably a better way but i'm too lazy rn
+
+        if (memmap_request.response->entries[i]->type == 0) {
+            kprintf("base: %llx\nlength: %llx\ntype: %llx\n", memmap_request.response->entries[i]->base, memmap_request.response->entries[i]->length, memmap_request.response->entries[i]->type);
+        }
+
+        if (memmap_request.response->entries[i]->type == 0) {
+            total_usable_memory += memmap_request.response->entries[i]->length;
+        }
+
+
         //if (memmap_request.response->entries[i]->type == 0) {
         //    usable_memmaps_number++;
         //}
         usable_memmaps_number++;
     }
 
+
+
+    //this isn't a proper bitmap. we're using uint8_t's instead of the actual bits.
+    //we require at least 
+    
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
+        if (memmap_request.response->entries[i]->length >= 0x800000) {
+            memmap_bitmap = (uint8_t*) memmap_request.response->entries[i]->base;
+            break;
+        }
+    }
+
+    //now we 
+
+
+
+
+
+
+
+
     //not sure if i should put this as global
     struct limine_memmap_entry* usable_memmaps[usable_memmaps_number];//array of pointers to limine memmap entries//len() is 1 indexed
     usable_memmaps_number = 0;//reset to 0
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {/*
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {/*
         if (memmap_request.response->entries[i]->type == 0) {
             usable_memmaps[usable_memmaps_number] = memmap_request.response->entries[i];
             usable_memmaps_number++;
@@ -179,7 +248,7 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
     usable_memmaps_1_ptr = &usable_memmaps[1];//for simplicity's sake i'm only gonna use the biggest entry for now which is 2gb ish
 
 
-    for (int i = 0; i < usable_memmaps_number; i++) {
+    for (uint64_t i = 0; i < usable_memmaps_number; i++) {
         char strr[32];
         uint64_to_string(usable_memmaps[i]->base, strr);
         // kprint(strr);
@@ -198,22 +267,31 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
 	memmap_arr[0].length = usable_memmaps[0]->length;
 	memmap_arr[0].type = usable_memmaps[0]->type;
     //memset(memmap_arr[0].frame_bitmap, 0x00, (memmap_arr[0].length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
-    for (int i = 0; i < memmap_arr[0].length / 4096; i++) {
+    for (uint64_t i = 0; i < memmap_arr[0].length / 4096; i++) {
         memmap_arr[0].frame_bitmap[i] = 0x00;
 	}
+
+    // memmap_arr[0].frame_bitmap_length = memmap_arr[0].length / 4096;
+    // uint64_t next_bitmap_start = memmap_arr[0].base + memmap_arr[0].frame_bitmap_length + 1;//hopefully there's no off by one error. i'm using +1 just in case
+    
     memmap_arr[0].frame_bitmap[memmap_arr[0].length / 4096] = 0x02;//HERE we use 2 as the terminating character/value
 	memmap_arr[0].next = NULL;
     //struct usable_memmaps_region* current = &first_memmap;
 	struct usable_memmaps_region* current = &memmap_arr[0];
-    for (int i = 1; i < usable_memmaps_number; i++) {
+    for (uint64_t i = 1; i < usable_memmaps_number; i++) {
 
 		struct usable_memmaps_region* usable_memmap = &memmap_arr[i];
 		usable_memmap->base = usable_memmaps[i]->base;
 		usable_memmap->length = usable_memmaps[i]->length;
         usable_memmap->type = usable_memmaps[i]->type;
+
+        // usable_memmap->frame_bitmap = (uint64_t*) next_bitmap_start;
+        // usable_memmap->frame_bitmap_length = usable_memmap->length / 4096;
+        // next_bitmap_start += usable_memmap->frame_bitmap_length + 1;
+
         //memset(usable_memmap->frame_bitmap, 0x00, (usable_memmap->length / 4096));//not sure if i'm supposed to convert it to a virtual address here for memset
-        for (int i = 0; i < usable_memmap->length / 4096; i++) {
-            usable_memmap->frame_bitmap[i] = 0x00;
+        for (uint64_t j = 0; j < usable_memmap->length / 4096; j++) {//HERE not sure if i'm supposed to use i or j
+            usable_memmap->frame_bitmap[j] = 0x00;
         }
         usable_memmap->frame_bitmap[usable_memmap->length / 4096] = 0x02;//HERE we use 2 as the terminating character/value; hopefully there's no off by 1 error
 		usable_memmap->next = NULL;
@@ -224,15 +302,23 @@ struct usable_memmaps_region* init_memmaps() {//HERE it's now every memmap there
         current->next = usable_memmap;
         current = current->next;
     }
-    kprint("number of usable memmaps (1 indexed): ");
-    kprintln_uint64(usable_memmaps_number);
+    // kprint("number of usable memmaps (1 indexed): ");
+    // kprintln_uint64(usable_memmaps_number);
 
-    kprintln("initialized memmaps");
+    // kprintln("initialized memmaps");
     return &memmap_arr[0];
 }
 
 struct limine_framebuffer* framebuffer;
 struct flanterm_context* ft_ctx;
+mutex_t ft_ctx_mutex;
+
+uint64_t gdt_table[7];
+struct TSS* tss __attribute__((aligned(16)));
+
+bool smp_init;
+uint64_t smp_ticket;
+
 
 size_t kstrlen(char* msg) {
     size_t s = 0;
@@ -249,25 +335,82 @@ size_t kstrlen(char* msg) {
     return s;
 }
 
+//taken from musl
+//remember to always free the returned string
+char *strdup(const char *s)
+{
+	size_t l = strlen(s);
+	char *d = (char*) kmalloc_byte(l+1);
+	if (!d) return NULL;
+	return memcpy(d, s, l+1);
+}
+
 void kprint(char* msg) {
+    // asm volatile ("cli");
     uint64_t s = kstrlen(msg);
     flanterm_write(ft_ctx, msg, s);
+    // asm volatile ("sti");
 }
 
 void kprintln(char* msg) {//i think the args are being pass through fine idk
+    // asm volatile ("cli");
     kprint(msg);
     kprint("\n");
 }
 
 void kprint_uint64(uint64_t num) {
+    // asm volatile ("cli");
     char strr[64];//might be a bit wasteful
     uint64_to_string(num, strr);
     kprint(strr);
 }
 
 void kprintln_uint64(uint64_t num) {
+    // asm volatile ("cli");
     kprint_uint64(num);
     kprint("\n");
+}
+
+void kprintf(char* fmt, ...) {
+    bool irq_status;
+    irq_disable_save(&irq_status);
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    char str[size];//was told that using a variable length array was a bad idea...
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
+    acquire_mutex(&ft_ctx_mutex);
+    flanterm_write(ft_ctx, str, size);
+    release_mutex(&ft_ctx_mutex);
+
+    // kfree((uint64_t*) str);
+    va_end(args);
+    va_end(args_copy);
+    irq_restore(&irq_status);
+}
+void kprintf_interruptable(char* fmt, ...) {
+    // asm volatile ("cli");
+    va_list args;
+    va_start(args, fmt);
+    va_list args_copy;
+    va_copy(args_copy, args);
+    uint64_t size = npf_vsnprintf(NULL, 0, fmt, args);
+    // char* str = (char*) kmalloc_byte(size);//+1 byte for null terminating char. i don't think i actually need this because i'm using actual sizes instead of relying on the terminating char
+    char str[size];//should be fine
+    npf_vsnprintf(str, size+1, fmt, args_copy);//+1 byte for null terminating char. we need this because it assumes that the last thing is a null terminating char or something
+    
+    acquire_mutex(&ft_ctx_mutex);
+    flanterm_write(ft_ctx, str, size);
+    release_mutex(&ft_ctx_mutex);
+
+    // kfree((uint64_t*) str);
+    va_end(args);
+    va_end(args_copy);
+    // asm volatile ("sti");
 }
 
 void init_physical_memory() {//REMEMBER TO CALL THIS FIRST BEFORE ANYTHING
@@ -292,6 +435,7 @@ void test_memory() {//mini test
 		kprintln("memory test failed");
         print_heap(10);
     }
+    // kfree(x);
 }
 
 
@@ -306,10 +450,10 @@ uint64_t get_rsdp_physical_address() {
 void kmain(void) {
 
     /*COLOR. may not be the best idea to define them as such simple names. maybe put it in a struct in the future*/
-    uint32_t RED = 0xff0000;
-    uint32_t GREEN = 0x00ff00;
-    uint32_t BLUE = 0x0000ff;
-    uint32_t WHITE = 0xffffff;
+    // uint32_t RED = 0xff0000;
+    // uint32_t GREEN = 0x00ff00;
+    // uint32_t BLUE = 0x0000ff;
+    // uint32_t WHITE = 0xffffff;
     uint32_t BLACK = 0x000000;
 
     // Ensure the bootloader actually understands our base revision (see spec).
@@ -332,14 +476,21 @@ void kmain(void) {
 
     clear_framebuffer(framebuffer, BLACK);
 
+    ft_ctx_mutex.object = ft_ctx;
+    ft_ctx_mutex.locked = 0;
+
     // kprint("helloworld\n");
     kprintln("willowOS");
+
+    usable_memmaps_pointer = memmap_request.response->entries;
+    usable_memmaps_amount = memmap_request.response->entry_count;
 
     struct usable_memmaps_region* memmap = init_memmaps();
 
     struct usable_memmaps_region* current_memmap = memmap;
     
-    for (int i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {//using 3 for now but it will break if the # of usable memmaps changes
+        continue;
         if (current_memmap->type == 0) {
         kprint("memmap region's base  : ");
         kprintln_uint64(current_memmap->base);
@@ -354,11 +505,15 @@ void kmain(void) {
 
     init_physical_memory();//make sure this is called first
 
+    // kprintf("%llx", alloc_frame());
+
+    // while (1);
+
     init_paging();
 
     //bp();
 
-    uint64_t gdt_table[7];
+    // uint64_t gdt_table[7];//we use a global one so the ap's can use it as well
     setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
@@ -367,35 +522,59 @@ void kmain(void) {
     //load_idt();
 
     idt_init();//not chatgpt'ed version
-    struct TSS tss __attribute__((aligned(16)));
-    setup_tss(&tss, gdt_table);
+    // struct TSS tss __attribute__((aligned(16)));
+
+    //HERE somethign about using the global tss vs the local tss causes smth to break
+
+    tss = (struct TSS*) (alloc_frame() + hhdm_offset);
+    // setup_tss(tss_0, gdt_table);
+    setup_tss(tss, gdt_table);
     load_tss();
 
-    uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    // uint64_t heap_start_virt = init_heap();//must call to initialize heap
+    init_heap();
 
     test_memory();//make sure this gets called right after init_heap()
 
     //uint64_t frame_alloc_0 = 2146541568+4096;
     //free_frame(frame_alloc_0);
 
+    // uint64_t ist0 = alloc_frame();
+    // map_page((uint64_t*) pml4_address_virt_glob, (uint64_t) ist0, 0x11000000+0x1000-1, 0b111);
 
+
+    //init sse and sse2 stuff
+    //inline asm taken straight from chatgpt
+    //logic taken from salernos
+    uint64_t cr0;
+    asm volatile ("mov %%cr0, %0": "=r"(cr0): : "memory");//read cr0
+    cr0 = (cr0 & ~(1 << 2)) | (1 << 1);
+    asm volatile ("mov %0, %%cr0":: "r"(cr0): "memory");//write cr0
+
+    uint64_t cr4;
+    asm volatile ("mov %%cr4, %0": "=r"(cr4): : "memory");//read cr4
+    cr4 = cr4 | (3 << 9);
+    asm volatile ("mov %0, %%cr4":: "r"(cr4): "memory");//write cr4
 
     pic_disable();//we disable the pic and set up the local apic (lapic)
 
     init_bsp_lapic();
-    //kprintln("1 second intervals in ns: ");
-    //for (int i = 0; i < 3; i++) {
+    // kprintln("1 second intervals in ns: ");
+    // for (int i = 0; i < 3; i++) {
     //    uint64_t a = hpet_get_elapsed_ns();
     //    kpass(1000);
     //    uint64_t b = hpet_get_elapsed_ns();
     //    kprintln_uint64(b - a);
-    //}
+    // }
 
     tsc_init();//don't put in interrupt because it sends a vector of the same priority twice and it doesn't continue or something
 
-    //init_mp(&mp_request);
+    smp_init = 0;
+    smp_ticket = 0;
+    // init_mp(&mp_request);
+    smp_init = 1;
 
-    //hpet is initialized inside init_bsp_lapic();
+    // hpet is initialized inside init_bsp_lapic();
 
     // kprintln("lapic timers ticks in in 1 second:");
     // for (int i = 0; i < 4; i++) {
@@ -405,13 +584,69 @@ void kmain(void) {
 
 
 
-    init_scheduler();
+    // init_scheduler();
+
+    
     // kprintln_uint64(HEAP_SIZE_DEFINED/PAGE_SIZE_DEFINED);
 
     // lapic_periodic(500, 64, 0b0011, 0);
 
+    // asm volatile ("int $224");
 
 
+    // init_ioapic();
+
+
+    void* a = kmalloc_byte(4096);
+    void* b = kmalloc_byte(4096);
+    kfree(a);
+    kmalloc_byte(4097);
+    kfree(b);
+
+    init_futex();
+
+    init_syscalls();//we call init_syscalls() first because it maps test_a and usermode_stack_base
+
+    // //global scheduler queue lock
+    // GLOBAL_SCHED_QUEUE_LOCK.locked = 0;
+    // GLOBAL_SCHED_QUEUE_LOCK.object = GLOBAL_SCHED_OBJECT;
+
+    // int** arr = (int**) kmalloc_byte(64);
+    // arr = (int**) krealloc_byte((uint64_t*) arr, 4096);
+    // for (int i = 0; i < 512; i++) {
+    //     int* v = (int*) kmalloc_byte(8);
+    //     *v = i;
+    //     arr[i] = v;
+    //     kprintf("%d ", *(arr[i]));
+    // }
+    // while (1);
+
+    init_vfs(&module_request);
+
+    // init_scheduler();
+
+    // while (1) {
+    //     kprintf("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHIHI\n");
+    // }
+
+
+    // init_syscalls();
+
+    kmalloc_byte(16000);
+    void* c = kmalloc_byte(128);
+    kmalloc_byte(16000);
+    kmalloc_byte(15483);
+    kfree(c);
+    kmalloc_byte(12349);
+    // kprintf("hi");
+
+
+    
+    
+
+    // while (1) {
+    //     asm volatile ("sti");
+    // }
 
     //asm volatile ("int $64");
 
@@ -430,8 +665,8 @@ __attribute__((noreturn))
 void start_ap() {//remember to not call any non processor specific init functions here like init_memmaps()
     kprintln("\ninitializing ap");
 
-    uint64_t gdt_table[7];
-    setup_gdt(gdt_table);
+    // uint64_t gdt_table[7];//we have a global gdt
+    // setup_gdt(gdt_table);
     struct GDTPtr gdtr;
     load_gdt(&gdtr, gdt_table);
     idt_init();//HERE must set up idt. not chatgpt'ed version
@@ -440,26 +675,49 @@ void start_ap() {//remember to not call any non processor specific init function
     load_tss();
 
     asm volatile ("mov %0, %%cr3" :: "r"(pml4_address_virt_glob-hhdm_offset));//HERE must remember to mov the phys changed cr3 back into the ap. we use our own cr3 but the ap tries to load its own (probably the old one from the bsp) which causes it to boot loop when i try to access any memory regions because of a page fault and/or a gpf probably
+    // pic_disable();//there's only one pic for the entire system i think so no need to call again
     init_ap_lapic();//pretty sure writing to msr doesn't raise any flags so this should be fine for all ap's
-    volatile uint32_t* lapic_svr = (uint32_t*) (ACPI_MADT->lapic_addr + 0xf0);//make sure this is 32 bits and not 64 bits
+    volatile uint32_t* lapic_svr = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0xf0));//make sure this is 32 bits and not 64 bits
     // *lapic_svr &= ~0x100;//disable lapic
     // *lapic_svr |= 0x100;//enable lapic via the spurious interrupt vector register
     test_memory();//make sure this gets called right after init_heap()
     kprintln("lapic svr: ");
     kprintln_uint64_to_binary(*lapic_svr);
-    volatile uint32_t* lapic_id = (uint32_t*) (ACPI_MADT->lapic_addr + 0x20);
+    volatile uint32_t* lapic_id = (uint32_t*) ((uintptr_t)(ACPI_MADT->lapic_addr + 0x20));
     kprint("lapic id: ");
     kprintln_uint64((*lapic_id)>>24);
     //kprintln("ap initialized!\n");
 
-    //kprintln("1 second intervals in ns: ");
-    //for (int i = 0; i < 3; i++) {
+    // kprintln("1 second intervals in ns: ");
+    // for (int i = 0; i < 3; i++) {
     //    uint64_t a = hpet_get_elapsed_ns();
     //    kpass(1000);
     //    uint64_t b = hpet_get_elapsed_ns();
     //    kprintln_uint64(b - a);
-    //}
+    // }
     kprintln("ap initialized!\n");
+
+    // kpass(5000);
+    // if ((*lapic_id)>>24==1) {
+    //     init_scheduler();
+    // }
+
+    smp_ticket++;
+
+    while (!smp_init) {
+        asm volatile ("pause");
+    }
+
+    while (1) {
+        kprintf("BYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYEBYE");
+    }
+
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+    // push_thread(create_thread((*lapic_id)>>24, gen2));
+
+    // while (1) reschedule();
 
     while (1) {asm volatile ("hlt");}
 }

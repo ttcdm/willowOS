@@ -45,6 +45,8 @@ struct interrupt_frame {
 	uint64_t rip;
 	uint64_t cs;
 	uint64_t rflags;//rflags gets pushed first
+	uint64_t rsp;
+	uint64_t ss;
 };
 
 
@@ -64,6 +66,10 @@ void thread_handler(struct interrupt_frame* frame);
 
 void thread_interrupter_handler(struct interrupt_frame* frame);
 
+void thread_sleep_handler(struct interrupt_frame* frame);
+
+void ps2_keyboard_handler(struct interrupt_frame* frame);
+
 void page_fault_handler(struct interrupt_frame* frame);
 
 void gpf_handler(struct interrupt_frame* frame);
@@ -76,12 +82,11 @@ void idt_init(void);
 
 
 
-static idtr_t idtr;
+extern idtr_t idtr;
 
 typedef struct {
 	uint16_t limit;
 	uint32_t base;
 } __attribute__((packed)) idtr_value;
 
-static idtr_value idtr_v;
-
+// static idtr_value idtr_v;

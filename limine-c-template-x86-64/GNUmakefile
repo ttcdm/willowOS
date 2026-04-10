@@ -10,7 +10,7 @@ override IMAGE_NAME := template
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
 # -mgeneral-regs-only // for compiling with interrupts or something
-# -O2 for the default compilation with optimization. O0 is for no optimization
+# -O2 for the default compilation with optimization. O0 is for no optimization. Ofast is fastest? optimization
 HOST_CFLAGS := -g -O0 -pipe
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
@@ -32,7 +32,6 @@ run-debug: $(IMAGE_NAME).iso
 		-D ./qemu-log \
 		-d int,cpu_reset \
 		-M q35 \
-		-smp 4 \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
 		$(QEMUFLAGS)
@@ -46,6 +45,7 @@ run: $(IMAGE_NAME).iso
 		-d int,cpu_reset \
 		-M q35 \
 		-smp 4 \
+		-no-reboot \
 		-cdrom $(IMAGE_NAME).iso \
 		-boot d \
 		$(QEMUFLAGS)
@@ -102,6 +102,9 @@ $(IMAGE_NAME).iso: limine/limine kernel
 	cp -v kernel/bin/kernel iso_root/boot/
 	mkdir -p iso_root/boot/limine
 	cp -v limine.conf limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/boot/limine/
+
+	cp -v tmpfs.tar iso_root/boot/
+	
 	mkdir -p iso_root/EFI/BOOT
 	cp -v limine/BOOTX64.EFI iso_root/EFI/BOOT/
 	cp -v limine/BOOTIA32.EFI iso_root/EFI/BOOT/
