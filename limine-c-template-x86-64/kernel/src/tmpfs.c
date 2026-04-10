@@ -26,6 +26,11 @@ vfs_t* init_tmpfs() {
     // vfs_tmpfs->vnode_covered = tmpfs_link_vnode(root_dir, VDIR);
     vnode_t* root_vnode = tmpfs_link_vnode(root_dir, VDIR);
     vfs_tmpfs->vnode_covered = root_vnode;
+    vfs_ops_t* vops = (vfs_ops_t*) kmalloc_byte(sizeof(vfs_ops_t));
+    vfs_tmpfs->vfs_ops = vops;
+    vfs_tmpfs->vfs_ops->vfs_mount = vnode_mount_vfs;
+    vfs_tmpfs->type = TMPFS;
+
 
     // vnode_t* tmpfs_root_vnode = (vnode_t*) kmalloc_byte(sizeof(vnode_t));
     // tmpfs_root_vnode->vnode_data = (vnode_t*) root_dir;
@@ -414,7 +419,6 @@ vnode_t* vnode_tmpfs_lookup(vnode_t* vnode, char* name) {
     // ret = tmpfs_link_vnode(temp, temp->type+1);//HERE vtype has vnon, vreg, vdir, which is 0, 1, 2 but tmpfs_header_t has 0, 1 which corresponds to file and dir respectively, so we get an off by one error. we can fix it by just adding 1 but explicitly specifying it via if statements is probably safer
     if (temp->type == 0) {ret = tmpfs_link_vnode(temp, VREG);}
     else if (temp->type == 1) {ret = tmpfs_link_vnode(temp, VDIR);}
-    else if (temp->type == 8) {ret = ((tmpfs_vfs_t*) temp)->vfs->vnode_covered;}//we don't need to link it because it's already been linked via the creation of the vfs i think
     return ret;
 }
 
