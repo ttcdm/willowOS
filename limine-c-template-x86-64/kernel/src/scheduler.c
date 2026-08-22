@@ -516,7 +516,7 @@ volatile thread_context* create_thread(uint64_t pid, void (*thread_entry)(void))
 	volatile uint64_t* thread_base = (uint64_t*) (((uint64_t) kmalloc_byte_interruptable(THREAD_STACK_SIZE)) + THREAD_STACK_SIZE);//16kb
 	volatile thread_context* new_thread = (thread_context*) kmalloc_byte_interruptable(sizeof(thread_context));//HERE REMEMBER TO ALWAYS DISABLE INTERRUPTS WHEN NECESSARY OR USE THE STATE SAVING FUNCTIONS
 	memset(new_thread, 0, sizeof(thread_context));//HERE always remember to zero these type of allocations
-
+	memset((uint64_t*) ((uint64_t) thread_base - THREAD_STACK_SIZE), 0, THREAD_STACK_SIZE);//HERE always remember to check if you're doing pointer arithmetic or not
 	new_thread->start_time;// = tsc_read_ns();
 	new_thread->last_start_time = 0;
 	new_thread->total_run_time = 0;

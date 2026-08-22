@@ -87,13 +87,13 @@ void init_loader(vfs_fd_t* file) {
 }
 
 
-void* load_elf(vfs_fd_t* file, uint64_t cr3) {
+void* load_elf(void* data, uint64_t cr3) {
 
     //HERE REMEMBER TO FREE THE PHYSICAL FRAMES WHEN YOU'RE DONE
 
-    Elf64_Ehdr* ehdr = file->data;
+    Elf64_Ehdr* ehdr = data;
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
-        Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
+        Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
 
 
@@ -144,7 +144,7 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
             //HERE remember to reread the docs and calculate the offsets correctly
             // memset((void*) phdr->p_vaddr, 0, phdr->p_memsz);
             memset((void*) (phdr->p_vaddr & ~0xfff), 0, phdr->p_memsz + (phdr->p_vaddr & 0xfff));
-            memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) file->data) + phdr->p_offset), phdr->p_filesz);
+            memcpy((void*) phdr->p_vaddr, (void*) (((uint64_t) data) + phdr->p_offset), phdr->p_filesz);
 
             // map_page((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + phdr->p_filesz, (uint64_t) phdr->p_vaddr + phdr->p_filesz, 0b111);
             // change_page_map((uint64_t*) cr3, (uint64_t) phdr->p_vaddr + phdr->p_filesz, 0b111);
@@ -166,13 +166,13 @@ void* load_elf(vfs_fd_t* file, uint64_t cr3) {
 
     
 
-void unload_elf(vfs_fd_t* file, uint64_t cr3) {
+void unload_elf(void* data, uint64_t cr3) {
     
     //HERE REMEMBER TO FREE THE PHYSICAL FRAMES WHEN YOU'RE DONE
 
-    Elf64_Ehdr* ehdr = file->data;
+    Elf64_Ehdr* ehdr = data;
     for (uint64_t i = 0; i < ehdr->e_phnum; i++) {
-        Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) file->data);//not sure if casting to void instead of the actual thing is the proper way to do it
+        Elf64_Phdr* phdr = (void*) ((ehdr->e_phoff + (i * ehdr->e_phentsize)) + (uint64_t) data);//not sure if casting to void instead of the actual thing is the proper way to do it
         if (phdr->p_type == 1)  {//PT_LOAD
             if (phdr->p_memsz < 4096) {
                 free_frame(virt_to_phys_page(phdr->p_vaddr, cr3));//need to free before we unmap because we need to still be able to translate it
@@ -219,7 +219,7 @@ void userspace_run_elf() {//HERE i think it's okay if this gets interrupted but 
         change_page_map(t->cr3, (((uint64_t) t->user_rsp) - THREAD_STACK_SIZE) + (i*4000), 0b111);
     }
 
-    memset(t->user_rsp - THREAD_STACK_SIZE, 0, THREAD_STACK_SIZE);
+    memset((uint64_t*) ((uint64_t) t->user_rsp - THREAD_STACK_SIZE), 0, THREAD_STACK_SIZE);
 
     //this is kinda dirty but oh well
     // change_page_map(t->cr3, (uint64_t) t, 0b111);//map the entire thread context struct. not sure if it's needed but just in case. also might be bad for safety but idk

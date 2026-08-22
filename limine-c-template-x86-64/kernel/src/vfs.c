@@ -13,6 +13,35 @@ struct vfs_fd_table {
 };
 
 vnode_t* tmpfs_root;
+void* tarball_ptr;
+
+void initial_thread() {
+    void* testt_ptr;
+    int b_size = tar_lookup_bin(tarball_ptr, "test", (char**) &testt_ptr);
+    
+    
+    kprintf("b_size: %d\n", b_size);
+    // void* aptr = kmalloc_byte(b_size);
+    // memset(aptr, 0, b_size);
+    // kfree(aptr);
+    // tmpfs_root->vnode_ops->vnode_create(tmpfs_root, "testt", b_size);
+    // vnode_t* testt_file = tmpfs_root->vnode_ops->vnode_lookup(tmpfs_root, "testt");
+    // int testt_fd = fd_open("testt", 0, 0);
+    // fd_pwrite(testt_fd, testt_ptr, b_size, 0);
+    // void* buf = kmalloc_byte(b_size);
+    // fd_pread(testt_fd, buf, b_size, 0);
+
+
+    // for (int i = 0; i < b_size; i++) {
+    //     kprintf("%c", ((char*) buf)[i]);
+    // }
+
+    hot_exec_elf(480, testt_ptr);
+    // hot_exec_elf(480, (void*) vfs_int_fd_to_vfs_file(testt_fd)->vnode->vnode_data);
+    while (1) reschedule();
+
+}
+
 
 void init_vfs(volatile struct limine_module_request* module_request) {
 
@@ -36,6 +65,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
     tmpfs_list_files(root->vnode_data);
     vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi.txt");
     // vfs_fd_t* fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "hi.txt", 0);
+    goto hi;
     vfs_fd_t* fd = NULL;
     assert(fd != NULL);
     f->vnode_ops->vnode_wr(fd, "asadf", 6, 0);
@@ -57,7 +87,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
     
     tmpfs_list_files(f2->vnode_data);
 
-
+    hi:
 
     // map_page((uint64_t*) pml4_address_virt_glob, module_request->response->modules[0]->address, module_request->response->modules[0]->address, 0b11);
     // kprintf("%s", module_request->response->modules[0]->cmdline);
@@ -67,6 +97,9 @@ void init_vfs(volatile struct limine_module_request* module_request) {
         kprintf("%s\n", module_request->response->modules[i]->path);
         if (strcmp(module_request->response->modules[i]->path, "/boot/tmpfs.tar") == 0) {
             void* tarball = module_request->response->modules[i]->address;
+            tarball_ptr = tarball;
+            hot_create_and_push_thread(get_new_pid(), initial_thread);
+            while (1) reschedule();
             // char* file_data = (char*) kmalloc_byte(8192);//too lazy to compute for octal to decimal size again...
             char* file_data = (char*) kmalloc_byte(8);//i don't think we actually need to allocate the size of the file. only the size of the pointer because it's a pointer to the file data and not the file data itself, and tar_lookup_bin() changes the value of the pointer via a double pointer
             uint64_t b_size = tar_lookup_bin(tarball, "hi.txt", &file_data);
@@ -76,6 +109,7 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             for (int j = 0; j < b_size; j++) {
                 kprintf("%c", file_data[j]);
             }
+
 
             root->vnode_ops->vnode_create(root, "hi2.txt", b_size);
             // vnode_t* f = root->vnode_ops->vnode_lookup(root, "hi2.txt");
@@ -191,6 +225,10 @@ void init_vfs(volatile struct limine_module_request* module_request) {
             // b_size = tar_lookup_bin(tarball, "test", (char**) &testt_ptr);
             // root->vnode_ops->vnode_create(root, "testt", b_size);
             // vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
+            // int testt_fd = fd_open("testt", 0, 0);
+            // kprintf("hi");
+            // fd_pwrite(testt_fd, testt_ptr, b_size, 0);
+            // vnode_t* testt_file = root->vnode_ops->vnode_lookup(root, "testt");
 
             // vfs_fd_t* testt_fd = (vfs_fd_t*) tmpfs_open(root->vnode_data, "testt", 0);
             // testt_file->vnode_ops->vnode_wr(testt_fd, testt_ptr, b_size, 0);
@@ -210,7 +248,9 @@ void init_vfs(volatile struct limine_module_request* module_request) {
 
             // syscall_log("hi");
 
-            // hot_exec_elf(480, testt_fd);
+            // hot_exec_elf(480, (void*) vfs_int_fd_to_vfs_file(testt_fd)->vnode->vnode_data);
+            
+
             // hot_exec_elf(481, testt_fd);
             // syscall17(2, "hi", 2);
 
@@ -308,7 +348,6 @@ int vfs_fdopen(char* path, int flags, int mode) {
         path = NULL;
     }
     assert(v != NULL);
-    
 
     vfs_file_t* fd = (vfs_file_t*) kmalloc_byte(sizeof(vfs_file_t));
 

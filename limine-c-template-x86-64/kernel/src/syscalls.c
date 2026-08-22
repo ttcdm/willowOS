@@ -119,6 +119,9 @@ void init_syscalls() {
     uint64_t kernel_gs_base = (uint64_t) kmalloc_byte(4096);//HERE check if it's ok for these to be so far apart and not 8 bytes apart
     change_page_map((uint64_t*) pml4_address_virt_glob, gs_base, 0b111);
     change_page_map((uint64_t*) pml4_address_virt_glob, kernel_gs_base, 0b111);
+    memset((void*) gs_base, 0, 4096);
+    memset((void*) kernel_gs_base, 0, 4096);
+    
     wrmsr(0xC0000101, gs_base);
     wrmsr(0xC0000102, kernel_gs_base);
 
@@ -300,6 +303,7 @@ int syscall12(uint64_t num, int* pointer) {//futex wake
 int syscall13(uint64_t num, size_t size, void **pointer) {
     // kprintf("%llx\n", size);
     *pointer = (void*) kmalloc_byte(size);
+    memset(*pointer, 0, size+4096);
     change_page_map_range(get_current_thread()->cr3, (uint64_t)*pointer, (uint64_t) size, 0b111);
     return 0;
 }
